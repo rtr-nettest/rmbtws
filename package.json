@@ -20,7 +20,7 @@
         "rtr-netztest",
         "rtr-nettest"
     ],
-    "main": "dist/rmbtws.js",
+    "main": "dist/rmbtws.min.js",
     "babel": {
         "presets": [
             "es2015"

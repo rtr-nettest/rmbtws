@@ -1,0 +1,30 @@
+{
+  "name": "rmbtws",
+  "description": "A JavaScript implementation of a WebSocket-client for the RMBT protocol",
+  "main": "dist/rmbtws.min.js",
+  "authors": [
+    "Thomas Schreiber <thomas.schreiber@rtr.at>",
+    "Rundfunk und Telekom Regulierungs-GmbH (RTR-GmbH) <netztest@rtr.at>"
+  ],
+  "license": "Apache-2.0",
+  "keywords": [
+    "rmbt",
+    "netztest",
+    "netttest",
+    "speedtest",
+    "rtr",
+    "rtr-netztest",
+    "rtr-nettest"
+  ],
+  "homepage": "https://github.com/rtr-nettest/rmbtws",
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ],
+  "dependencies": {
+    "jquery": "^3.2.1"
+  }
+}
