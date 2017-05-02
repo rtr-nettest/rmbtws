@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <script>
+        selectedLanguage = "de";
+        controlProxy = "https://develop.netztest.at";
+        wspath = "RMBTControlServer";
+
+        /* getParam polyfill */
+        if (typeof window.getParam === 'undefined') {
+            window.getParam = (variable) => {
+                var query = window.location.search.substring(1);
+                var vars = query.split("&");
+                for (var i=0;i<vars.length;i++) {
+                    var pair = vars[i].split("=");
+                    if(pair[0] == variable){return pair[1];}
+                }       return(false);
+            }
+        }
+
+
+    </script>
+    <script
+        src="https://code.jquery.com/jquery-3.2.1.min.js"
+        integrity="sha256-hwg4gsxgFZhOsEEamdOYGBf13FyQuiTwlAQgxVSNgt4="
+        crossorigin="anonymous"></script>
+    <script>
+
+    </script>
+
+    <script src="../dist/rmbtws.min.js"></script>
+</head>
+<body>
+    <script>
+        function start() {
+            var config = new RMBTTestConfig();
+            config.uuid = "d105ee81-59c4-4850-abf7-d38f82c27345";
+            var websocketTest = new RMBTTest(config);
+            websocketTest.startTest();
+
+            /** *
+            window.setInterval(function() {
+                var intermediateResult = websocketTest.getIntermediateResult();
+                console.log(intermediateResult.status + ";" + intermediateResult.progress);
+            },500); /* */
+        }
+
+
+    </script>
+    <button onclick="start()">Start test</button>
+    <!--<pre id="debug"></pre>-->
+</body>
+</html>
