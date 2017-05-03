@@ -1594,8 +1594,31 @@ var RMBTTest = function () {
                     var timeNs = parseInt(msg.substring(5)); //1e9
 
                     //save circa result
-                    _bytesPerSecsPretest = bytesSent / (timeNs / 1e9);
-                    debug(thread.id + ": circa " + _bytesPerSecsPretest / 1000 + " KB/sec");
+                    _bytesPerSecsPretest = n * _chunkSize / (timeNs / 1e9);
+                    debug(thread.id + ": circa " + _bytesPerSecsPretest / 1000 + " KB/sec up");
+                    debug(thread.id + ": circa " + _bytesPerSecsPretest * 8 / 1e6 + " MBit/sec up");
+
+                    //set chunk size to accordingly 1 chunk every n/2 ms on average with n threads
+                    var calculatedChunkSize = _bytesPerSecsPretest / (1000 / (_rmbtTestConfig.measurementPointsTimespan / 2 * _numThreads));
+
+                    //round to the nearest full KB
+                    calculatedChunkSize -= calculatedChunkSize % 1024;
+
+                    //but min 4KiB
+                    calculatedChunkSize = Math.max(_initialChunkSize, calculatedChunkSize);
+
+                    //get closest chunk size where there are saved chunks available
+                    var closest = Number.POSITIVE_INFINITY;
+                    Object.keys(_arrayBuffers).forEach(function (key) {
+                        var diff = Math.abs(calculatedChunkSize - key);
+                        if (diff < Math.abs(calculatedChunkSize - closest)) {
+                            closest = key;
+                        }
+                    });
+
+                    debug(thread.id + ": calculated chunksize for upload speed test " + calculatedChunkSize / 1024 + " KB");
+                    debug(thread.id + ": used chunk size for upload test will be: " + closest / 1024 + " KB");
+                    _chunkSize = closest;
                 } else {
                     //increase chunk size only if there are saved chunks for it!
                     var newChunkSize = _chunkSize * 2;
@@ -1660,16 +1683,15 @@ var RMBTTest = function () {
         var beginS;
         var i = 0;
 
-        /*var queueSize = Math.ceil(_uploadChunksPerSecsPretest / _numThreads / duration);
-        var fixedUnderrun = 5;
-        var queueUpperBound = Math.ceil(_uploadChunksPerSecsPretest / _numThreads / duration) *2;
-        var timeout;*/
+        //if less than approx half a second is left in the buffer - resend!
+        var fixedUnderrunBytes = _bytesPerSecsPretest / 2 / _numThreads;
 
-        var sentPackages = 0;
-        var maxPackages = Math.ceil(_bytesPerSecsPretest / _chunkSize * duration);
-        debug("max packages: " + maxPackages);
+        //send data for approx one second at once
+        //@TODO adapt with changing connection speeds
+        var sendAtOnceChunks = Math.ceil(_bytesPerSecsPretest / _numThreads / _chunkSize);
 
         var ended = false;
+        var keepSendingData = true;
 
         var lastDurationInfo = -1;
         var timeoutExtensionsMs = 0;
@@ -1679,16 +1701,16 @@ var RMBTTest = function () {
                 //check how far we are in
                 debug(thread.id + ": is 7.2 sec in, got data for " + lastDurationInfo);
                 //if measurements are for < 7sec, give it time
-                if (lastDurationInfo < duration * 1000 * 1000 * 1000 && timeoutExtensionsMs < 3000) {
+                if (lastDurationInfo < duration * 1e9 && timeoutExtensionsMs < 3000) {
                     window.setTimeout(timeoutFunction, 250);
                     timeoutExtensionsMs += 250;
                 } else {
                     //kill it with force!
                     debug(thread.id + ": didn't finish, timeout extended by " + timeoutExtensionsMs + " ms, last info for " + lastDurationInfo);
                     ended = true;
-                    thread.socket.onerror = function () {}; //do nothing, we kill it on purpose
-                    thread.socket.send(_endArrayBuffers[_chunkSize]);
-                    thread.socket.send("QUIT\n");
+                    thread.socket.onerror = function () {};
+
+                    //do nothing, we kill it on purpose
                     thread.socket.close();
                     thread.socket.onmessage = previousListener;
                     debug(thread.id + ": socket now closed: " + thread.socket.readyState);
@@ -1696,57 +1718,47 @@ var RMBTTest = function () {
                 }
             }
         };
-        window.setTimeout(timeoutFunction, 7000);
-        debug(thread.id + ": set timeout");
 
-        /*var uploadTimer = function() {
-            //debug(thread.id + ": Queue: " + queueSize + "; Buffered: " + thread.socket.bufferedAmount);
-            //@TODO acknowledge pre-test
-            if (thread.socket.bufferedAmount >= Math.max(fixedUnderrun*_chunkSize,queueSize*_chunkSize)) {
-                if (thread.socket.bufferedAmount > queueUpperBound) {
-                    queueSize = Math.max(1,queueSize-3);
+        /**
+         * The upload function for C2S, encoded as a callback instead of a loop.
+         * https://github.com/ndt-project/ndt/blob/master/HTML5-frontend/ndt-browser-client.js
+         */
+        var sendChunks = function sendChunks() {
+            // Monitor the buffersize as it sends and refill if it gets too low.
+            if (thread.socket.bufferedAmount < fixedUnderrunBytes) {
+                //debug(thread.id + ": buffer underrun");
+                for (var i = 0; i < sendAtOnceChunks; i++) {
+                    thread.socket.send(_arrayBuffers[_chunkSize][i % _arrayBuffers[_chunkSize].length]);
                 }
-                return;
+            } else {
+                //debug(thread.id + ": no buffer underrun");
             }
-            queueSize = Math.min(_uploadChunksPerSecsPretest,queueSize+3);
-             var nowMs = Date.now();
-            var durationMs = nowMs - beginS;
-            //debug(durationS + "; " + duration);
-            if (durationMs > (duration*1000)) {
-                //send last blob
-                debug(thread.id + ": send end blob");
-                thread.socket.send(_endblob);
-                window.clearInterval(timeout);
-                 //give it one more sec, then close it forcefully
-                window.setTimeout(function() {
-                    if (!ended) {
-                        ended = true;
-                        thread.socket.close();
-                        thread.socket.onmessage = previousListener;
-                        triggerNextState(thread);
-                    }
-                }, 1000);
+
+            if (keepSendingData) {
+                setTimeout(sendChunks, 0);
+            } else {
+                return false;
             }
-            else {
-                var blob = _blobs[0];
-                //var lastByte = blob.slice(_chunkSize-1,_chunkSize);
-                 for (var j=0;j<queueSize;j++) {
-                    sentPackages++;
-                    thread.socket.send(blob);
-                }
-                i++;
-            }
-          };*/
+        };
+
+        //set timeout function after 7,2s to check if everything went according to plan
+        window.setTimeout(timeoutFunction, duration * 1e3 + 200);
+
+        //send end blob after 7s, quit
+        window.setTimeout(function () {
+            keepSendingData = false;
+            thread.socket.send(_endArrayBuffers[_chunkSize]);
+            thread.socket.send("QUIT\n");
+        }, duration * 1e3);
+
+        debug(thread.id + ": set timeout");
 
         var pattern = /TIME (\d+) BYTES (\d+)/;
         var patternEnd = /TIME (\d+)/;
         var uploadListener = function uploadListener(event) {
             //start conducting the test
             if (event.data === "OK\n") {
-                for (var j = 0; j < maxPackages; j++) {
-                    sentPackages++;
-                    thread.socket.send(_arrayBuffers[_chunkSize][0]);
-                }
+                sendChunks();
             }
 
             //intermediate result - save it!
@@ -1762,7 +1774,7 @@ var RMBTTest = function () {
                 //debug(thread.id + ": " + JSON.stringify(data));
                 thread.result.up.push(data);
             } else {
-                var matches = patternEnd.exec(event.data);
+                matches = patternEnd.exec(event.data);
                 if (matches !== null) {
                     //statistic for end match - upload phase complete
                     ended = true;
@@ -1774,8 +1786,6 @@ var RMBTTest = function () {
         thread.socket.onmessage = uploadListener;
 
         thread.socket.send("PUT" + (_chunkSize !== _initialChunkSize ? " " + _chunkSize : "") + "\n");
-
-        beginS = Date.now();
     }
 
     /**
