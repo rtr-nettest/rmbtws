@@ -1315,6 +1315,7 @@ var RMBTTest = function () {
             downloadChunks(thread, n, function (msg) {
                 bytesReceived += n * _chunkSize;
                 debug(thread.id + ": " + msg);
+                var timeNs = parseInt(msg.substring(5));
 
                 var now = performance.now();
                 if (now - startTime > durationMs) {
@@ -1322,6 +1323,24 @@ var RMBTTest = function () {
                     if (n <= _rmbtTestConfig.fallbackChunksDownload) {
                         _fallbackDownload = true;
                     }
+
+                    //save circa result
+                    _bytesPerSecsPretest = n * _chunkSize / (timeNs / 1e9);
+                    debug(thread.id + ": circa " + _bytesPerSecsPretest / 1000 + " KB/sec");
+                    debug(thread.id + ": circa " + _bytesPerSecsPretest * 8 / 1e6 + " MBit/sec");
+
+                    //set chunk size to accordingly 1 chunk every n/2 ms on average with n threads
+                    var calculatedChunkSize = _bytesPerSecsPretest / (1000 / (_rmbtTestConfig.measurementPointsTimespan / 2 * _numThreads));
+
+                    //round to the nearest full KB
+                    calculatedChunkSize -= calculatedChunkSize % 1024;
+
+                    //but min 4KiB
+                    calculatedChunkSize = Math.max(_initialChunkSize, calculatedChunkSize);
+
+                    debug(thread.id + ": calculated chunksize for download speed test " + calculatedChunkSize / 1024 + " KB");
+
+                    _chunkSize = calculatedChunkSize;
 
                     //"break"
                     thread.socket.onmessage = prevListener;
