@@ -22,10 +22,19 @@ RMBTTestConfig.prototype.controlServerDataCollectorResource = "/requestDataColle
 RMBTTestConfig.prototype.pretestDurationMs = 2000;
 RMBTTestConfig.prototype.savedChunks = 100; //0,4 MiB
 RMBTTestConfig.prototype.measurementPointsTimespan = 40; //1 measure point every 40 ms
-RMBTTestConfig.prototype.fallbackBytesDownload = 48; //12*4 = 48 KBytes in 2 Secs
-RMBTTestConfig.prototype.fallbackBytessUpload = 48; //
 RMBTTestConfig.prototype.numPings = 10; //do 10 pings
-RMBTTestConfig.prototype.limitUploadThreads = (getParam !== undefined && getParam("allowUploadThreads") !== false)?false:true;
+//max used threads for this test phase (upper limit: RegistrationResponse)
+RMBTTestConfig.prototype.downloadThreadsLimitsMbit = {
+    0: 1,
+    1: 3,
+    100: 5
+};
+RMBTTestConfig.prototype.uploadThreadsLimitsMbit = {
+    0: 1,
+    30: 2,
+    80: 3,
+    150: 5
+};
 RMBTTestConfig.prototype.userServerSelection = ((typeof window.userServerSelection !== 'undefined')?userServerSelection:0); //for QoSTest
 
 
