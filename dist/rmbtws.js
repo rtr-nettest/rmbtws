@@ -931,7 +931,7 @@ var RMBTTest = function () {
     var _blobs = new Array();
     var _arrayBuffers = {};
     var _endArrayBuffers = {};
-    var _endblob;
+
     var _cyclicBarrier;
     var _numThreads;
 
@@ -1488,6 +1488,7 @@ var RMBTTest = function () {
         var previousListener = thread.socket.onmessage;
         var totalRead = 0;
         var readChunks = 0;
+        var lastReportedChunks = -1;
 
         //read chunk only at some point in the future to save ressources
         var readTimeout;
@@ -1499,6 +1500,12 @@ var RMBTTest = function () {
             if (lastChunk === null) {
                 return;
             }
+
+            //nothing new happened, do not simulate a accuracy that does not exist
+            if (lastReportedChunks === readChunks) {
+                return;
+            }
+            lastReportedChunks = readChunks;
 
             var now = nowNs();
             debug(thread.id + ": " + lastRead + "|" + _rmbtTestConfig.measurementPointsTimespan + "|" + now + "|" + readChunks);
@@ -1527,9 +1534,6 @@ var RMBTTest = function () {
                     thread.socket.onmessage = previousListener;
                 };
                 thread.socket.send("OK\n");
-                _endblob = lastChunk;
-
-                //saveAs(_endblob,"endblob");
             } else {
                 if (_blobs.length < 10) {
                     _blobs.push(lastChunk);
@@ -1543,14 +1547,8 @@ var RMBTTest = function () {
             //var currentRead = totalRead; //concurrency?
             //var now = nowNs();
             lastChunk = event.data;
-
-            //if we don't have enough chunks cached or the timeout is reached - always check (and cache)
-            /*if ((readChunks < _rmbtTestConfig.savedChunks))/* || ((lastRead + _rmbtTestConfig.measurementPointsTimespan) < now)) /{
-                debug(": " + lastRead + "|" + _rmbtTestConfig.measurementPointsTimespan + "|" + now  + "|" + readChunks);
-                lastRead = now;
-                 _blobs.push(event.data);
-            }*/
         };
+
         thread.socket.onmessage = downloadListener;
 
         var start = nowNs();
@@ -1666,7 +1664,6 @@ var RMBTTest = function () {
             } else {
                 blob = _arrayBuffers[_chunkSize][0];
             }
-            console.log(_chunkSize + ";" + blob.byteLength);
             socket.send(blob);
         }
     }
@@ -1679,10 +1676,6 @@ var RMBTTest = function () {
     function uploadTest(thread, duration) {
         var previousListener = thread.socket.onmessage;
 
-        //inform server
-        var beginS;
-        var i = 0;
-
         //if less than approx half a second is left in the buffer - resend!
         var fixedUnderrunBytes = _bytesPerSecsPretest / 2 / _numThreads;
 
@@ -1690,14 +1683,14 @@ var RMBTTest = function () {
         //@TODO adapt with changing connection speeds
         var sendAtOnceChunks = Math.ceil(_bytesPerSecsPretest / _numThreads / _chunkSize);
 
-        var ended = false;
+        var receivedEndTime = false;
         var keepSendingData = true;
 
         var lastDurationInfo = -1;
         var timeoutExtensionsMs = 0;
 
         var timeoutFunction = function timeoutFunction() {
-            if (!ended) {
+            if (!receivedEndTime) {
                 //check how far we are in
                 debug(thread.id + ": is 7.2 sec in, got data for " + lastDurationInfo);
                 //if measurements are for < 7sec, give it time
@@ -1707,7 +1700,6 @@ var RMBTTest = function () {
                 } else {
                     //kill it with force!
                     debug(thread.id + ": didn't finish, timeout extended by " + timeoutExtensionsMs + " ms, last info for " + lastDurationInfo);
-                    ended = true;
                     thread.socket.onerror = function () {};
 
                     //do nothing, we kill it on purpose
@@ -1720,7 +1712,7 @@ var RMBTTest = function () {
         };
 
         /**
-         * The upload function for C2S, encoded as a callback instead of a loop.
+         * The upload function for a few chunks at a time, encoded as a callback instead of a loop.
          * https://github.com/ndt-project/ndt/blob/master/HTML5-frontend/ndt-browser-client.js
          */
         var sendChunks = function sendChunks() {
@@ -1777,7 +1769,7 @@ var RMBTTest = function () {
                 matches = patternEnd.exec(event.data);
                 if (matches !== null) {
                     //statistic for end match - upload phase complete
-                    ended = true;
+                    receivedEndTime = true;
                     debug("Upload duration: " + matches[1]);
                     thread.socket.onmessage = previousListener;
                 }
