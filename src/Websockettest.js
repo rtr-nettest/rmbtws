@@ -31,8 +31,9 @@ var RMBTTest = (function() {
     };
 
     var _chunkSize;
-    var _initialChunkSize;
     var MAX_CHUNK_SIZE = 4194304;
+    var MIN_CHUNK_SIZE;
+    var DEFAULT_CHUNK_SIZE;
     var _changeChunkSizes = false;
 
     /* @var rmbtTestConfig RMBTTestConfig */
@@ -320,6 +321,7 @@ var RMBTTest = (function() {
         thread.onStateEnter(TestState.INIT_DOWN, function() {
             setState(TestState.INIT_DOWN);
             debug(thread.id + ": start short download");
+            _chunkSize = MIN_CHUNK_SIZE;
 
             //only one thread downloads
             if (thread.id === 0) {
@@ -356,7 +358,7 @@ var RMBTTest = (function() {
 
         thread.onStateEnter(TestState.INIT_UP, function() {
             setState(TestState.INIT_UP);
-            _chunkSize = _initialChunkSize;
+            _chunkSize = MIN_CHUNK_SIZE;
             if (thread.id === 0) {
                 shortUploadtest(thread, _rmbtTestConfig.pretestDurationMs);
             }
@@ -373,12 +375,22 @@ var RMBTTest = (function() {
                 uploadTest(thread, registrationResponse.test_duration);
             }
             else {
+                //the socket is not needed anymore,
+                //close it to free up resources
                 thread.socket.onerror = errorFunctions.IGNORE;
+                if (thread.socket.readyState !== WebSocket.CLOSED) {
+                    thread.socket.close();
+                }
                 thread.triggerNextState();
             }
         });
 
         thread.onStateEnter(TestState.END, function() {
+            //close sockets, if not already closed
+            if (thread.socket.readyState !== WebSocket.CLOSED) {
+                thread.socket.close();
+            }
+
             if (thread.id === 0) {
                 callback();
             }
@@ -420,17 +432,19 @@ var RMBTTest = (function() {
             if (event.data.indexOf("CHUNKSIZE") === 0) {
                 let parts = event.data.trim().split(" ");
                 //chunksize min and max
-                if (parts.length === 3) {
-                    _initialChunkSize = parseInt(parts[1]);
-                    MAX_CHUNK_SIZE = parseInt(parts[2]);
+                if (parts.length === 4) {
+                    DEFAULT_CHUNK_SIZE = parseInt(parts[1]);
+                    MIN_CHUNK_SIZE = parseInt(parts[2]);
+                    MAX_CHUNK_SIZE = parseInt(parts[3]);
                 }
                 //min chunksize, max chunksize
                 else {
-                    _initialChunkSize = parseInt(parts[1]);
+                    DEFAULT_CHUNK_SIZE = parseInt(parts[1]);
+                    MIN_CHUNK_SIZE = DEFAULT_CHUNK_SIZE;
                 }
-                _chunkSize = parseInt(event.data.substring(10));
-                _initialChunkSize = _chunkSize;
-                debug(thread.id + "Chunksizes: min " + _initialChunkSize + ", max: " + MAX_CHUNK_SIZE);
+                debug(thread.id + "Chunksizes: min " + MIN_CHUNK_SIZE +
+                    ", max: " + MAX_CHUNK_SIZE +
+                    ", default: " + DEFAULT_CHUNK_SIZE);
             }
             else if (event.data.indexOf("RMBTv") === 0) {
                 //get server version
@@ -507,7 +521,7 @@ var RMBTTest = (function() {
                     calculatedChunkSize -= calculatedChunkSize % 1024;
 
                     //but min 4KiB
-                    calculatedChunkSize = Math.max(_initialChunkSize, calculatedChunkSize);
+                    calculatedChunkSize = Math.max(MIN_CHUNK_SIZE, calculatedChunkSize);
 
                     //and max MAX_CHUNKSIZE
                     calculatedChunkSize = Math.min(MAX_CHUNK_SIZE, calculatedChunkSize);
@@ -585,7 +599,7 @@ var RMBTTest = (function() {
         };
         socket.onmessage = downloadChunkListener;
         debug(thread.id + ": downloading " + total + " chunks, " + (expectBytes/1000) + " KB");
-        var send = "GETCHUNKS " + total +  ((_chunkSize !== _initialChunkSize)? " " + _chunkSize :"") + "\n";
+        var send = "GETCHUNKS " + total +  ((_chunkSize !== DEFAULT_CHUNK_SIZE)? " " + _chunkSize :"") + "\n";
         socket.send(send);
     }
 
@@ -733,7 +747,7 @@ var RMBTTest = (function() {
         thread.socket.onmessage = downloadListener;
 
         var start = nowNs();
-        thread.socket.send("GETTIME " + duration + ((_chunkSize !== _initialChunkSize) ? " " + _chunkSize : "") + "\n");
+        thread.socket.send("GETTIME " + duration + ((_chunkSize !== DEFAULT_CHUNK_SIZE) ? " " + _chunkSize : "") + "\n");
     }
 
      /**
@@ -790,7 +804,7 @@ var RMBTTest = (function() {
                     calculatedChunkSize -= calculatedChunkSize % 1024;
 
                     //but min 4KiB
-                    calculatedChunkSize = Math.max(_initialChunkSize, calculatedChunkSize);
+                    calculatedChunkSize = Math.max(DEFAULT_CHUNK_SIZE, calculatedChunkSize);
 
                     //and max MAX_CHUNKSIZE
                     calculatedChunkSize = Math.min(MAX_CHUNK_SIZE, calculatedChunkSize);
@@ -986,7 +1000,7 @@ var RMBTTest = (function() {
         };
         thread.socket.onmessage = uploadListener;
 
-        thread.socket.send("PUT" + ((_chunkSize !== _initialChunkSize) ? " " + _chunkSize : "") + "\n");
+        thread.socket.send("PUT" + ((_chunkSize !== DEFAULT_CHUNK_SIZE) ? " " + _chunkSize : "") + "\n");
     }
 
     /**
