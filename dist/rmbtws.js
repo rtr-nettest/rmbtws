@@ -884,27 +884,18 @@ var TestVisualization = function () {
  * The source code for this project is available at
  * https://github.com/rtr-nettest/rmbtws
  *****************************************************************************!*/
-
 "use strict";
 
-var debug = function debug(text) {
-    //return; //no debug
-    $("#debug").prepend(text + "\n");
-    console.log(text);
-};
-
-function debug_without_newline(text) {
-    $("#debug").append(text);
-}
-
-var server_override = "wss://developv4-rmbtws.netztest.at:19002";
-//server_override = "wss://natv4.netztest.at:443";
-//server_override = "wss://developv4-rmbtws.netztest.at:19002";
-
-
 //structure from: http://www.typescriptlang.org/Playground
+
 var RMBTTest = function () {
-    "use strict";
+    var _server_override = "wss://developv4-rmbtws.netztest.at:19002";
+
+    var debug = function debug(text) {
+        //return; //no debug
+        $("#debug").prepend(text + "\n");
+        console.log(text);
+    };
 
     var _chunkSize;
     var _initialChunkSize;
@@ -1336,7 +1327,7 @@ var RMBTTest = function () {
                     debug(thread.id + ": set number of threads to be used in download speed test to: " + _numDownloadThreads);
 
                     //set chunk size to accordingly 1 chunk every n/2 ms on average with n threads
-                    var calculatedChunkSize = _bytesPerSecsPretest / (1000 / (_rmbtTestConfig.measurementPointsTimespan / 2 * _numDownloadThreads));
+                    var calculatedChunkSize = _bytesPerSecsPretest / (1000 / (_rmbtTestConfig.measurementPointsTimespan / 2));
 
                     //round to the nearest full KB
                     calculatedChunkSize -= calculatedChunkSize % 1024;
@@ -1410,7 +1401,9 @@ var RMBTTest = function () {
                 if (!_arrayBuffers.hasOwnProperty(_chunkSize)) {
                     _arrayBuffers[_chunkSize] = [];
                 }
-                _arrayBuffers[_chunkSize].push(event.data);
+                if (_arrayBuffers[_chunkSize].length < _rmbtTestConfig.savedChunks) {
+                    _arrayBuffers[_chunkSize].push(event.data);
+                }
             }
         };
         socket.onmessage = downloadChunkListener;
@@ -1607,7 +1600,7 @@ var RMBTTest = function () {
                     debug(thread.id + ": set number of threads to be used in upload speed test to: " + _numUploadThreads);
 
                     //set chunk size to accordingly 1 chunk every n/2 ms on average with n threads
-                    var calculatedChunkSize = _bytesPerSecsPretest / (1000 / (_rmbtTestConfig.measurementPointsTimespan / 2 * _numUploadThreads));
+                    var calculatedChunkSize = _bytesPerSecsPretest / (1000 / (_rmbtTestConfig.measurementPointsTimespan / 2));
 
                     //round to the nearest full KB
                     calculatedChunkSize -= calculatedChunkSize % 1024;
@@ -1925,15 +1918,6 @@ var RMBTTest = function () {
 
     return RMBTTest;
 }();
-
-var config = new RMBTTestConfig();
-
-/*var test = new RMBTTest(config);
-test.addObserver({
-    update: myObserverUpdate
-});*/
-//test.getState();
-//test.startTest();
 "use strict";
 
 function RMBTTestConfig() {};
@@ -1956,7 +1940,7 @@ RMBTTestConfig.prototype.controlServerResultResource = "/result";
 RMBTTestConfig.prototype.controlServerDataCollectorResource = "/requestDataCollector";
 //?!? - from RMBTTestParameter.java
 RMBTTestConfig.prototype.pretestDurationMs = 2000;
-RMBTTestConfig.prototype.savedChunks = 100; //0,4 MiB
+RMBTTestConfig.prototype.savedChunks = 4; //4*4 + 4*8 + 4*16 + ... + 4*MAX_CHUNK_SIZE -> O(8*MAX_CHUNK_SIZE)
 RMBTTestConfig.prototype.measurementPointsTimespan = 40; //1 measure point every 40 ms
 RMBTTestConfig.prototype.numPings = 10; //do 10 pings
 //max used threads for this test phase (upper limit: RegistrationResponse)
@@ -2014,6 +1998,12 @@ var RMBTControlServerRegistrationResponse = function () {
  * @returns {RMBTTestThread}
  */
 function RMBTTestThread(cyclicBarrier) {
+    var debug = function debug(text) {
+        //return; //no debug
+        $("#debug").prepend(text + "\n");
+        console.log(text);
+    };
+
     var _callbacks = {};
     var _cyclicBarrier = cyclicBarrier;
 

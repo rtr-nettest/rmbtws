@@ -18,27 +18,17 @@
  * The source code for this project is available at
  * https://github.com/rtr-nettest/rmbtws
  *****************************************************************************!*/
-
 "use strict";
-
-const debug = (text) => {
-   //return; //no debug
-   $("#debug").prepend(text + "\n");
-   console.log(text);
-};
-
-function debug_without_newline(text) {
-    $("#debug").append(text);
-}
-
-var server_override = "wss://developv4-rmbtws.netztest.at:19002";
-//server_override = "wss://natv4.netztest.at:443";
-//server_override = "wss://developv4-rmbtws.netztest.at:19002";
-
 
 //structure from: http://www.typescriptlang.org/Playground
 var RMBTTest = (function() {
-    "use strict";
+    const _server_override = "wss://developv4-rmbtws.netztest.at:19002";
+
+    const debug = (text) => {
+        //return; //no debug
+        $("#debug").prepend(text + "\n");
+        console.log(text);
+    };
 
     var _chunkSize;
     var _initialChunkSize;
@@ -501,7 +491,7 @@ var RMBTTest = (function() {
                     debug(thread.id + ": set number of threads to be used in download speed test to: " + _numDownloadThreads);
 
                     //set chunk size to accordingly 1 chunk every n/2 ms on average with n threads
-                    let calculatedChunkSize = _bytesPerSecsPretest / (1000 / ((_rmbtTestConfig.measurementPointsTimespan/2) * _numDownloadThreads));
+                    let calculatedChunkSize = _bytesPerSecsPretest / (1000 / ((_rmbtTestConfig.measurementPointsTimespan/2)));
 
                     //round to the nearest full KB
                     calculatedChunkSize -= calculatedChunkSize % 1024;
@@ -578,7 +568,9 @@ var RMBTTest = (function() {
                 if (!_arrayBuffers.hasOwnProperty(_chunkSize)) {
                     _arrayBuffers[_chunkSize] = [];
                 }
-                _arrayBuffers[_chunkSize].push(event.data);
+                if (_arrayBuffers[_chunkSize].length < _rmbtTestConfig.savedChunks) {
+                    _arrayBuffers[_chunkSize].push(event.data);
+                }
             }
         };
         socket.onmessage = downloadChunkListener;
@@ -783,7 +775,7 @@ var RMBTTest = (function() {
 
 
                     //set chunk size to accordingly 1 chunk every n/2 ms on average with n threads
-                    let calculatedChunkSize = _bytesPerSecsPretest / (1000 / ((_rmbtTestConfig.measurementPointsTimespan/2) * _numUploadThreads));
+                    let calculatedChunkSize = _bytesPerSecsPretest / (1000 / ((_rmbtTestConfig.measurementPointsTimespan/2)));
 
                     //round to the nearest full KB
                     calculatedChunkSize -= calculatedChunkSize % 1024;
@@ -1117,13 +1109,3 @@ var RMBTTest = (function() {
 
     return RMBTTest;
 })();
-
-var config = new RMBTTestConfig();
-
-/*var test = new RMBTTest(config);
-test.addObserver({
-    update: myObserverUpdate
-});*/
-//test.getState();
-//test.startTest();
-

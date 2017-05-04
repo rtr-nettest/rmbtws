@@ -20,7 +20,7 @@ RMBTTestConfig.prototype.controlServerResultResource = "/result";
 RMBTTestConfig.prototype.controlServerDataCollectorResource = "/requestDataCollector";
 //?!? - from RMBTTestParameter.java
 RMBTTestConfig.prototype.pretestDurationMs = 2000;
-RMBTTestConfig.prototype.savedChunks = 100; //0,4 MiB
+RMBTTestConfig.prototype.savedChunks = 4; //4*4 + 4*8 + 4*16 + ... + 4*MAX_CHUNK_SIZE -> O(8*MAX_CHUNK_SIZE)
 RMBTTestConfig.prototype.measurementPointsTimespan = 40; //1 measure point every 40 ms
 RMBTTestConfig.prototype.numPings = 10; //do 10 pings
 //max used threads for this test phase (upper limit: RegistrationResponse)
@@ -78,6 +78,12 @@ var RMBTControlServerRegistrationResponse = (function() {
  * @returns {RMBTTestThread}
  */
 function RMBTTestThread(cyclicBarrier) {
+    const debug = (text) => {
+        //return; //no debug
+        $("#debug").prepend(text + "\n");
+        console.log(text);
+    };
+
     var _callbacks = {};
     var _cyclicBarrier = cyclicBarrier;
 
