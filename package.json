@@ -34,6 +34,7 @@
         "gulp": "^3.9.1",
         "gulp-babel": "^6.1.2",
         "gulp-concat": "^2.6.1",
+        "gulp-order": "^1.1.1",
         "gulp-rename": "^1.2.2",
         "gulp-sourcemaps": "^2.6.0",
         "gulp-uglify": "^2.1.2"

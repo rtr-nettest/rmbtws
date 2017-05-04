@@ -41,7 +41,7 @@ var RMBTTest = (function() {
     var _rmbtTestResult = null;
     var _errorCallback = null;
 
-    var _state = TestState.INIT;
+    var _state;
     var _stateChangeMs;
     var _statesInfo = {
         durationInitMs: 2500,

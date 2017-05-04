@@ -4,11 +4,15 @@ const uglify = require('gulp-uglify');
 const babel = require('gulp-babel');
 const rename = require('gulp-rename');
 const concat = require('gulp-concat');
+const order = require('gulp-order');
 
 gulp.task('compilejs', () => {
     //create concatenated version
     gulp.src('./src/*.js')
         .pipe(babel())
+        .pipe(order([
+            '**/Websockettest.js'
+        ]))
         .pipe(concat('rmbtws.js'))
         .pipe(gulp.dest('dist'));
 
@@ -16,6 +20,9 @@ gulp.task('compilejs', () => {
     gulp.src('./src/*.js')
         .pipe(sourcemaps.init())
         .pipe(babel())
+        .pipe(order([
+            '**/Websockettest.js'
+        ]))
         .pipe(uglify({
             preserveComments: 'license'
         }))

@@ -1,869 +1,3 @@
-"use strict";
-
-var curGeoPos;
-var geo_callback, loc_timeout;
-
-function runCallback() {
-    if (geo_callback != undefined && typeof geo_callback == 'function') {
-        window.setTimeout(function () {
-            geo_callback();
-        }, 1);
-    }
-}
-
-function getCurLocation() {
-    return curGeoPos;
-}
-
-/**
- * GetLocation, JSDoc from old Test
- * @param {Boolean} geoAccuracy enable high accuracy (i.e. GPS instead of AP)
- * @param {Numeric} geoTimeout maximal timeout before error function is called
- * @param {Numeric} geoMaxAge maximal allowed age in milliseconds
- * @param {Function} callback
- */
-function getLocation(geoAccuracy, geoTimeout, geoMaxAge, callback) {
-    var ausgabe = document.getElementById("infogeo");
-    geo_callback = callback;
-
-    if (!navigator.geolocation) {
-        //maybe there is a position in a cookie
-        //because the user had been asked for his address
-        var coords = getCookie('coords');
-        if (coords) {
-            var tmpcoords = JSON.parse(coords);
-            if (tmpcoords && tmpcoords['lat'] > 0 && tmpcoords['long'] > 0) {
-                testVisualization.setLocation(tmpcoords['lat'], tmpcoords['long']);
-            }
-        } else {
-            ausgabe.innerHTML = Lang.getString('NotSupported');
-        }
-
-        runCallback();
-        return;
-    }
-    runCallback();
-    //var TestEnvironment.getGeoTracker() = new GeoTracker();
-    TestEnvironment.getGeoTracker().start(function (successful, error) {
-        if (successful === true) {} else {
-            //user did not allow geolocation or other reason
-            switch (error.code) {
-                case error.PERMISSION_DENIED:
-                    ausgabe.innerHTML = Lang.getString('NoPermission');
-                    break;
-                case error.TIMEOUT:
-                    //@TODO: Position is determined...
-                    //alert(1);
-                    break;
-                case error.POSITION_UNAVAILABLE:
-                    ausgabe.innerHTML = Lang.getString('NotAvailable');
-                    break;
-                case error.UNKNOWN_ERROR:
-                    ausgabe.innerHTML = Lang.getString('NotAvailable') + "(" + error.code + ")";
-                    break;
-            }
-        }
-    }, TestEnvironment.getTestVisualization());
-}
-
-//Geolocation tracking
-var GeoTracker = function () {
-    "use strict";
-
-    var _positions;
-    var _clientCallback;
-    var _testVisualization = null;
-
-    var _watcher;
-    var _firstPositionIsInAccurate;
-
-    function GeoTracker() {
-        _positions = new Array();
-        _firstPositionIsInAccurate = false;
-    }
-
-    /**
-     * Start geolocating
-     * @param {Callback(Boolean)} callback expects param 'successful' (boolean, ErrorReason) and
-     *      is called as soon as there is a result is available or the user cancelled
-     * @param {TestVisualization} testVisualization optional
-     */
-    GeoTracker.prototype.start = function (callback, testVisualization) {
-        _clientCallback = callback;
-
-        if (testVisualization !== undefined) {
-            _testVisualization = testVisualization;
-        }
-
-        if (navigator.geolocation) {
-            //try to get an rough first position
-            navigator.geolocation.getCurrentPosition(function (success) {
-                if (_positions.length === 0) {
-                    _firstPositionIsInAccurate = true;
-                    successFunction(success);
-                };
-            }, errorFunction, {
-                enableHighAccuracy: false,
-                timeout: 2000, //2 seconds
-                maximumAge: 60000 //one minute
-            });
-            //and refine this position later
-            _watcher = navigator.geolocation.watchPosition(successFunction, errorFunction, {
-                enableHighAccuracy: true,
-                timeout: Infinity,
-                maximumAge: 0 //one minute
-            });
-        } else {
-            var t = _clientCallback;
-            _clientCallback = null;
-            t(false);
-        }
-
-        //call at latest after 2 seconds
-    };
-
-    /**
-     * Saves the given result
-     * Is called when a geolocation query returns a result
-     * @param {Position} position the result https://developer.mozilla.org/en-US/docs/Web/API/Position
-     */
-    var successFunction = function successFunction(position) {
-        //rough first position and now more accurate one -> remove the inaccurate one
-        if (_positions.length === 1 && _firstPositionIsInAccurate) {
-            _positions = new Array();
-            _firstPositionIsInAccurate = false;
-        }
-
-        _positions.push({
-            geo_lat: position.coords.latitude,
-            geo_long: position.coords.longitude,
-            accuracy: position.coords.accuracy,
-            altitude: position.coords.altitude,
-            bearing: position.coords.heading,
-            speed: position.coords.speed,
-            tstamp: position.timestamp,
-            provider: 'Browser'
-        });
-        if (_clientCallback !== null) {
-            //call client that we now have a result
-            var t = _clientCallback;
-            _clientCallback = null;
-            t(true);
-        }
-        if (_testVisualization !== null) {
-            _testVisualization.setLocation(position.coords.latitude, position.coords.longitude);
-        }
-        updateCookie(position);
-    };
-
-    var errorFunction = function errorFunction(reason) {
-        //PositionError Object (https://developer.mozilla.org/en-US/docs/Web/API/PositionError)
-        if (_clientCallback !== null) {
-            //call client that we now have an error
-            var t = _clientCallback;
-            _clientCallback = null;
-            t(false, reason);
-        }
-    };
-
-    var updateCookie = function updateCookie(position) {
-        var coords = new Object();
-        coords['lat'] = position.coords.latitude;
-        coords['long'] = position.coords.longitude;
-        coords['accuracy'] = position.coords.accuracy;
-        coords['altitude'] = position.coords.altitude;
-        coords['heading'] = position.coords.heading;
-        coords['speed'] = position.coords.speed;
-        coords['tstamp'] = position.timestamp;
-        //console.log("coords: "+coords);
-        coords = JSON.stringify(coords);
-        //console.log("tmpcoords: "+tmpcoords);
-        setCookie('coords', coords, 3600);
-    };
-
-    GeoTracker.prototype.stop = function () {
-        if (navigator.geolocation) {
-            navigator.geolocation.clearWatch(_watcher);
-        }
-    };
-
-    /**
-     *
-     * @returns {Array} all results
-     */
-    GeoTracker.prototype.getResults = function () {
-        return _positions;
-    };
-
-    return GeoTracker;
-}();
-
-/* getCookie polyfill */
-if (typeof window.setCookie === 'undefined') {
-    window.setCookie = function (cookie_name, cookie_value, cookie_exseconds) {
-        //var exdate = new Date();
-        //exdate.setDate(exdate.getDate() + cookie_exdays);
-
-        var futdate = new Date();
-        var expdate = futdate.getTime();
-        expdate += cookie_exseconds * 1000;
-        futdate.setTime(expdate);
-
-        //var c_value=escape(cookie_value) + ((cookie_exdays==null) ? ";" : "; expires="+exdate.toUTCString() +";");
-        var c_value = escape(cookie_value) + (cookie_exseconds == null ? ";" : "; expires=" + futdate.toUTCString() + ";");
-        document.cookie = cookie_name + "=" + c_value + " path=/;";
-    };
-}
-"use strict";
-
-var TestEnvironment = function () {
-    var testVisualization = null;
-    var geoTracker = null;
-
-    return {
-        /**
-         * gets the TestVisualization or null
-         * @returns {TestVisualization}
-         */
-        getTestVisualization: function getTestVisualization() {
-            return testVisualization;
-        },
-
-        /**
-         * gets the GeoTracker or null
-         * @returns {GeoTracker}
-         */
-        getGeoTracker: function getGeoTracker() {
-            return geoTracker;
-        },
-
-        init: function init() {
-            testVisualization = new TestVisualization();
-            geoTracker = new GeoTracker();
-        }
-    };
-}();
-
-//States
-var TestState = {
-    WAIT: "WAIT",
-    INIT: "INIT",
-    INIT_DOWN: "INIT_DOWN",
-    PING: "PING",
-    DOWN: "DOWN",
-    INIT_UP: "INIT_UP",
-    UP: "UP",
-    END: "END",
-    ERROR: "ERROR",
-    ABORTED: "ABORTED",
-    LOCATE: "LOCATE",
-    LOCABORTED: "LOCABORTED",
-    SPEEDTEST_END: "SPEEDTEST_END",
-    QOS_TEST_RUNNING: "QOS_TEST_RUNNING",
-    QOS_END: "QOS_END"
-};
-
-//Intermediate Result
-function RMBTIntermediateResult() {}
-RMBTIntermediateResult.prototype.setLogValues = function () {
-    var toLog = function toLog(value) {
-        if (value < 10000) {
-            return 0;
-        }
-        return (2.0 + Math.log(value / 1e6 / Math.LN10)) / 4.0;
-    };
-    this.downBitPerSecLog = toLog(downBitPerSec);
-    this.upBitPerSecLog = toLog(upBitPerSec);
-};
-
-RMBTIntermediateResult.prototype.pingNano = -1;
-RMBTIntermediateResult.prototype.downBitPerSec = -1;
-RMBTIntermediateResult.prototype.upBitPerSec = -1;
-RMBTIntermediateResult.prototype.status = TestState.INIT;
-RMBTIntermediateResult.prototype.progress = 0;
-RMBTIntermediateResult.prototype.downBitPerSecLog = -1;
-RMBTIntermediateResult.prototype.upBitPerSecLog = -1;
-RMBTIntermediateResult.prototype.remainingWait = -1;
-"use strict";
-
-/**
- * About TestVisualization:
- *  Constructor expects a object that implements {RMBTIntermediateResult}.getIntermediateResult()
- *      this will be called every xx ms (pull)
- *  The Animation loop will start as soon as "startTest()" is called
- *  The status can be set directly via setStatus or in the intermediateResult
- *  Information (provider, ip, uuid, etc.) has to be set via updateInformation
- *  As soon as the test reaches the "End"-State, the result page is called
- */
-
-var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; };
-
-var TestVisualization = function () {
-    var _imageDirectory = '../img/';
-
-    //static values for the duration of ndt, qos since there is no info from the applet
-    var _qosTestDurationMs = 10000;
-    var _startTimeQos = -1;
-
-    var _rmbtTest;
-
-    var _noCanvas = false;
-
-    //canvas initialization
-    var _canvas1; //progession canvas
-    var _canvas2; //upload/download-canvas
-
-    var _ctx1; //context of progression canvas
-    var _ctx2; //context of upload/download-canvas
-
-    //dimensions
-    var _W;
-    var _H;
-
-    //Variables
-    var _degrees_status = 0; //current status of the animation
-    var _new_degrees_status = 0; //current goal of the animation, volatile to jstest.js
-    var _old_degrees_status = 0; //the current goal the animation is trying to achieve
-    var _degrees_updwn = 0;
-    var _new_degrees_updwn = 0;
-    var _difference = 0;
-
-    //var color = "lightgreen"; //green looks better to me
-    var _bgcolor = "#2E4653";
-    var _text;
-    var _animation_loop, _redraw_loop;
-
-    var _image;
-
-    // Create gradients
-    var _grad1;
-    var _grad2;
-
-    var _infogeo = null;
-    var _infoserver = null;
-    var _infoip = null;
-    var _infostatus = null;
-    var _infoprovider = null;
-    var _spinner = null;
-    var _spinnertarget = null;
-
-    function TestVisualization() {
-
-        //Check if Canvas is supported
-        var canvasTurnOff = getParam('nocanvas');
-        if (!Modernizr.canvas || canvasTurnOff) {
-            _noCanvas = true;
-        } else {
-            _noCanvas = false;
-        }
-
-        //init the canvas
-        if (_noCanvas) {
-            $("#dashboard").detach();
-            $("#dashboard_easy").show();
-        } else {
-            $("#error_placeholder").hide();
-            $("#dashboard").show();
-            $("#dashboard_easy").detach();
-            initCanvas();
-        }
-        $("#error_placeholder").hide();
-        $("#loading-placeholder").hide();
-
-        _infogeo = document.getElementById("infogeo");
-        _infoserver = document.getElementById("infoserver");
-        _infoip = document.getElementById("infoip");
-        _infostatus = document.getElementById("infostatus");
-        _infoprovider = document.getElementById("infoprovider");
-        _spinnertarget = document.getElementById("activity-indicator");
-    };
-
-    /**
-     * Sets the RMBT Test object
-     * @param {Object} rmbtTest has to support {RMBTIntermediateResult}.getIntermediateResult
-     */
-    TestVisualization.prototype.setRMBTTest = function (rmbtTest) {
-        _rmbtTest = rmbtTest;
-    };
-
-    function progress_segment(status, progress) {
-        var ProgressSegmentsTotal = 96;
-        var ProgressSegmentsInit = 14;
-        var ProgressSegmentsPing = 15;
-        var ProgressSegmentsDown = 34;
-        var ProgressSegmentsUp = 33;
-        var progressValue = 0;
-        var progressSegments = 0;
-        switch (status) {
-            case "INIT":
-            case "INIT_DOWN":
-                progressSegments = Math.round(ProgressSegmentsInit * progress);
-                break;
-            case "PING":
-                progressSegments = ProgressSegmentsInit + Math.round(ProgressSegmentsPing * progress);
-                break;
-            case "DOWN":
-                progressSegments = ProgressSegmentsInit + ProgressSegmentsPing + Math.round(ProgressSegmentsDown * progress);
-                break;
-            case "INIT_UP":
-                progressSegments = ProgressSegmentsInit + ProgressSegmentsPing + ProgressSegmentsDown;
-                break;
-            case "UP":
-                progressSegments = ProgressSegmentsInit + ProgressSegmentsPing + ProgressSegmentsDown + Math.round(ProgressSegmentsUp * progress);
-                progressSegments = Math.min(95, progressSegments);
-                break;
-            case "END":
-                progressSegments = ProgressSegmentsTotal;
-                break;
-            case "QOS_TEST_RUNNING":
-                progressSegments = 95;
-                break;
-            case TestState.SPEEDTEST_END:
-            case TestState.QOS_END:
-                progressSegments = 95;
-                break;
-            case "ERROR":
-            case "ABORTED":
-                progressSegments = 0;
-                break;
-        }
-        progressValue = progressSegments / ProgressSegmentsTotal;
-        return progressValue;
-    }
-
-    function initCanvas() {
-        // GAUGE VISUALISATION
-
-        //canvas initialization
-        _canvas1 = document.getElementById("canvas-progress");
-        _canvas2 = document.getElementById("canvas-downup");
-
-        _ctx1 = _canvas1.getContext("2d");
-        _ctx2 = _canvas2.getContext("2d");
-
-        //dimensions
-        _W = _canvas1.width;
-        _H = _canvas1.height;
-
-        _image = new Image();
-
-        // Create gradients
-        _grad1 = _ctx1.createRadialGradient(_W / 2, _H / 2, 110, _W / 2, _H / 2, 118);
-        _grad1.addColorStop(0.0, 'rgba(200,200,200,1)');
-        _grad1.addColorStop(0.3, 'rgba(255,255,255,1)');
-        _grad1.addColorStop(0.7, 'rgba(255,255,255,1)');
-        _grad1.addColorStop(1.0, 'rgba(200,200,200,1)');
-
-        _grad2 = _ctx2.createRadialGradient(_W / 2, _H / 2, 110, _W / 2, _H / 2, 118);
-        _grad2.addColorStop(0.0, 'rgba(50,201,14,1)');
-        _grad2.addColorStop(0.3, 'rgba(0,249,61,1)');
-        _grad2.addColorStop(0.7, 'rgba(0,249,61,1)');
-        _grad2.addColorStop(1.0, 'rgba(50,201,14,1)');
-    }
-
-    function resetCanvas() {
-        //Clear the canvas everytime a chart is drawn
-        _ctx1.clearRect(0, 0, _W, _H);
-        _ctx2.clearRect(0, 0, _W, _H);
-
-        //Background 360 degree arc
-        _ctx1.beginPath();
-        _ctx1.strokeStyle = _bgcolor;
-        _ctx1.lineWidth = 35;
-        _ctx1.arc(_W / 2, _H / 2, 114, 0 - 150 * Math.PI / 180, Math.PI * 0.66, false);
-        //you can see the arc now
-        _ctx1.stroke();
-
-        _ctx2.beginPath();
-        _ctx2.strokeStyle = _bgcolor;
-        _ctx2.lineWidth = 35;
-        _ctx2.arc(_W / 2, _H / 2, 114, 0 * Math.PI / 180, Math.PI * 1.7, false);
-        //you can see the arc now
-        _ctx2.stroke();
-
-        //gauge will be a simple arc
-        //Angle in radians = angle in degrees * PI / 180
-        var radians1 = _degrees_status * Math.PI / 240;
-        var radians2 = _degrees_updwn * Math.PI / 212;
-
-        _ctx1.beginPath();
-        _ctx1.strokeStyle = _grad1;
-        _ctx1.lineWidth = 18;
-        //The arc starts from the rightmost end. If we deduct 90 degrees from the angles
-        //the arc will start from the topmost end
-        _ctx1.arc(_W / 2, _H / 2, 114, 0 - 150 * Math.PI / 180, radians1 - 150 * Math.PI / 180, false);
-        //you can see the arc now
-        _ctx1.stroke();
-
-        _ctx2.beginPath();
-        _ctx2.strokeStyle = _grad2;
-        _ctx2.lineWidth = 18;
-        //The arc starts from the rightmost end. If we deduct 90 degrees from the angles
-        //the arc will start from the topmost end
-        _ctx2.arc(_W / 2, _H / 2, 114, 0 - 0 * Math.PI / 180, radians2 - 0 * Math.PI / 180, false);
-        //you can see the arc now
-        _ctx2.stroke();
-
-        //Lets add the text
-        _ctx1.fillStyle = '#FFF';
-        _ctx1.font = "bold 18pt tahoma";
-        _text = Math.floor(_degrees_status / 360 * 100) + "%";
-        //Lets center the text
-        //deducting half of text width from position x
-        var text_width = _ctx1.measureText(_text).width;
-        //adding manual value to position y since the height of the text cannot
-        //be measured easily. There are hacks but we will keep it manual for now.
-        _ctx1.fillText(_text, _W / 2 - text_width / 2 + 4, _H / 2 + 7);
-
-        // Down-, Upload Images
-        //var image = new Image();
-        //image.src = "img/speedtest/download-icon.png";
-        if (_image !== null && _image.src !== "") {
-            _ctx2.drawImage(_image, _W / 2 - 15, _H / 2 - 24);
-        }
-
-        /*
-         ctx2.fillStyle = '#FFF';
-         ctx2.font = "bold 18pt tahoma";
-         text = Math.floor(degrees/360*100) + "";
-         //Lets center the text
-         //deducting half of text width from position x
-         text_width = ctx2.measureText(text).width;
-         //adding manual value to position y since the height of the text cannot
-         //be measured easily. There are hacks but we will keep it manual for now.
-         ctx2.fillText(text, W/2 - text_width/2 + 0, H/2 + 7);
-         */
-    }
-
-    var _serverName = null;
-    var _remoteIp = null;
-    var _providerName = null;
-    var _testUUID = '';
-    TestVisualization.prototype.updateInfo = function (serverName, remoteIp, providerName, testUUID) {
-        _serverName = serverName;
-        _remoteIp = remoteIp;
-        _providerName = providerName;
-        _testUUID = testUUID;
-    };
-
-    TestVisualization.prototype.setStatus = function (status) {
-        set_status(status);
-    };
-
-    TestVisualization.prototype.setLocation = function (latitude, longitude) {
-        //from Opentest.js
-        var formatCoordinate = function formatCoordinate(decimal, label_positive, label_negative) {
-            var label = deg < 0 ? label_negative : label_positive;
-            var deg = Math.floor(Math.abs(decimal));
-            var tmp = Math.abs(decimal) - deg;
-            var min = tmp * 60;
-            return label + " " + deg + "&deg; " + min.toFixed(3) + "'";
-        };
-
-        var ausgabe = document.getElementById("infogeo");
-        latitude = formatCoordinate(latitude, Lang.getString('North'), Lang.getString('South'));
-        longitude = '<br />' + formatCoordinate(longitude, Lang.getString('East'), Lang.getString('West'));
-        ausgabe.innerHTML = latitude + " " + longitude;
-    };
-
-    /**
-     * Starts the gauge/progress bar
-     * and relies on .getIntermediateResult() therefore
-     *  (function previously known as draw())
-     */
-    TestVisualization.prototype.startTest = function () {
-        //reset error
-        close_errorPopup();
-
-        //first draw, then the timeout should kick in
-        draw();
-    };
-
-    var lastProgress = -1;
-    var lastStatus = -1;
-    function draw() {
-        var getSignificantDigits = function getSignificantDigits(number) {
-            if (number > 100) {
-                return -1;
-            } else if (number >= 10) {
-                return 0;
-            } else if (number >= 1) {
-                return 1;
-            } else if (number >= 0.1) {
-                return 2;
-            } else {
-                return 3;
-            }
-        };
-
-        var status, ping, down, up, up_log, down_log;
-        var progress,
-            showup = "-",
-            showdown = "-",
-            showping = "-";
-        var result = _rmbtTest.getIntermediateResult();
-        if (result === null || result.progress === lastProgress && lastProgress !== 1 && lastStatus === result.status.toString() && lastStatus !== TestState.QOS_TEST_RUNNING && lastStatus !== TestState.QOS_END && lastStatus !== TestState.SPEEDTEST_END) {
-            _redraw_loop = setTimeout(draw, 250);
-            return;
-        }
-        lastProgress = result.progress;
-        lastStatus = result.status.toString();
-
-        if (result !== null) {
-            down = result.downBitPerSec;
-            up = result.upBitPerSec;
-            down_log = result.downBitPerSecLog;
-            up_log = result.upBitPerSecLog;
-            ping = result.pingNano;
-            status = result.status.toString();
-            progress = result.progress;
-            //console.log("down:"+down+" up:"+up+" ping:"+ping+" progress:"+progress+" status:"+status);
-        }
-
-        if (_serverName !== undefined && _serverName !== null && _serverName !== '') {
-            _infoserver.innerHTML = _serverName;
-        }
-
-        if (_remoteIp !== undefined && _remoteIp !== null && _remoteIp !== '') {
-            _infoip.innerHTML = _remoteIp;
-        }
-
-        if (_providerName !== undefined && _providerName !== null && _providerName !== '') {
-            _infoprovider.innerHTML = _providerName;
-        }
-
-        //show-Strings
-        if (ping > 0) {
-            showping = ping / 1000000;
-            showping = showping.formatNumber(getSignificantDigits(showping)) + " " + Lang.getString('ms');
-        }
-
-        if (down > 0) {
-            showdown = down / 1000000;
-            showdown = showdown.formatNumber(getSignificantDigits(showdown)) + " " + Lang.getString("Mbps");
-        }
-
-        if (up > 0) {
-            showup = up / 1000000;
-            showup = showup.formatNumber(getSignificantDigits(showup)) + " " + Lang.getString("Mbps");
-        }
-
-        var drawCanvas = function drawCanvas() {
-            console.log(status + ": " + progress);
-            var prog = progress_segment(status, progress);
-            //console.log("Prog: "+prog);
-            //if (status != 'END' && status != 'ERROR' && status != 'ABORTED') {
-
-            //Cancel any movement animation if a new chart is requested
-            if ((typeof _animation_loop === "undefined" ? "undefined" : _typeof(_animation_loop)) !== undefined) clearInterval(_animation_loop);
-
-            //random degree from 0 to 360
-            //new_degrees = Math.round(Math.random()*360);
-            _new_degrees_status = Math.round(prog * 360) + 1;
-
-            document.getElementById('showPing').innerHTML = showping;
-            document.getElementById('showDown').innerHTML = showdown;
-            document.getElementById('showUp').innerHTML = showup;
-
-            if (status === "DOWN") {
-                if (down_log > 1) down_log = 1;
-                _degrees_updwn = Math.round(down_log * 360);
-                var imgPath = _imageDirectory + "speedtest/download-icon.png";
-                if (_image.src !== imgPath) {
-                    _image.src = imgPath;
-                }
-            } else if (status === "UP") {
-                if (up_log > 1) up_log = 1;
-                _degrees_updwn = Math.round(up_log * 360);
-                var imgPath = _imageDirectory + "speedtest/upload-icon.png";
-                if (_image.src !== imgPath) {
-                    _image.src = imgPath;
-                }
-            }
-            //console.log("up_log: "+up_log);
-            //console.log("degrees_updwn: "+degrees_updwn);
-            _difference = Math.max(1, _new_degrees_status - _degrees_status);
-            //This will animate the gauge to new positions
-            //The animation will take 1 second
-            //time for each frame is 1sec / difference in degrees
-            _animation_loop = setInterval(animate_to, 500 / _difference);
-            //animation_loop = setInterval(animate_to, 10);
-
-        };
-        var drawNoCanvas = function drawNoCanvas() {
-            var show_prog = progress * 100;
-            if (show_prog < 100) show_prog = show_prog.toPrecision(2);else show_prog = 100;
-            $('#progbar').css('width', Math.floor(210 + show_prog * 2.1) + 'px');
-            var show_prog_tmp = show_prog / 2;
-            if (status === TestState.UP) {
-                show_prog_tmp += 50;
-            }
-            if (show_prog_tmp < 100) show_prog_tmp = show_prog_tmp.toPrecision(2);else show_prog_tmp = 100;
-            $('#progbar').html(show_prog_tmp + "%");
-            $('#activity-indicator').html("(" + show_prog + "%)");
-            var ulbar_width = Math.floor(up_log * 420);
-            $('#ulbar').css('width', ulbar_width + 'px');
-            $('#ulbar').html(showup);
-            $("#showUp").html(showup);
-
-            var dlbar_width = Math.floor(down_log * 420);
-            $('#dlbar').css('width', dlbar_width + 'px');
-            $('#dlbar').html(showdown);
-            $('#showDown').html(showdown);
-        };
-        set_status(status);
-
-        if (_noCanvas) {
-            drawNoCanvas();
-        } else {
-            drawCanvas();
-        }
-
-        if (status !== "END" && status !== "ERROR" && status !== "ABORTED") {
-            _redraw_loop = setTimeout(draw, 250);
-            //Draw a new chart
-        } else if (status === "ERROR" || status === "ABORTED") {} else if (status === "END") {
-
-            redirectToTestResult();
-        }
-        //  }
-    }
-
-    /**
-     * function to show current status
-     * @param {string} curStatus status that will be displayed
-     * @returns {undefined}
-     */
-    function set_status(curStatus) {
-        if (_spinner !== null) {
-            _spinner.stop();
-            _spinner = null;
-        }
-
-        switch (curStatus) {
-            case TestState.LOCATE:
-                _infostatus.innerHTML = Lang.getString('Locating');
-                var opts = {
-                    lines: 7,
-                    length: 0,
-                    width: 3,
-                    radius: 2,
-                    trail: 50,
-                    speed: 1.2,
-                    color: "#002D45"
-                };
-                _spinner = new Spinner(opts).spin(_spinnertarget);
-                break;
-            case TestState.INIT:
-            case TestState.INIT_DOWN:
-                _infostatus.innerHTML = Lang.getString('Initializing');
-                break;
-            case TestState.WAIT:
-                _infostatus.innerHTML = Lang.getString('WaitForSlot');
-                break;
-            case TestState.INIT_UP:
-                _infostatus.innerHTML = Lang.getString('Init_Upload');
-                break;
-            case TestState.PING:
-                _infostatus.innerHTML = Lang.getString("Ping");
-                break;
-            case TestState.DOWN:
-                _infostatus.innerHTML = Lang.getString("Download");
-                break;
-            case TestState.UP:
-                _infostatus.innerHTML = Lang.getString("Upload");
-                break;
-            case TestState.QOS_TEST_RUNNING:
-                //guess duration here since there is no information from the applet
-                if (_startTimeQos < 0) {
-                    _startTimeQos = new Date().getTime();
-                }
-                var now = new Date().getTime();
-                var progress = Math.min(1, (now - _startTimeQos) / _qosTestDurationMs);
-
-                _infostatus.innerHTML = Lang.getString('QosTest') + " (" + Math.round(progress * 100) + "&nbsp;%)";
-                break;
-            case TestState.QOS_END:
-            case TestState.SPEEDTEST_END:
-                //this could be the NDT test running
-                if (_rmbtTest.getNdtStatus() !== null && _rmbtTest.getNdtStatus().toString() === "RUNNING") {
-                    var progress = _rmbtTest.getNdtProgress();
-                    _infostatus.innerHTML = Lang.getString('NDT') + " (" + Math.round(progress * 100) + "&nbsp;%)";
-                }
-
-                break;
-            case TestState.END:
-                _infostatus.innerHTML = Lang.getString('Finished');
-                break;
-            case TestState.ERROR:
-                _infostatus.innerHTML = Lang.getString('Error');
-                $("#popuperror").empty();
-                $("#popuperror").append('<p>' + Lang.getString('ErrorOccuredDuringTest') + '</p>');
-                if (lastStatus !== curStatus) {
-                    show_errorPopup();
-                    lastStatus = curStatus;
-                }
-                break;
-            case TestState.ABORTED:
-                _infostatus.innerHTML = Lang.getString('Aborted');
-                $("#popuperror").empty();
-                $("#popuperror").append('<p>' + Lang.getString('PrematureEnd') + '</p>');
-                show_errorPopup();
-                break;
-            case "JAVAERROR":
-                _infostatus.innerHTML = Lang.getString('Aborted');
-                $("#popuperror").empty();
-                $("#popuperror").append('<p>' + Lang.getString('AppletCouldNotBeLoaded') + '</p>');
-                show_errorPopup();
-                break;
-            case TestState.LOCABORTED:
-                _infostatus.innerHTML = Lang.getString('Init_applet');
-                if (!noJava) start_test();else start_jstest();
-                break;
-            default:
-                console.log("Unknown test state: " + curStatus);
-        }
-    }
-
-    function redirectToTestResult() {
-        var forwardUrl = "/" + selectedLanguage + "/Verlauf";
-        if (preferredTest === TestTypes.Java || getParam("Java")) {
-            forwardUrl += "?Java=True";
-        }
-        forwardUrl += "#";
-        forwardUrl += _testUUID;
-        setTimeout(function () {
-            window.location.href = forwardUrl;
-        }, 2000);
-    }
-
-    /**
-     * function to make the chart move to new degrees
-     * (one degree at a time)
-     * is called by interval declared in animation_loop
-     * by speedtest-components (Downloadtest, Uploadtest)
-     */
-    function animate_to() {
-        //clear animation loop if degrees reaches to new_degrees
-        if (_degrees_status >= _new_degrees_status) clearInterval(_animation_loop);
-
-        if (_degrees_status < _new_degrees_status) {
-            _degrees_status++;
-        }
-
-        //if the new degrees status is different from the old one
-        //move the degrees_status forward to the old one so that
-        //animation does not hang
-        if (_old_degrees_status !== _new_degrees_status) {
-            _degrees_status = _old_degrees_status;
-            _old_degrees_status = _new_degrees_status;
-        }
-
-        resetCanvas();
-    }
-
-    return TestVisualization;
-}();
 /*!******************************************************************************
  * @license
  * Copyright 2015-2017 Thomas Schreiber
@@ -908,7 +42,7 @@ var RMBTTest = function () {
     var _rmbtTestResult = null;
     var _errorCallback = null;
 
-    var _state = TestState.INIT;
+    var _state;
     var _stateChangeMs;
     var _statesInfo = {
         durationInitMs: 2500,
@@ -1938,6 +1072,872 @@ var RMBTTest = function () {
     };
 
     return RMBTTest;
+}();
+"use strict";
+
+var curGeoPos;
+var geo_callback, loc_timeout;
+
+function runCallback() {
+    if (geo_callback != undefined && typeof geo_callback == 'function') {
+        window.setTimeout(function () {
+            geo_callback();
+        }, 1);
+    }
+}
+
+function getCurLocation() {
+    return curGeoPos;
+}
+
+/**
+ * GetLocation, JSDoc from old Test
+ * @param {Boolean} geoAccuracy enable high accuracy (i.e. GPS instead of AP)
+ * @param {Numeric} geoTimeout maximal timeout before error function is called
+ * @param {Numeric} geoMaxAge maximal allowed age in milliseconds
+ * @param {Function} callback
+ */
+function getLocation(geoAccuracy, geoTimeout, geoMaxAge, callback) {
+    var ausgabe = document.getElementById("infogeo");
+    geo_callback = callback;
+
+    if (!navigator.geolocation) {
+        //maybe there is a position in a cookie
+        //because the user had been asked for his address
+        var coords = getCookie('coords');
+        if (coords) {
+            var tmpcoords = JSON.parse(coords);
+            if (tmpcoords && tmpcoords['lat'] > 0 && tmpcoords['long'] > 0) {
+                testVisualization.setLocation(tmpcoords['lat'], tmpcoords['long']);
+            }
+        } else {
+            ausgabe.innerHTML = Lang.getString('NotSupported');
+        }
+
+        runCallback();
+        return;
+    }
+    runCallback();
+    //var TestEnvironment.getGeoTracker() = new GeoTracker();
+    TestEnvironment.getGeoTracker().start(function (successful, error) {
+        if (successful === true) {} else {
+            //user did not allow geolocation or other reason
+            switch (error.code) {
+                case error.PERMISSION_DENIED:
+                    ausgabe.innerHTML = Lang.getString('NoPermission');
+                    break;
+                case error.TIMEOUT:
+                    //@TODO: Position is determined...
+                    //alert(1);
+                    break;
+                case error.POSITION_UNAVAILABLE:
+                    ausgabe.innerHTML = Lang.getString('NotAvailable');
+                    break;
+                case error.UNKNOWN_ERROR:
+                    ausgabe.innerHTML = Lang.getString('NotAvailable') + "(" + error.code + ")";
+                    break;
+            }
+        }
+    }, TestEnvironment.getTestVisualization());
+}
+
+//Geolocation tracking
+var GeoTracker = function () {
+    "use strict";
+
+    var _positions;
+    var _clientCallback;
+    var _testVisualization = null;
+
+    var _watcher;
+    var _firstPositionIsInAccurate;
+
+    function GeoTracker() {
+        _positions = new Array();
+        _firstPositionIsInAccurate = false;
+    }
+
+    /**
+     * Start geolocating
+     * @param {Callback(Boolean)} callback expects param 'successful' (boolean, ErrorReason) and
+     *      is called as soon as there is a result is available or the user cancelled
+     * @param {TestVisualization} testVisualization optional
+     */
+    GeoTracker.prototype.start = function (callback, testVisualization) {
+        _clientCallback = callback;
+
+        if (testVisualization !== undefined) {
+            _testVisualization = testVisualization;
+        }
+
+        if (navigator.geolocation) {
+            //try to get an rough first position
+            navigator.geolocation.getCurrentPosition(function (success) {
+                if (_positions.length === 0) {
+                    _firstPositionIsInAccurate = true;
+                    successFunction(success);
+                };
+            }, errorFunction, {
+                enableHighAccuracy: false,
+                timeout: 2000, //2 seconds
+                maximumAge: 60000 //one minute
+            });
+            //and refine this position later
+            _watcher = navigator.geolocation.watchPosition(successFunction, errorFunction, {
+                enableHighAccuracy: true,
+                timeout: Infinity,
+                maximumAge: 0 //one minute
+            });
+        } else {
+            var t = _clientCallback;
+            _clientCallback = null;
+            t(false);
+        }
+
+        //call at latest after 2 seconds
+    };
+
+    /**
+     * Saves the given result
+     * Is called when a geolocation query returns a result
+     * @param {Position} position the result https://developer.mozilla.org/en-US/docs/Web/API/Position
+     */
+    var successFunction = function successFunction(position) {
+        //rough first position and now more accurate one -> remove the inaccurate one
+        if (_positions.length === 1 && _firstPositionIsInAccurate) {
+            _positions = new Array();
+            _firstPositionIsInAccurate = false;
+        }
+
+        _positions.push({
+            geo_lat: position.coords.latitude,
+            geo_long: position.coords.longitude,
+            accuracy: position.coords.accuracy,
+            altitude: position.coords.altitude,
+            bearing: position.coords.heading,
+            speed: position.coords.speed,
+            tstamp: position.timestamp,
+            provider: 'Browser'
+        });
+        if (_clientCallback !== null) {
+            //call client that we now have a result
+            var t = _clientCallback;
+            _clientCallback = null;
+            t(true);
+        }
+        if (_testVisualization !== null) {
+            _testVisualization.setLocation(position.coords.latitude, position.coords.longitude);
+        }
+        updateCookie(position);
+    };
+
+    var errorFunction = function errorFunction(reason) {
+        //PositionError Object (https://developer.mozilla.org/en-US/docs/Web/API/PositionError)
+        if (_clientCallback !== null) {
+            //call client that we now have an error
+            var t = _clientCallback;
+            _clientCallback = null;
+            t(false, reason);
+        }
+    };
+
+    var updateCookie = function updateCookie(position) {
+        var coords = new Object();
+        coords['lat'] = position.coords.latitude;
+        coords['long'] = position.coords.longitude;
+        coords['accuracy'] = position.coords.accuracy;
+        coords['altitude'] = position.coords.altitude;
+        coords['heading'] = position.coords.heading;
+        coords['speed'] = position.coords.speed;
+        coords['tstamp'] = position.timestamp;
+        //console.log("coords: "+coords);
+        coords = JSON.stringify(coords);
+        //console.log("tmpcoords: "+tmpcoords);
+        setCookie('coords', coords, 3600);
+    };
+
+    GeoTracker.prototype.stop = function () {
+        if (navigator.geolocation) {
+            navigator.geolocation.clearWatch(_watcher);
+        }
+    };
+
+    /**
+     *
+     * @returns {Array} all results
+     */
+    GeoTracker.prototype.getResults = function () {
+        return _positions;
+    };
+
+    return GeoTracker;
+}();
+
+/* getCookie polyfill */
+if (typeof window.setCookie === 'undefined') {
+    window.setCookie = function (cookie_name, cookie_value, cookie_exseconds) {
+        //var exdate = new Date();
+        //exdate.setDate(exdate.getDate() + cookie_exdays);
+
+        var futdate = new Date();
+        var expdate = futdate.getTime();
+        expdate += cookie_exseconds * 1000;
+        futdate.setTime(expdate);
+
+        //var c_value=escape(cookie_value) + ((cookie_exdays==null) ? ";" : "; expires="+exdate.toUTCString() +";");
+        var c_value = escape(cookie_value) + (cookie_exseconds == null ? ";" : "; expires=" + futdate.toUTCString() + ";");
+        document.cookie = cookie_name + "=" + c_value + " path=/;";
+    };
+}
+"use strict";
+
+var TestEnvironment = function () {
+    var testVisualization = null;
+    var geoTracker = null;
+
+    return {
+        /**
+         * gets the TestVisualization or null
+         * @returns {TestVisualization}
+         */
+        getTestVisualization: function getTestVisualization() {
+            return testVisualization;
+        },
+
+        /**
+         * gets the GeoTracker or null
+         * @returns {GeoTracker}
+         */
+        getGeoTracker: function getGeoTracker() {
+            return geoTracker;
+        },
+
+        init: function init() {
+            testVisualization = new TestVisualization();
+            geoTracker = new GeoTracker();
+        }
+    };
+}();
+
+//States
+var TestState = {
+    WAIT: "WAIT",
+    INIT: "INIT",
+    INIT_DOWN: "INIT_DOWN",
+    PING: "PING",
+    DOWN: "DOWN",
+    INIT_UP: "INIT_UP",
+    UP: "UP",
+    END: "END",
+    ERROR: "ERROR",
+    ABORTED: "ABORTED",
+    LOCATE: "LOCATE",
+    LOCABORTED: "LOCABORTED",
+    SPEEDTEST_END: "SPEEDTEST_END",
+    QOS_TEST_RUNNING: "QOS_TEST_RUNNING",
+    QOS_END: "QOS_END"
+};
+
+//Intermediate Result
+function RMBTIntermediateResult() {}
+RMBTIntermediateResult.prototype.setLogValues = function () {
+    var toLog = function toLog(value) {
+        if (value < 10000) {
+            return 0;
+        }
+        return (2.0 + Math.log(value / 1e6 / Math.LN10)) / 4.0;
+    };
+    this.downBitPerSecLog = toLog(downBitPerSec);
+    this.upBitPerSecLog = toLog(upBitPerSec);
+};
+
+RMBTIntermediateResult.prototype.pingNano = -1;
+RMBTIntermediateResult.prototype.downBitPerSec = -1;
+RMBTIntermediateResult.prototype.upBitPerSec = -1;
+RMBTIntermediateResult.prototype.status = TestState.INIT;
+RMBTIntermediateResult.prototype.progress = 0;
+RMBTIntermediateResult.prototype.downBitPerSecLog = -1;
+RMBTIntermediateResult.prototype.upBitPerSecLog = -1;
+RMBTIntermediateResult.prototype.remainingWait = -1;
+"use strict";
+
+/**
+ * About TestVisualization:
+ *  Constructor expects a object that implements {RMBTIntermediateResult}.getIntermediateResult()
+ *      this will be called every xx ms (pull)
+ *  The Animation loop will start as soon as "startTest()" is called
+ *  The status can be set directly via setStatus or in the intermediateResult
+ *  Information (provider, ip, uuid, etc.) has to be set via updateInformation
+ *  As soon as the test reaches the "End"-State, the result page is called
+ */
+
+var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; };
+
+var TestVisualization = function () {
+    var _imageDirectory = '../img/';
+
+    //static values for the duration of ndt, qos since there is no info from the applet
+    var _qosTestDurationMs = 10000;
+    var _startTimeQos = -1;
+
+    var _rmbtTest;
+
+    var _noCanvas = false;
+
+    //canvas initialization
+    var _canvas1; //progession canvas
+    var _canvas2; //upload/download-canvas
+
+    var _ctx1; //context of progression canvas
+    var _ctx2; //context of upload/download-canvas
+
+    //dimensions
+    var _W;
+    var _H;
+
+    //Variables
+    var _degrees_status = 0; //current status of the animation
+    var _new_degrees_status = 0; //current goal of the animation, volatile to jstest.js
+    var _old_degrees_status = 0; //the current goal the animation is trying to achieve
+    var _degrees_updwn = 0;
+    var _new_degrees_updwn = 0;
+    var _difference = 0;
+
+    //var color = "lightgreen"; //green looks better to me
+    var _bgcolor = "#2E4653";
+    var _text;
+    var _animation_loop, _redraw_loop;
+
+    var _image;
+
+    // Create gradients
+    var _grad1;
+    var _grad2;
+
+    var _infogeo = null;
+    var _infoserver = null;
+    var _infoip = null;
+    var _infostatus = null;
+    var _infoprovider = null;
+    var _spinner = null;
+    var _spinnertarget = null;
+
+    function TestVisualization() {
+
+        //Check if Canvas is supported
+        var canvasTurnOff = getParam('nocanvas');
+        if (!Modernizr.canvas || canvasTurnOff) {
+            _noCanvas = true;
+        } else {
+            _noCanvas = false;
+        }
+
+        //init the canvas
+        if (_noCanvas) {
+            $("#dashboard").detach();
+            $("#dashboard_easy").show();
+        } else {
+            $("#error_placeholder").hide();
+            $("#dashboard").show();
+            $("#dashboard_easy").detach();
+            initCanvas();
+        }
+        $("#error_placeholder").hide();
+        $("#loading-placeholder").hide();
+
+        _infogeo = document.getElementById("infogeo");
+        _infoserver = document.getElementById("infoserver");
+        _infoip = document.getElementById("infoip");
+        _infostatus = document.getElementById("infostatus");
+        _infoprovider = document.getElementById("infoprovider");
+        _spinnertarget = document.getElementById("activity-indicator");
+    };
+
+    /**
+     * Sets the RMBT Test object
+     * @param {Object} rmbtTest has to support {RMBTIntermediateResult}.getIntermediateResult
+     */
+    TestVisualization.prototype.setRMBTTest = function (rmbtTest) {
+        _rmbtTest = rmbtTest;
+    };
+
+    function progress_segment(status, progress) {
+        var ProgressSegmentsTotal = 96;
+        var ProgressSegmentsInit = 14;
+        var ProgressSegmentsPing = 15;
+        var ProgressSegmentsDown = 34;
+        var ProgressSegmentsUp = 33;
+        var progressValue = 0;
+        var progressSegments = 0;
+        switch (status) {
+            case "INIT":
+            case "INIT_DOWN":
+                progressSegments = Math.round(ProgressSegmentsInit * progress);
+                break;
+            case "PING":
+                progressSegments = ProgressSegmentsInit + Math.round(ProgressSegmentsPing * progress);
+                break;
+            case "DOWN":
+                progressSegments = ProgressSegmentsInit + ProgressSegmentsPing + Math.round(ProgressSegmentsDown * progress);
+                break;
+            case "INIT_UP":
+                progressSegments = ProgressSegmentsInit + ProgressSegmentsPing + ProgressSegmentsDown;
+                break;
+            case "UP":
+                progressSegments = ProgressSegmentsInit + ProgressSegmentsPing + ProgressSegmentsDown + Math.round(ProgressSegmentsUp * progress);
+                progressSegments = Math.min(95, progressSegments);
+                break;
+            case "END":
+                progressSegments = ProgressSegmentsTotal;
+                break;
+            case "QOS_TEST_RUNNING":
+                progressSegments = 95;
+                break;
+            case TestState.SPEEDTEST_END:
+            case TestState.QOS_END:
+                progressSegments = 95;
+                break;
+            case "ERROR":
+            case "ABORTED":
+                progressSegments = 0;
+                break;
+        }
+        progressValue = progressSegments / ProgressSegmentsTotal;
+        return progressValue;
+    }
+
+    function initCanvas() {
+        // GAUGE VISUALISATION
+
+        //canvas initialization
+        _canvas1 = document.getElementById("canvas-progress");
+        _canvas2 = document.getElementById("canvas-downup");
+
+        _ctx1 = _canvas1.getContext("2d");
+        _ctx2 = _canvas2.getContext("2d");
+
+        //dimensions
+        _W = _canvas1.width;
+        _H = _canvas1.height;
+
+        _image = new Image();
+
+        // Create gradients
+        _grad1 = _ctx1.createRadialGradient(_W / 2, _H / 2, 110, _W / 2, _H / 2, 118);
+        _grad1.addColorStop(0.0, 'rgba(200,200,200,1)');
+        _grad1.addColorStop(0.3, 'rgba(255,255,255,1)');
+        _grad1.addColorStop(0.7, 'rgba(255,255,255,1)');
+        _grad1.addColorStop(1.0, 'rgba(200,200,200,1)');
+
+        _grad2 = _ctx2.createRadialGradient(_W / 2, _H / 2, 110, _W / 2, _H / 2, 118);
+        _grad2.addColorStop(0.0, 'rgba(50,201,14,1)');
+        _grad2.addColorStop(0.3, 'rgba(0,249,61,1)');
+        _grad2.addColorStop(0.7, 'rgba(0,249,61,1)');
+        _grad2.addColorStop(1.0, 'rgba(50,201,14,1)');
+    }
+
+    function resetCanvas() {
+        //Clear the canvas everytime a chart is drawn
+        _ctx1.clearRect(0, 0, _W, _H);
+        _ctx2.clearRect(0, 0, _W, _H);
+
+        //Background 360 degree arc
+        _ctx1.beginPath();
+        _ctx1.strokeStyle = _bgcolor;
+        _ctx1.lineWidth = 35;
+        _ctx1.arc(_W / 2, _H / 2, 114, 0 - 150 * Math.PI / 180, Math.PI * 0.66, false);
+        //you can see the arc now
+        _ctx1.stroke();
+
+        _ctx2.beginPath();
+        _ctx2.strokeStyle = _bgcolor;
+        _ctx2.lineWidth = 35;
+        _ctx2.arc(_W / 2, _H / 2, 114, 0 * Math.PI / 180, Math.PI * 1.7, false);
+        //you can see the arc now
+        _ctx2.stroke();
+
+        //gauge will be a simple arc
+        //Angle in radians = angle in degrees * PI / 180
+        var radians1 = _degrees_status * Math.PI / 240;
+        var radians2 = _degrees_updwn * Math.PI / 212;
+
+        _ctx1.beginPath();
+        _ctx1.strokeStyle = _grad1;
+        _ctx1.lineWidth = 18;
+        //The arc starts from the rightmost end. If we deduct 90 degrees from the angles
+        //the arc will start from the topmost end
+        _ctx1.arc(_W / 2, _H / 2, 114, 0 - 150 * Math.PI / 180, radians1 - 150 * Math.PI / 180, false);
+        //you can see the arc now
+        _ctx1.stroke();
+
+        _ctx2.beginPath();
+        _ctx2.strokeStyle = _grad2;
+        _ctx2.lineWidth = 18;
+        //The arc starts from the rightmost end. If we deduct 90 degrees from the angles
+        //the arc will start from the topmost end
+        _ctx2.arc(_W / 2, _H / 2, 114, 0 - 0 * Math.PI / 180, radians2 - 0 * Math.PI / 180, false);
+        //you can see the arc now
+        _ctx2.stroke();
+
+        //Lets add the text
+        _ctx1.fillStyle = '#FFF';
+        _ctx1.font = "bold 18pt tahoma";
+        _text = Math.floor(_degrees_status / 360 * 100) + "%";
+        //Lets center the text
+        //deducting half of text width from position x
+        var text_width = _ctx1.measureText(_text).width;
+        //adding manual value to position y since the height of the text cannot
+        //be measured easily. There are hacks but we will keep it manual for now.
+        _ctx1.fillText(_text, _W / 2 - text_width / 2 + 4, _H / 2 + 7);
+
+        // Down-, Upload Images
+        //var image = new Image();
+        //image.src = "img/speedtest/download-icon.png";
+        if (_image !== null && _image.src !== "") {
+            _ctx2.drawImage(_image, _W / 2 - 15, _H / 2 - 24);
+        }
+
+        /*
+         ctx2.fillStyle = '#FFF';
+         ctx2.font = "bold 18pt tahoma";
+         text = Math.floor(degrees/360*100) + "";
+         //Lets center the text
+         //deducting half of text width from position x
+         text_width = ctx2.measureText(text).width;
+         //adding manual value to position y since the height of the text cannot
+         //be measured easily. There are hacks but we will keep it manual for now.
+         ctx2.fillText(text, W/2 - text_width/2 + 0, H/2 + 7);
+         */
+    }
+
+    var _serverName = null;
+    var _remoteIp = null;
+    var _providerName = null;
+    var _testUUID = '';
+    TestVisualization.prototype.updateInfo = function (serverName, remoteIp, providerName, testUUID) {
+        _serverName = serverName;
+        _remoteIp = remoteIp;
+        _providerName = providerName;
+        _testUUID = testUUID;
+    };
+
+    TestVisualization.prototype.setStatus = function (status) {
+        set_status(status);
+    };
+
+    TestVisualization.prototype.setLocation = function (latitude, longitude) {
+        //from Opentest.js
+        var formatCoordinate = function formatCoordinate(decimal, label_positive, label_negative) {
+            var label = deg < 0 ? label_negative : label_positive;
+            var deg = Math.floor(Math.abs(decimal));
+            var tmp = Math.abs(decimal) - deg;
+            var min = tmp * 60;
+            return label + " " + deg + "&deg; " + min.toFixed(3) + "'";
+        };
+
+        var ausgabe = document.getElementById("infogeo");
+        latitude = formatCoordinate(latitude, Lang.getString('North'), Lang.getString('South'));
+        longitude = '<br />' + formatCoordinate(longitude, Lang.getString('East'), Lang.getString('West'));
+        ausgabe.innerHTML = latitude + " " + longitude;
+    };
+
+    /**
+     * Starts the gauge/progress bar
+     * and relies on .getIntermediateResult() therefore
+     *  (function previously known as draw())
+     */
+    TestVisualization.prototype.startTest = function () {
+        //reset error
+        close_errorPopup();
+
+        //first draw, then the timeout should kick in
+        draw();
+    };
+
+    var lastProgress = -1;
+    var lastStatus = -1;
+    function draw() {
+        var getSignificantDigits = function getSignificantDigits(number) {
+            if (number > 100) {
+                return -1;
+            } else if (number >= 10) {
+                return 0;
+            } else if (number >= 1) {
+                return 1;
+            } else if (number >= 0.1) {
+                return 2;
+            } else {
+                return 3;
+            }
+        };
+
+        var status, ping, down, up, up_log, down_log;
+        var progress,
+            showup = "-",
+            showdown = "-",
+            showping = "-";
+        var result = _rmbtTest.getIntermediateResult();
+        if (result === null || result.progress === lastProgress && lastProgress !== 1 && lastStatus === result.status.toString() && lastStatus !== TestState.QOS_TEST_RUNNING && lastStatus !== TestState.QOS_END && lastStatus !== TestState.SPEEDTEST_END) {
+            _redraw_loop = setTimeout(draw, 250);
+            return;
+        }
+        lastProgress = result.progress;
+        lastStatus = result.status.toString();
+
+        if (result !== null) {
+            down = result.downBitPerSec;
+            up = result.upBitPerSec;
+            down_log = result.downBitPerSecLog;
+            up_log = result.upBitPerSecLog;
+            ping = result.pingNano;
+            status = result.status.toString();
+            progress = result.progress;
+            //console.log("down:"+down+" up:"+up+" ping:"+ping+" progress:"+progress+" status:"+status);
+        }
+
+        if (_serverName !== undefined && _serverName !== null && _serverName !== '') {
+            _infoserver.innerHTML = _serverName;
+        }
+
+        if (_remoteIp !== undefined && _remoteIp !== null && _remoteIp !== '') {
+            _infoip.innerHTML = _remoteIp;
+        }
+
+        if (_providerName !== undefined && _providerName !== null && _providerName !== '') {
+            _infoprovider.innerHTML = _providerName;
+        }
+
+        //show-Strings
+        if (ping > 0) {
+            showping = ping / 1000000;
+            showping = showping.formatNumber(getSignificantDigits(showping)) + " " + Lang.getString('ms');
+        }
+
+        if (down > 0) {
+            showdown = down / 1000000;
+            showdown = showdown.formatNumber(getSignificantDigits(showdown)) + " " + Lang.getString("Mbps");
+        }
+
+        if (up > 0) {
+            showup = up / 1000000;
+            showup = showup.formatNumber(getSignificantDigits(showup)) + " " + Lang.getString("Mbps");
+        }
+
+        var drawCanvas = function drawCanvas() {
+            console.log(status + ": " + progress);
+            var prog = progress_segment(status, progress);
+            //console.log("Prog: "+prog);
+            //if (status != 'END' && status != 'ERROR' && status != 'ABORTED') {
+
+            //Cancel any movement animation if a new chart is requested
+            if ((typeof _animation_loop === "undefined" ? "undefined" : _typeof(_animation_loop)) !== undefined) clearInterval(_animation_loop);
+
+            //random degree from 0 to 360
+            //new_degrees = Math.round(Math.random()*360);
+            _new_degrees_status = Math.round(prog * 360) + 1;
+
+            document.getElementById('showPing').innerHTML = showping;
+            document.getElementById('showDown').innerHTML = showdown;
+            document.getElementById('showUp').innerHTML = showup;
+
+            if (status === "DOWN") {
+                if (down_log > 1) down_log = 1;
+                _degrees_updwn = Math.round(down_log * 360);
+                var imgPath = _imageDirectory + "speedtest/download-icon.png";
+                if (_image.src !== imgPath) {
+                    _image.src = imgPath;
+                }
+            } else if (status === "UP") {
+                if (up_log > 1) up_log = 1;
+                _degrees_updwn = Math.round(up_log * 360);
+                var imgPath = _imageDirectory + "speedtest/upload-icon.png";
+                if (_image.src !== imgPath) {
+                    _image.src = imgPath;
+                }
+            }
+            //console.log("up_log: "+up_log);
+            //console.log("degrees_updwn: "+degrees_updwn);
+            _difference = Math.max(1, _new_degrees_status - _degrees_status);
+            //This will animate the gauge to new positions
+            //The animation will take 1 second
+            //time for each frame is 1sec / difference in degrees
+            _animation_loop = setInterval(animate_to, 500 / _difference);
+            //animation_loop = setInterval(animate_to, 10);
+
+        };
+        var drawNoCanvas = function drawNoCanvas() {
+            var show_prog = progress * 100;
+            if (show_prog < 100) show_prog = show_prog.toPrecision(2);else show_prog = 100;
+            $('#progbar').css('width', Math.floor(210 + show_prog * 2.1) + 'px');
+            var show_prog_tmp = show_prog / 2;
+            if (status === TestState.UP) {
+                show_prog_tmp += 50;
+            }
+            if (show_prog_tmp < 100) show_prog_tmp = show_prog_tmp.toPrecision(2);else show_prog_tmp = 100;
+            $('#progbar').html(show_prog_tmp + "%");
+            $('#activity-indicator').html("(" + show_prog + "%)");
+            var ulbar_width = Math.floor(up_log * 420);
+            $('#ulbar').css('width', ulbar_width + 'px');
+            $('#ulbar').html(showup);
+            $("#showUp").html(showup);
+
+            var dlbar_width = Math.floor(down_log * 420);
+            $('#dlbar').css('width', dlbar_width + 'px');
+            $('#dlbar').html(showdown);
+            $('#showDown').html(showdown);
+        };
+        set_status(status);
+
+        if (_noCanvas) {
+            drawNoCanvas();
+        } else {
+            drawCanvas();
+        }
+
+        if (status !== "END" && status !== "ERROR" && status !== "ABORTED") {
+            _redraw_loop = setTimeout(draw, 250);
+            //Draw a new chart
+        } else if (status === "ERROR" || status === "ABORTED") {} else if (status === "END") {
+
+            redirectToTestResult();
+        }
+        //  }
+    }
+
+    /**
+     * function to show current status
+     * @param {string} curStatus status that will be displayed
+     * @returns {undefined}
+     */
+    function set_status(curStatus) {
+        if (_spinner !== null) {
+            _spinner.stop();
+            _spinner = null;
+        }
+
+        switch (curStatus) {
+            case TestState.LOCATE:
+                _infostatus.innerHTML = Lang.getString('Locating');
+                var opts = {
+                    lines: 7,
+                    length: 0,
+                    width: 3,
+                    radius: 2,
+                    trail: 50,
+                    speed: 1.2,
+                    color: "#002D45"
+                };
+                _spinner = new Spinner(opts).spin(_spinnertarget);
+                break;
+            case TestState.INIT:
+            case TestState.INIT_DOWN:
+                _infostatus.innerHTML = Lang.getString('Initializing');
+                break;
+            case TestState.WAIT:
+                _infostatus.innerHTML = Lang.getString('WaitForSlot');
+                break;
+            case TestState.INIT_UP:
+                _infostatus.innerHTML = Lang.getString('Init_Upload');
+                break;
+            case TestState.PING:
+                _infostatus.innerHTML = Lang.getString("Ping");
+                break;
+            case TestState.DOWN:
+                _infostatus.innerHTML = Lang.getString("Download");
+                break;
+            case TestState.UP:
+                _infostatus.innerHTML = Lang.getString("Upload");
+                break;
+            case TestState.QOS_TEST_RUNNING:
+                //guess duration here since there is no information from the applet
+                if (_startTimeQos < 0) {
+                    _startTimeQos = new Date().getTime();
+                }
+                var now = new Date().getTime();
+                var progress = Math.min(1, (now - _startTimeQos) / _qosTestDurationMs);
+
+                _infostatus.innerHTML = Lang.getString('QosTest') + " (" + Math.round(progress * 100) + "&nbsp;%)";
+                break;
+            case TestState.QOS_END:
+            case TestState.SPEEDTEST_END:
+                //this could be the NDT test running
+                if (_rmbtTest.getNdtStatus() !== null && _rmbtTest.getNdtStatus().toString() === "RUNNING") {
+                    var progress = _rmbtTest.getNdtProgress();
+                    _infostatus.innerHTML = Lang.getString('NDT') + " (" + Math.round(progress * 100) + "&nbsp;%)";
+                }
+
+                break;
+            case TestState.END:
+                _infostatus.innerHTML = Lang.getString('Finished');
+                break;
+            case TestState.ERROR:
+                _infostatus.innerHTML = Lang.getString('Error');
+                $("#popuperror").empty();
+                $("#popuperror").append('<p>' + Lang.getString('ErrorOccuredDuringTest') + '</p>');
+                if (lastStatus !== curStatus) {
+                    show_errorPopup();
+                    lastStatus = curStatus;
+                }
+                break;
+            case TestState.ABORTED:
+                _infostatus.innerHTML = Lang.getString('Aborted');
+                $("#popuperror").empty();
+                $("#popuperror").append('<p>' + Lang.getString('PrematureEnd') + '</p>');
+                show_errorPopup();
+                break;
+            case "JAVAERROR":
+                _infostatus.innerHTML = Lang.getString('Aborted');
+                $("#popuperror").empty();
+                $("#popuperror").append('<p>' + Lang.getString('AppletCouldNotBeLoaded') + '</p>');
+                show_errorPopup();
+                break;
+            case TestState.LOCABORTED:
+                _infostatus.innerHTML = Lang.getString('Init_applet');
+                if (!noJava) start_test();else start_jstest();
+                break;
+            default:
+                console.log("Unknown test state: " + curStatus);
+        }
+    }
+
+    function redirectToTestResult() {
+        var forwardUrl = "/" + selectedLanguage + "/Verlauf";
+        if (preferredTest === TestTypes.Java || getParam("Java")) {
+            forwardUrl += "?Java=True";
+        }
+        forwardUrl += "#";
+        forwardUrl += _testUUID;
+        setTimeout(function () {
+            window.location.href = forwardUrl;
+        }, 2000);
+    }
+
+    /**
+     * function to make the chart move to new degrees
+     * (one degree at a time)
+     * is called by interval declared in animation_loop
+     * by speedtest-components (Downloadtest, Uploadtest)
+     */
+    function animate_to() {
+        //clear animation loop if degrees reaches to new_degrees
+        if (_degrees_status >= _new_degrees_status) clearInterval(_animation_loop);
+
+        if (_degrees_status < _new_degrees_status) {
+            _degrees_status++;
+        }
+
+        //if the new degrees status is different from the old one
+        //move the degrees_status forward to the old one so that
+        //animation does not hang
+        if (_old_degrees_status !== _new_degrees_status) {
+            _degrees_status = _old_degrees_status;
+            _old_degrees_status = _new_degrees_status;
+        }
+
+        resetCanvas();
+    }
+
+    return TestVisualization;
 }();
 "use strict";
 

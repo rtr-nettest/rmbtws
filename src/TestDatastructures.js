@@ -30,7 +30,7 @@ const TestEnvironment = (function () {
 
 
 //States
-var TestState = {
+const TestState = {
     WAIT: "WAIT",
     INIT: "INIT",
     INIT_DOWN: "INIT_DOWN",
