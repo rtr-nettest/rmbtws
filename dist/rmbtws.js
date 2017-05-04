@@ -1264,9 +1264,19 @@ var RMBTTest = function () {
 
             //console.log(thread.id + ": Received: " + event.data);
             if (event.data.indexOf("CHUNKSIZE") === 0) {
+                var parts = event.data.trim().split(" ");
+                //chunksize min and max
+                if (parts.length === 3) {
+                    _initialChunkSize = parseInt(parts[1]);
+                    MAX_CHUNK_SIZE = parseInt(parts[2]);
+                }
+                //min chunksize, max chunksize
+                else {
+                        _initialChunkSize = parseInt(parts[1]);
+                    }
                 _chunkSize = parseInt(event.data.substring(10));
                 _initialChunkSize = _chunkSize;
-                debug(thread.id + "Chunksize: " + _chunkSize);
+                debug(thread.id + "Chunksizes: min " + _initialChunkSize + ", max: " + MAX_CHUNK_SIZE);
             } else if (event.data.indexOf("RMBTv") === 0) {
                 //get server version
                 var version = event.data.substring(5).trim();
@@ -1492,12 +1502,12 @@ var RMBTTest = function () {
         var readChunks = 0;
         var lastReportedChunks = -1;
 
-        //read chunk only at some point in the future to save ressources
-        var readTimeout;
         var interval;
         var lastRead;
         var lastChunk = null;
+        var lastTime = null;
 
+        //read chunk only at some point in the future to save ressources
         interval = window.setInterval(function () {
             if (lastChunk === null) {
                 return;
@@ -1515,8 +1525,7 @@ var RMBTTest = function () {
             var lastByte = new Uint8Array(lastChunk, lastChunk.byteLength - 1, 1);
 
             //add result
-            var now = nowNs();
-            var duration = now - start;
+            var duration = lastTime - start;
             thread.result.down.push({
                 duration: duration,
                 bytes: totalRead
@@ -1542,8 +1551,8 @@ var RMBTTest = function () {
         var downloadListener = function downloadListener(event) {
             readChunks++;
             totalRead += event.data.byteLength; //arrayBuffer
-            //var currentRead = totalRead; //concurrency?
-            //var now = nowNs();
+            lastTime = nowNs();
+
             lastChunk = event.data;
         };
 
