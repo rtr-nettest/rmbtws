@@ -76,6 +76,7 @@ var RMBTTest = function () {
     function RMBTTest(rmbtTestConfig) {
         //init socket
         _rmbtTestConfig = rmbtTestConfig; // = new RMBTTestConfig();
+        _state = TestState.INIT;
     };
 
     /**
