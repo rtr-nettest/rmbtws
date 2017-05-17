@@ -9,7 +9,7 @@
         }
     }
 
-// prepare base perf object
+    // prepare base perf object
     if (typeof window.performance === 'undefined') {
         window.performance = {};
     }
@@ -27,21 +27,19 @@
         }
 
     }
-
-
 })();
 
 function nowNs() {
-    return Math.round(window.performance.now() * 1000 * 1000); //from ms to ns
-};
+    return Math.round(window.performance.now() * 1e6); //from ms to ns
+}
 
 
 
 //Cyclic Barrier (Java: http://docs.oracle.com/javase/7/docs/api/java/util/concurrent/CyclicBarrier.html )
 var CyclicBarrier = (function() {
-    "use strict"
+    "use strict";
     var _parties;
-    var _callbacks = new Array();
+    var _callbacks = [];
 
     /**
      * Creates a new cyclic barrier
@@ -65,19 +63,19 @@ var CyclicBarrier = (function() {
         if (_callbacks.length === _parties) {
             release();
         }
-    }
+    };
 
     function release() {
         //first, copy and clear callbacks
         //to prohibit that a callback registers before all others are released
         var tmp = _callbacks.slice();
-        _callbacks = new Array();
+        _callbacks = [];
 
         for (var i = 0; i < _parties; i++) {
             //prevent side effects in last function that called "await"
-            window.setTimeout(tmp[i],1);
+            window.setTimeout(tmp[i], 1);
         }
-    };
+    }
 
     return CyclicBarrier;
 })();
@@ -89,17 +87,17 @@ var CyclicBarrier = (function() {
  * @returns {Number} the median
  */
 Math.median = function(values) {
-
     values.sort(function(a, b) {
         return a - b;
     });
 
     var half = Math.floor(values.length / 2);
 
-    if (values.length % 2)
+    if (values.length % 2) {
         return values[half];
-    else
+    } else {
         return (values[half - 1] + values[half]) / 2.0;
+    }
 };
 
 

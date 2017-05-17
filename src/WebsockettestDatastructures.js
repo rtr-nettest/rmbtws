@@ -1,6 +1,6 @@
 "use strict";
 
-function RMBTTestConfig() { };
+function RMBTTestConfig() { }
 RMBTTestConfig.prototype.version = "0.3"; //minimal version compatible with the test
 RMBTTestConfig.prototype.language = selectedLanguage;
 RMBTTestConfig.prototype.uuid = "";
@@ -14,7 +14,7 @@ RMBTTestConfig.prototype.model = "Websocket";
 RMBTTestConfig.prototype.product = "Chrome";
 RMBTTestConfig.prototype.client = "RMBTws";
 RMBTTestConfig.prototype.timezone = "Europe/Vienna"; //@TODO
-RMBTTestConfig.prototype.controlServerURL = controlProxy+"/"+wspath;
+RMBTTestConfig.prototype.controlServerURL = controlProxy + "/" + wspath;
 RMBTTestConfig.prototype.controlServerRegistrationResource = "/testRequest";
 RMBTTestConfig.prototype.controlServerResultResource = "/result";
 RMBTTestConfig.prototype.controlServerDataCollectorResource = "/requestDataCollector";
@@ -35,7 +35,7 @@ RMBTTestConfig.prototype.uploadThreadsLimitsMbit = {
     80: 3,
     150: 5
 };
-RMBTTestConfig.prototype.userServerSelection = ((typeof window.userServerSelection !== 'undefined')?userServerSelection:0); //for QoSTest
+RMBTTestConfig.prototype.userServerSelection = ((typeof window.userServerSelection !== 'undefined')? userServerSelection : 0); //for QoSTest
 
 
 var RMBTControlServerRegistrationResponse = (function() {
@@ -73,7 +73,7 @@ var RMBTControlServerRegistrationResponse = (function() {
 })();
 
 /**
- * Control structur for a single websocket-test thread
+ * Control structure for a single websocket-test thread
  * @param {CyclicBarrier} cyclicBarrier
  * @returns {RMBTTestThread}
  */
@@ -145,13 +145,13 @@ function RMBTTestThread(cyclicBarrier) {
 
     };
 }
-;
+
 
 function RMBTTestResult() {
-    this.pings = new Array();
-    this.speedItems = new Array();
-    this.threads = new Array();
-};
+    this.pings = [];
+    this.speedItems = [];
+    this.threads = [];
+}
 RMBTTestResult.prototype.addThread = function(rmbtThreadTestResult) {
     this.threads.push(rmbtThreadTestResult);
 };
@@ -160,13 +160,13 @@ RMBTTestResult.prototype.ip_server;
 RMBTTestResult.prototype.port_remote;
 RMBTTestResult.prototype.num_threads;
 RMBTTestResult.prototype.encryption = "NONE";
-RMBTTestResult.prototype.ping_shortest =-1;
+RMBTTestResult.prototype.ping_shortest = -1;
 RMBTTestResult.prototype.ping_median = -1;
 RMBTTestResult.prototype.client_version;
-RMBTTestResult.prototype.pings = new Array();
+RMBTTestResult.prototype.pings = [];
 RMBTTestResult.prototype.speed_download = -1;
 RMBTTestResult.prototype.speed_upload = -1;
-RMBTTestResult.prototype.speedItems = new Array();
+RMBTTestResult.prototype.speedItems = [];
 RMBTTestResult.prototype.bytes_download = -1;
 RMBTTestResult.prototype.nsec_download = -1;
 RMBTTestResult.prototype.bytes_upload = -1;
@@ -174,14 +174,13 @@ RMBTTestResult.prototype.nsec_upload = -1;
 RMBTTestResult.prototype.totalDownBytes = -1;
 RMBTTestResult.prototype.totalUpBytes = -1;
 RMBTTestResult.prototype.beginTime = -1;
-RMBTTestResult.prototype.geoLocations = new Array();
+RMBTTestResult.prototype.geoLocations = [];
 RMBTTestResult.prototype.calculateAll = function() {
     //TotalTestResult.java:118 (Commit 7d5519ce6ad9121896866d4d8f30299c7c19910d)
     var calculate = function(threads, phaseResults) {
         var numThreads = threads.length;
         var targetTime = Infinity;
-        for (var i = 0; i < numThreads; i++)
-        {
+        for (var i = 0; i < numThreads; i++) {
             var nsecs = phaseResults(threads[i]);
             if (nsecs.length > 0) {
                 if (nsecs[nsecs.length - 1].duration < targetTime) {
@@ -192,25 +191,22 @@ RMBTTestResult.prototype.calculateAll = function() {
 
         var totalBytes = 0;
 
-        for (var i = 0; i < numThreads; i++)
-        {
+        for (var i = 0; i < numThreads; i++) {
             var thread = threads[i];
-            if (thread !== null && phaseResults(thread).length > 0)
-            {
-
+            if (thread !== null && phaseResults(thread).length > 0) {
                 var targetIdx = phaseResults(thread).length;
-                for (var j = 0; j < phaseResults(thread).length; j++)
-                    if (phaseResults(thread)[j].duration > targetTime)
-                    {
+                for (var j = 0; j < phaseResults(thread).length; j++) {
+                    if (phaseResults(thread)[j].duration > targetTime) {
                         targetIdx = j;
                         break;
                     }
+                }
                 var calcBytes;
-                if (targetIdx === phaseResults(thread).length)
+                if (targetIdx === phaseResults(thread).length) {
                     // nsec[max] == targetTime
                     calcBytes = phaseResults(thread)[phaseResults(thread).length - 1].bytes;
-                else
-                {
+                }
+                else {
                     var bytes1 = targetIdx === 0 ? 0 : phaseResults(thread)[targetIdx - 1].bytes;
                     var bytes2 = phaseResults(thread)[targetIdx].bytes;
                     var bytesDiff = bytes2 - bytes1;
@@ -220,24 +216,24 @@ RMBTTestResult.prototype.calculateAll = function() {
                     var nsecCompensation = targetTime - nsec1;
                     var factor = nsecCompensation / nsecDiff;
                     var compensation = Math.round(bytesDiff * factor);
-                    if (compensation < 0)
+                    if (compensation < 0) {
                         compensation = 0;
+                    }
                     calcBytes = bytes1 + compensation;
                 }
                 totalBytes += calcBytes;
             }
         }
 
-
         return {
             bytes: totalBytes,
             nsec: targetTime,
-            speed: (totalBytes*8) / (targetTime / 1e9) / 1e3
+            speed: (totalBytes * 8) / (targetTime / 1e9) / 1e3
         };
     };
 
     //speed items down
-    for (var i=0;i<this.threads.length;i++) {
+    for (var i = 0; i < this.threads.length; i++) {
         var down = this.threads[i].down;
         if (down.length > 0) {
             for (var j = 0; j < down.length; j++) {
@@ -262,9 +258,8 @@ RMBTTestResult.prototype.calculateAll = function() {
     this.bytes_download = results.bytes;
     this.nsec_download = results.nsec;
 
-
     //speed items up
-    for (var i=0;i<this.threads.length;i++) {
+    for (var i = 0; i < this.threads.length; i++) {
         var up = this.threads[i].up;
         if (up.length > 0) {
             for (var j = 0; j < up.length; j++) {
@@ -289,7 +284,7 @@ RMBTTestResult.prototype.calculateAll = function() {
     //ping
     var pings = this.threads[0].pings;
     var shortest = Infinity;
-    for (var i=0;i<pings.length;i++) {
+    for (var i = 0; i < pings.length; i++) {
         this.pings.push({
            value: pings[i].client,
            value_server: pings[i].server,
@@ -306,10 +301,10 @@ RMBTTestResult.prototype.calculateAll = function() {
 
 
 function RMBTThreadTestResult() {
-    this.down = new Array(); //map of bytes/nsec
-    this.up = new Array();
-    this.pings = new Array();
-};
+    this.down = []; //map of bytes/nsec
+    this.up = [];
+    this.pings = [];
+}
 //no inheritance(other than in Java RMBTClient)
 //RMBTThreadTestResult.prototype = new RMBTTestResult();
 RMBTThreadTestResult.prototype.down;
@@ -319,16 +314,14 @@ RMBTThreadTestResult.prototype.totalDownBytes = -1;
 RMBTThreadTestResult.prototype.totalUpBytes = -1;
 
 function RMBTPingResult() {}
-RMBTPingResult.prototype.client =-1;
-RMBTPingResult.prototype.server =-1;
-RMBTPingResult.prototype.timeNs =-1;
+RMBTPingResult.prototype.client = -1;
+RMBTPingResult.prototype.server = -1;
+RMBTPingResult.prototype.timeNs = -1;
 
 /**
  * @callback RMBTControlServerRegistrationResponseCallback
  * @param {RMBTControlServerRegistrationResponse} json
  */
-
-
 var RMBTError = {
     NOT_SUPPORTED : "WebSockets are not supported",
     SOCKET_INIT_FAILED : "WebSocket initialization failed",

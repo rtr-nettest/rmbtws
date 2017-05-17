@@ -36,7 +36,9 @@ var RMBTTest = (function() {
     var DEFAULT_CHUNK_SIZE;
     var _changeChunkSizes = false;
 
-    /* @var rmbtTestConfig RMBTTestConfig */
+    /**
+     *  @var rmbtTestConfig RMBTTestConfig
+     **/
     var _rmbtTestConfig;
     var _rmbtTestResult = null;
     var _errorCallback = null;
@@ -52,7 +54,7 @@ var RMBTTest = (function() {
 
     var _intermediateResult = new RMBTIntermediateResult();
 
-    var _threads = new Array();
+    var _threads = [];
     var _arrayBuffers = {};
     var _endArrayBuffers = {};
 
@@ -77,7 +79,7 @@ var RMBTTest = (function() {
         //init socket
         _rmbtTestConfig = rmbtTestConfig;// = new RMBTTestConfig();
         _state = TestState.INIT;
-    };
+    }
 
     /**
      * Sets the state of the test, notifies the observers if
@@ -85,8 +87,7 @@ var RMBTTest = (function() {
      * @param {TestState} state
      */
     function setState(state) {
-        if (_state === undefined ||
-                _state !== state) {
+        if (_state === undefined || _state !== state) {
             _state = state;
             _stateChangeMs = performance.now();
         }
@@ -100,7 +101,7 @@ var RMBTTest = (function() {
      */
     RMBTTest.prototype.onError = function(fct)  {
         _errorCallback = fct;
-    }
+    };
 
     /**
      * Calls the error function (but only once!)
@@ -151,7 +152,7 @@ var RMBTTest = (function() {
                 //wait if we have to
                 window.setTimeout(function() {
                     setState(TestState.INIT);
-                    _rmbtTestResult.beginTime = (Date().now);
+                    _rmbtTestResult.beginTime = Date.now();
                     //n threads
                     for (var i = 0; i < _numThreadsAllowed; i++) {
                         var thread = new RMBTTestThread(_cyclicBarrier);
@@ -160,7 +161,6 @@ var RMBTTest = (function() {
 
                         //only one thread will call after upload is finished
                         conductTest(response, thread, function() {
-
                             debug("All tests finished");
                             wsGeoTracker.stop();
                             _rmbtTestResult.geoLocations = wsGeoTracker.getResults();
@@ -170,13 +170,9 @@ var RMBTTest = (function() {
                             });
                         });
 
-                        //for now
-                        //if (i===0)
-                        //    break;
-
                         _threads.push(thread);
                     }
-                }, response.test_wait*1000);
+                }, response.test_wait * 1e3);
             };
 
             var wsGeoTracker;
@@ -201,18 +197,16 @@ var RMBTTest = (function() {
      * @returns {RMBTIntermediateResult}
      */
     RMBTTest.prototype.getIntermediateResult = function() {
-        _intermediateResult.status = _state;;
-        var diffTime = performance.now() - _stateChangeMs;
+        _intermediateResult.status = _state;
+        var diffTime = (nowNs() / 1e6) - _stateChangeMs;
 
-        switch (_intermediateResult.status)
-        {
+        switch (_intermediateResult.status) {
             case TestState.WAIT:
                 _intermediateResult.progress = 0;
                 //_intermediateResult.remainingWait = params.getStartTime() - System.currentTimeMillis();
                 break;
 
             case TestState.INIT:
-            case TestState.WAIT:
             case TestState.INIT_DOWN:
             case TestState.INIT_UP:
                 _intermediateResult.progress = diffTime / _statesInfo.durationInitMs;
@@ -242,14 +236,13 @@ var RMBTTest = (function() {
                 break;
         }
         if (isNaN(_intermediateResult.progress)) {
-                _intermediateResult.progress = 0;
+            _intermediateResult.progress = 0;
         }
 
-        _intermediateResult.progress = Math.min(1,_intermediateResult.progress);
+        _intermediateResult.progress = Math.min(1, _intermediateResult.progress);
 
         if (_rmbtTestResult !== null) {
             _intermediateResult.pingNano = _rmbtTestResult.ping_median;
-
 
             if (_intermediateResult.status === TestState.DOWN) {
                 //download
@@ -396,14 +389,11 @@ var RMBTTest = (function() {
             }
         });
 
-
-
         //Lifecycle states finished -> INIT, ESTABLISHED, SHORTDOWNLOAD
         //thread.state = TestState.INIT;
         thread.setState(TestState.INIT);
         setState(TestState.INIT);
         connectToServer(thread,server,registrationResponse.test_token, errorFunctions.CALLGLOBALHANDLER);
-
     }
 
     /**
@@ -460,8 +450,7 @@ var RMBTTest = (function() {
                     debug("unknown server version: " + version);
                 }
             }
-            else if (event.data === "ACCEPT TOKEN QUIT\n")
-            {
+            else if (event.data === "ACCEPT TOKEN QUIT\n") {
                 thread.socket.send("TOKEN " + token + "\n");
             }
             else if (event.data === "OK\n" && thread.state === TestState.INIT) {
@@ -474,20 +463,18 @@ var RMBTTest = (function() {
             else if (event.data.indexOf("ACCEPT GETCHUNKS") === 0) {
                 thread.triggerNextState();
             }
-
-
         };
     }
 
     /**
      * conduct the short pretest to recognize if the connection
-     * is to slow for multiple threads
+     * is too slow for multiple threads
      * @param {RMBTTestThread} thread
      * @param {Number} durationMs
      */
     function shortDownloadtest(thread, durationMs) {
         var prevListener = thread.socket.onmessage;
-        var startTime = performance.now(); //ms since page load
+        var startTime = nowNs() / 1e6; //ms since page load
         var n = 1;
         var bytesReceived = 0;
 
@@ -497,7 +484,7 @@ var RMBTTest = (function() {
                 debug(thread.id + ": " + msg);
                 let timeNs = parseInt(msg.substring(5));
 
-                var now = performance.now();
+                var now = nowNs() / 1e6;
                 if ((now - startTime) > durationMs) {
                     //save circa result
                     _bytesPerSecsPretest = n * _chunkSize / (timeNs / 1e9);
@@ -515,7 +502,7 @@ var RMBTTest = (function() {
                     debug(thread.id + ": set number of threads to be used in download speed test to: " + _numDownloadThreads);
 
                     //set chunk size to accordingly 1 chunk every n/2 ms on average with n threads
-                    let calculatedChunkSize = _bytesPerSecsPretest / (1000 / ((_rmbtTestConfig.measurementPointsTimespan/2)));
+                    let calculatedChunkSize = _bytesPerSecsPretest / (1000 / ((_rmbtTestConfig.measurementPointsTimespan / 2)));
 
                     //round to the nearest full KB
                     calculatedChunkSize -= calculatedChunkSize % 1024;
@@ -598,8 +585,8 @@ var RMBTTest = (function() {
             }
         };
         socket.onmessage = downloadChunkListener;
-        debug(thread.id + ": downloading " + total + " chunks, " + (expectBytes/1000) + " KB");
-        var send = "GETCHUNKS " + total +  ((_chunkSize !== DEFAULT_CHUNK_SIZE)? " " + _chunkSize :"") + "\n";
+        debug(thread.id + ": downloading " + total + " chunks, " + (expectBytes / 1000) + " KB");
+        var send = "GETCHUNKS " + total +  ((_chunkSize !== DEFAULT_CHUNK_SIZE)? " " + _chunkSize : "") + "\n";
         socket.send(send);
     }
 
@@ -607,7 +594,6 @@ var RMBTTest = (function() {
         var shortestPing = Infinity;
         var prevListener = thread.socket.onmessage;
         var pingsRemaining = _rmbtTestConfig.numPings;
-
 
         var onsuccess = function(pingResult) {
             pingsRemaining--;
@@ -731,9 +717,7 @@ var RMBTTest = (function() {
                     thread.socket.onmessage = previousListener;
                 };
                 thread.socket.send("OK\n");
-
             }
-
         }, _rmbtTestConfig.measurementPointsTimespan);
 
         var downloadListener = function(event) {
@@ -752,18 +736,18 @@ var RMBTTest = (function() {
 
      /**
      * conduct the short pretest to recognize if the connection
-     * is to slow for multiple threads
+     * is too slow for multiple threads
      * @param {RMBTTestThread} thread
      * @param {Number} durationMs
      */
     function shortUploadtest(thread, durationMs) {
         var prevListener = thread.socket.onmessage;
-        var startTime = performance.now(); //ms since page load
+        var startTime = nowNs() / 1e6; //ms since page load
         var n = 1;
         var bytesSent = 0;
 
         var performanceTest = window.setTimeout(function() {
-            var endTime = performance.now();
+            var endTime = nowNs() / 1e6;
             var duration = endTime - startTime;
             debug("diff:" + (duration - durationMs) + " (" + (duration-durationMs)/durationMs + " %)");
         },durationMs);
@@ -773,17 +757,16 @@ var RMBTTest = (function() {
                 bytesSent += n * _chunkSize;
                 debug(thread.id + ": " + msg);
 
-                var now = performance.now();
+                var now = nowNs() / 1e6;
                 if ((now - startTime) > durationMs) {
                     //"break"
-
                     thread.socket.onmessage = prevListener;
 
                     var timeNs = parseInt(msg.substring(5)); //1e9
 
                     //save circa result
                     _bytesPerSecsPretest = (n * _chunkSize) / (timeNs / 1e9);
-                    debug(thread.id + ": circa " + _bytesPerSecsPretest / 1000 + " KB/sec up");
+                    debug(thread.id + ": circa " + _bytesPerSecsPretest / 1e3 + " KB/sec up");
                     debug(thread.id + ": circa " + _bytesPerSecsPretest * 8 / 1e6 + " MBit/sec up");
 
                     //set number of upload threads according to mbit/s measured
@@ -798,7 +781,7 @@ var RMBTTest = (function() {
 
 
                     //set chunk size to accordingly 1 chunk every n/2 ms on average with n threads
-                    let calculatedChunkSize = _bytesPerSecsPretest / (1000 / ((_rmbtTestConfig.measurementPointsTimespan/2)));
+                    let calculatedChunkSize = _bytesPerSecsPretest / (1000 / ((_rmbtTestConfig.measurementPointsTimespan / 2)));
 
                     //round to the nearest full KB
                     calculatedChunkSize -= calculatedChunkSize % 1024;
@@ -827,7 +810,6 @@ var RMBTTest = (function() {
                     debug(thread.id + ": calculated chunksize for upload speed test " + calculatedChunkSize / 1024 + " KB");
                     debug(thread.id + ": used chunk size for upload speed test will be: " + closest / 1024 + " KB");
                     _chunkSize = closest;
-
                 }
                 else {
                     //increase chunk size only if there are saved chunks for it!
@@ -849,7 +831,7 @@ var RMBTTest = (function() {
 
     /**
      * Upload n Chunks to the test server
-     * @param {Number} total how many chunks to download
+     * @param {Number} total how many chunks to upload
      * @param {RMBTThread} thread containing an open socket
      * @param {Callback} onsuccess expects one argument (String)
      */
@@ -871,11 +853,11 @@ var RMBTTest = (function() {
             }
         };
 
-        debug(thread.id + ": uploading " + total + " chunks, " + ((_chunkSize*total)/1000) + " KB");
+        debug(thread.id + ": uploading " + total + " chunks, " + ((_chunkSize * total) / 1000) + " KB");
         socket.send("PUTNORESULT" + ((_changeChunkSizes) ? " " + _chunkSize : "") + "\n"); //Put no result
-        for (var i=0;i<total;i++) {
+        for (var i = 0; i < total; i++) {
             var blob;
-            if (i === (total-1)) {
+            if (i === (total - 1)) {
                 blob = _endArrayBuffers[_chunkSize];
             }
             else {
@@ -965,7 +947,6 @@ var RMBTTest = (function() {
 
 
         debug(thread.id + ": set timeout");
-
 
         const pattern = /TIME (\d+) BYTES (\d+)/;
         const patternEnd = /TIME (\d+)/;
@@ -1126,7 +1107,6 @@ var RMBTTest = (function() {
      * @returns {String} enum [INIT, PING]
      */
     RMBTTest.prototype.getState = function() {
-
         return "INIT";
     };
 
