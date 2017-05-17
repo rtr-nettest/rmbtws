@@ -37,7 +37,9 @@ var RMBTTest = function () {
     var DEFAULT_CHUNK_SIZE;
     var _changeChunkSizes = false;
 
-    /* @var rmbtTestConfig RMBTTestConfig */
+    /**
+     *  @var rmbtTestConfig RMBTTestConfig
+     **/
     var _rmbtTestConfig;
     var _rmbtTestResult = null;
     var _errorCallback = null;
@@ -53,7 +55,7 @@ var RMBTTest = function () {
 
     var _intermediateResult = new RMBTIntermediateResult();
 
-    var _threads = new Array();
+    var _threads = [];
     var _arrayBuffers = {};
     var _endArrayBuffers = {};
 
@@ -77,7 +79,7 @@ var RMBTTest = function () {
         //init socket
         _rmbtTestConfig = rmbtTestConfig; // = new RMBTTestConfig();
         _state = TestState.INIT;
-    };
+    }
 
     /**
      * Sets the state of the test, notifies the observers if
@@ -147,7 +149,7 @@ var RMBTTest = function () {
                 //wait if we have to
                 window.setTimeout(function () {
                     setState(TestState.INIT);
-                    _rmbtTestResult.beginTime = Date().now;
+                    _rmbtTestResult.beginTime = Date.now();
                     //n threads
                     for (var i = 0; i < _numThreadsAllowed; i++) {
                         var thread = new RMBTTestThread(_cyclicBarrier);
@@ -156,7 +158,6 @@ var RMBTTest = function () {
 
                         //only one thread will call after upload is finished
                         conductTest(response, thread, function () {
-
                             debug("All tests finished");
                             wsGeoTracker.stop();
                             _rmbtTestResult.geoLocations = wsGeoTracker.getResults();
@@ -166,13 +167,9 @@ var RMBTTest = function () {
                             });
                         });
 
-                        //for now
-                        //if (i===0)
-                        //    break;
-
                         _threads.push(thread);
                     }
-                }, response.test_wait * 1000);
+                }, response.test_wait * 1e3);
             };
 
             var wsGeoTracker;
@@ -195,8 +192,8 @@ var RMBTTest = function () {
      * @returns {RMBTIntermediateResult}
      */
     RMBTTest.prototype.getIntermediateResult = function () {
-        _intermediateResult.status = _state;;
-        var diffTime = performance.now() - _stateChangeMs;
+        _intermediateResult.status = _state;
+        var diffTime = nowNs() / 1e6 - _stateChangeMs;
 
         switch (_intermediateResult.status) {
             case TestState.WAIT:
@@ -205,7 +202,6 @@ var RMBTTest = function () {
                 break;
 
             case TestState.INIT:
-            case TestState.WAIT:
             case TestState.INIT_DOWN:
             case TestState.INIT_UP:
                 _intermediateResult.progress = diffTime / _statesInfo.durationInitMs;
@@ -450,13 +446,13 @@ var RMBTTest = function () {
 
     /**
      * conduct the short pretest to recognize if the connection
-     * is to slow for multiple threads
+     * is too slow for multiple threads
      * @param {RMBTTestThread} thread
      * @param {Number} durationMs
      */
     function shortDownloadtest(thread, durationMs) {
         var prevListener = thread.socket.onmessage;
-        var startTime = performance.now(); //ms since page load
+        var startTime = nowNs() / 1e6; //ms since page load
         var n = 1;
         var bytesReceived = 0;
 
@@ -466,7 +462,7 @@ var RMBTTest = function () {
                 debug(thread.id + ": " + msg);
                 var timeNs = parseInt(msg.substring(5));
 
-                var now = performance.now();
+                var now = nowNs() / 1e6;
                 if (now - startTime > durationMs) {
                     //save circa result
                     _bytesPerSecsPretest = n * _chunkSize / (timeNs / 1e9);
@@ -711,18 +707,18 @@ var RMBTTest = function () {
 
     /**
     * conduct the short pretest to recognize if the connection
-    * is to slow for multiple threads
+    * is too slow for multiple threads
     * @param {RMBTTestThread} thread
     * @param {Number} durationMs
     */
     function shortUploadtest(thread, durationMs) {
         var prevListener = thread.socket.onmessage;
-        var startTime = performance.now(); //ms since page load
+        var startTime = nowNs() / 1e6; //ms since page load
         var n = 1;
         var bytesSent = 0;
 
         var performanceTest = window.setTimeout(function () {
-            var endTime = performance.now();
+            var endTime = nowNs() / 1e6;
             var duration = endTime - startTime;
             debug("diff:" + (duration - durationMs) + " (" + (duration - durationMs) / durationMs + " %)");
         }, durationMs);
@@ -732,17 +728,16 @@ var RMBTTest = function () {
                 bytesSent += n * _chunkSize;
                 debug(thread.id + ": " + msg);
 
-                var now = performance.now();
+                var now = nowNs() / 1e6;
                 if (now - startTime > durationMs) {
                     //"break"
-
                     thread.socket.onmessage = prevListener;
 
                     var timeNs = parseInt(msg.substring(5)); //1e9
 
                     //save circa result
                     _bytesPerSecsPretest = n * _chunkSize / (timeNs / 1e9);
-                    debug(thread.id + ": circa " + _bytesPerSecsPretest / 1000 + " KB/sec up");
+                    debug(thread.id + ": circa " + _bytesPerSecsPretest / 1e3 + " KB/sec up");
                     debug(thread.id + ": circa " + _bytesPerSecsPretest * 8 / 1e6 + " MBit/sec up");
 
                     //set number of upload threads according to mbit/s measured
@@ -802,7 +797,7 @@ var RMBTTest = function () {
 
     /**
      * Upload n Chunks to the test server
-     * @param {Number} total how many chunks to download
+     * @param {Number} total how many chunks to upload
      * @param {RMBTThread} thread containing an open socket
      * @param {Callback} onsuccess expects one argument (String)
      */
@@ -1068,7 +1063,6 @@ var RMBTTest = function () {
      * @returns {String} enum [INIT, PING]
      */
     RMBTTest.prototype.getState = function () {
-
         return "INIT";
     };
 
@@ -1154,14 +1148,14 @@ var GeoTracker = function () {
     var _firstPositionIsInAccurate;
 
     function GeoTracker() {
-        _positions = new Array();
+        _positions = [];
         _firstPositionIsInAccurate = false;
     }
 
     /**
      * Start geolocating
      * @param {Callback(Boolean)} callback expects param 'successful' (boolean, ErrorReason) and
-     *      is called as soon as there is a result is available or the user cancelled
+     *      is called as soon as there is a result available or the user cancelled
      * @param {TestVisualization} testVisualization optional
      */
     GeoTracker.prototype.start = function (callback, testVisualization) {
@@ -1177,7 +1171,7 @@ var GeoTracker = function () {
                 if (_positions.length === 0) {
                     _firstPositionIsInAccurate = true;
                     successFunction(success);
-                };
+                }
             }, errorFunction, {
                 enableHighAccuracy: false,
                 timeout: 2000, //2 seconds
@@ -1206,7 +1200,7 @@ var GeoTracker = function () {
     var successFunction = function successFunction(position) {
         //rough first position and now more accurate one -> remove the inaccurate one
         if (_positions.length === 1 && _firstPositionIsInAccurate) {
-            _positions = new Array();
+            _positions = [];
             _firstPositionIsInAccurate = false;
         }
 
@@ -1243,7 +1237,7 @@ var GeoTracker = function () {
     };
 
     var updateCookie = function updateCookie(position) {
-        var coords = new Object();
+        var coords = {};
         coords['lat'] = position.coords.latitude;
         coords['long'] = position.coords.longitude;
         coords['accuracy'] = position.coords.accuracy;
@@ -1280,13 +1274,13 @@ if (typeof window.setCookie === 'undefined') {
         //var exdate = new Date();
         //exdate.setDate(exdate.getDate() + cookie_exdays);
 
-        var futdate = new Date();
-        var expdate = futdate.getTime();
+        var futuredate = new Date();
+        var expdate = futuredate.getTime();
         expdate += cookie_exseconds * 1000;
-        futdate.setTime(expdate);
+        futuredate.setTime(expdate);
 
         //var c_value=escape(cookie_value) + ((cookie_exdays==null) ? ";" : "; expires="+exdate.toUTCString() +";");
-        var c_value = escape(cookie_value) + (cookie_exseconds == null ? ";" : "; expires=" + futdate.toUTCString() + ";");
+        var c_value = encodeURIComponent(cookie_value) + (cookie_exseconds == null ? ";" : "; expires=" + futuredate.toUTCString() + ";");
         document.cookie = cookie_name + "=" + c_value + " path=/;";
     };
 }
@@ -1942,7 +1936,7 @@ var TestVisualization = function () {
 }();
 "use strict";
 
-function RMBTTestConfig() {};
+function RMBTTestConfig() {}
 RMBTTestConfig.prototype.version = "0.3"; //minimal version compatible with the test
 RMBTTestConfig.prototype.language = selectedLanguage;
 RMBTTestConfig.prototype.uuid = "";
@@ -2015,7 +2009,7 @@ var RMBTControlServerRegistrationResponse = function () {
 }();
 
 /**
- * Control structur for a single websocket-test thread
+ * Control structure for a single websocket-test thread
  * @param {CyclicBarrier} cyclicBarrier
  * @returns {RMBTTestThread}
  */
@@ -2083,13 +2077,12 @@ function RMBTTestThread(cyclicBarrier) {
 
     };
 }
-;
 
 function RMBTTestResult() {
-    this.pings = new Array();
-    this.speedItems = new Array();
-    this.threads = new Array();
-};
+    this.pings = [];
+    this.speedItems = [];
+    this.threads = [];
+}
 RMBTTestResult.prototype.addThread = function (rmbtThreadTestResult) {
     this.threads.push(rmbtThreadTestResult);
 };
@@ -2101,10 +2094,10 @@ RMBTTestResult.prototype.encryption = "NONE";
 RMBTTestResult.prototype.ping_shortest = -1;
 RMBTTestResult.prototype.ping_median = -1;
 RMBTTestResult.prototype.client_version;
-RMBTTestResult.prototype.pings = new Array();
+RMBTTestResult.prototype.pings = [];
 RMBTTestResult.prototype.speed_download = -1;
 RMBTTestResult.prototype.speed_upload = -1;
-RMBTTestResult.prototype.speedItems = new Array();
+RMBTTestResult.prototype.speedItems = [];
 RMBTTestResult.prototype.bytes_download = -1;
 RMBTTestResult.prototype.nsec_download = -1;
 RMBTTestResult.prototype.bytes_upload = -1;
@@ -2112,7 +2105,7 @@ RMBTTestResult.prototype.nsec_upload = -1;
 RMBTTestResult.prototype.totalDownBytes = -1;
 RMBTTestResult.prototype.totalUpBytes = -1;
 RMBTTestResult.prototype.beginTime = -1;
-RMBTTestResult.prototype.geoLocations = new Array();
+RMBTTestResult.prototype.geoLocations = [];
 RMBTTestResult.prototype.calculateAll = function () {
     //TotalTestResult.java:118 (Commit 7d5519ce6ad9121896866d4d8f30299c7c19910d)
     var calculate = function calculate(threads, phaseResults) {
@@ -2132,17 +2125,18 @@ RMBTTestResult.prototype.calculateAll = function () {
         for (var i = 0; i < numThreads; i++) {
             var thread = threads[i];
             if (thread !== null && phaseResults(thread).length > 0) {
-
                 var targetIdx = phaseResults(thread).length;
                 for (var j = 0; j < phaseResults(thread).length; j++) {
                     if (phaseResults(thread)[j].duration > targetTime) {
                         targetIdx = j;
                         break;
                     }
-                }var calcBytes;
-                if (targetIdx === phaseResults(thread).length)
+                }
+                var calcBytes;
+                if (targetIdx === phaseResults(thread).length) {
                     // nsec[max] == targetTime
-                    calcBytes = phaseResults(thread)[phaseResults(thread).length - 1].bytes;else {
+                    calcBytes = phaseResults(thread)[phaseResults(thread).length - 1].bytes;
+                } else {
                     var bytes1 = targetIdx === 0 ? 0 : phaseResults(thread)[targetIdx - 1].bytes;
                     var bytes2 = phaseResults(thread)[targetIdx].bytes;
                     var bytesDiff = bytes2 - bytes1;
@@ -2152,7 +2146,9 @@ RMBTTestResult.prototype.calculateAll = function () {
                     var nsecCompensation = targetTime - nsec1;
                     var factor = nsecCompensation / nsecDiff;
                     var compensation = Math.round(bytesDiff * factor);
-                    if (compensation < 0) compensation = 0;
+                    if (compensation < 0) {
+                        compensation = 0;
+                    }
                     calcBytes = bytes1 + compensation;
                 }
                 totalBytes += calcBytes;
@@ -2233,10 +2229,10 @@ RMBTTestResult.prototype.calculateAll = function () {
 };
 
 function RMBTThreadTestResult() {
-    this.down = new Array(); //map of bytes/nsec
-    this.up = new Array();
-    this.pings = new Array();
-};
+    this.down = []; //map of bytes/nsec
+    this.up = [];
+    this.pings = [];
+}
 //no inheritance(other than in Java RMBTClient)
 //RMBTThreadTestResult.prototype = new RMBTTestResult();
 RMBTThreadTestResult.prototype.down;
@@ -2254,7 +2250,6 @@ RMBTPingResult.prototype.timeNs = -1;
  * @callback RMBTControlServerRegistrationResponseCallback
  * @param {RMBTControlServerRegistrationResponse} json
  */
-
 var RMBTError = {
     NOT_SUPPORTED: "WebSockets are not supported",
     SOCKET_INIT_FAILED: "WebSocket initialization failed",
@@ -2291,15 +2286,15 @@ var RMBTError = {
 })();
 
 function nowNs() {
-    return Math.round(window.performance.now() * 1000 * 1000); //from ms to ns
-};
+    return Math.round(window.performance.now() * 1e6); //from ms to ns
+}
 
 //Cyclic Barrier (Java: http://docs.oracle.com/javase/7/docs/api/java/util/concurrent/CyclicBarrier.html )
 var CyclicBarrier = function () {
     "use strict";
 
     var _parties;
-    var _callbacks = new Array();
+    var _callbacks = [];
 
     /**
      * Creates a new cyclic barrier
@@ -2329,13 +2324,13 @@ var CyclicBarrier = function () {
         //first, copy and clear callbacks
         //to prohibit that a callback registers before all others are released
         var tmp = _callbacks.slice();
-        _callbacks = new Array();
+        _callbacks = [];
 
         for (var i = 0; i < _parties; i++) {
             //prevent side effects in last function that called "await"
             window.setTimeout(tmp[i], 1);
         }
-    };
+    }
 
     return CyclicBarrier;
 }();
@@ -2347,12 +2342,15 @@ var CyclicBarrier = function () {
  * @returns {Number} the median
  */
 Math.median = function (values) {
-
     values.sort(function (a, b) {
         return a - b;
     });
 
     var half = Math.floor(values.length / 2);
 
-    if (values.length % 2) return values[half];else return (values[half - 1] + values[half]) / 2.0;
+    if (values.length % 2) {
+        return values[half];
+    } else {
+        return (values[half - 1] + values[half]) / 2.0;
+    }
 };

@@ -5,10 +5,10 @@ var geo_callback, loc_timeout;
 
 
 function runCallback() {
-	if(geo_callback != undefined && typeof geo_callback == 'function') {
+	if (geo_callback != undefined && typeof geo_callback == 'function') {
 		window.setTimeout(function() {
-                    geo_callback();
-                },1);
+            geo_callback();
+        },1);
 	}
 }
 
@@ -25,7 +25,7 @@ function getCurLocation() {
  * @param {Function} callback
  */
 function getLocation(geoAccuracy, geoTimeout, geoMaxAge, callback) {
-        var ausgabe=document.getElementById("infogeo");
+        var ausgabe = document.getElementById("infogeo");
         geo_callback = callback;
 
         if (!navigator.geolocation) {
@@ -49,7 +49,7 @@ function getLocation(geoAccuracy, geoTimeout, geoMaxAge, callback) {
         //var TestEnvironment.getGeoTracker() = new GeoTracker();
         TestEnvironment.getGeoTracker().start(function(successful,error) {
                 if (successful === true) {
-                                        }
+                }
                 else {
                         //user did not allow geolocation or other reason
                         switch (error.code) {
@@ -86,14 +86,14 @@ var GeoTracker = (function() {
     var _firstPositionIsInAccurate;
 
     function GeoTracker() {
-        _positions = new Array();
+        _positions = [];
         _firstPositionIsInAccurate = false;
     }
 
     /**
      * Start geolocating
      * @param {Callback(Boolean)} callback expects param 'successful' (boolean, ErrorReason) and
-     *      is called as soon as there is a result is available or the user cancelled
+     *      is called as soon as there is a result available or the user cancelled
      * @param {TestVisualization} testVisualization optional
      */
     GeoTracker.prototype.start = function(callback, testVisualization) {
@@ -109,12 +109,12 @@ var GeoTracker = (function() {
                 if (_positions.length === 0) {
                     _firstPositionIsInAccurate = true;
                     successFunction(success);
-                };
-            },errorFunction, {
+                }
+            }, errorFunction, {
                 enableHighAccuracy: false,
                 timeout: 2000, //2 seconds
                 maximumAge: 60000 //one minute
-            })
+            });
             //and refine this position later
             _watcher = navigator.geolocation.watchPosition(successFunction, errorFunction, {
                 enableHighAccuracy: true,
@@ -129,7 +129,6 @@ var GeoTracker = (function() {
         }
 
         //call at latest after 2 seconds
-
     };
 
     /**
@@ -140,7 +139,7 @@ var GeoTracker = (function() {
     var successFunction = function(position) {
         //rough first position and now more accurate one -> remove the inaccurate one
         if (_positions.length === 1 && _firstPositionIsInAccurate) {
-            _positions = new Array();
+            _positions = [];
             _firstPositionIsInAccurate = false;
         }
 
@@ -177,7 +176,7 @@ var GeoTracker = (function() {
     };
 
     var updateCookie = function(position) {
-        var coords = new Object();
+        var coords = {};
         coords['lat'] = position.coords.latitude;
         coords['long'] = position.coords.longitude;
         coords['accuracy'] = position.coords.accuracy;
@@ -215,14 +214,13 @@ if (typeof window.setCookie === 'undefined') {
         //var exdate = new Date();
         //exdate.setDate(exdate.getDate() + cookie_exdays);
 
-        var futdate = new Date();
-        var expdate = futdate.getTime();
+        var futuredate = new Date();
+        var expdate = futuredate.getTime();
         expdate += cookie_exseconds*1000;
-        futdate.setTime(expdate);
-
+        futuredate.setTime(expdate);
 
         //var c_value=escape(cookie_value) + ((cookie_exdays==null) ? ";" : "; expires="+exdate.toUTCString() +";");
-        var c_value=escape(cookie_value) + ((cookie_exseconds==null) ? ";" : "; expires="+futdate.toUTCString() +";");
-        document.cookie = cookie_name+"="+c_value+" path=/;";
+        var c_value = encodeURIComponent(cookie_value) + ((cookie_exseconds==null) ? ";" : "; expires=" + futuredate.toUTCString() + ";");
+        document.cookie = cookie_name + "=" + c_value + " path=/;";
     }
 }

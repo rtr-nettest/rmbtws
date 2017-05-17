@@ -1,4 +1,4 @@
-"use strict"
+"use strict";
 
 const TestEnvironment = (function () {
     var testVisualization = null;
@@ -49,9 +49,7 @@ const TestState = {
 };
 
 //Intermediate Result
-function RMBTIntermediateResult() {
-
-}
+function RMBTIntermediateResult() { }
 RMBTIntermediateResult.prototype.setLogValues = function () {
     var toLog = function (value) {
         if (value < 10000) {
@@ -61,7 +59,7 @@ RMBTIntermediateResult.prototype.setLogValues = function () {
     };
     this.downBitPerSecLog = toLog(downBitPerSec);
     this.upBitPerSecLog = toLog(upBitPerSec);
-}
+};
 
 RMBTIntermediateResult.prototype.pingNano = -1;
 RMBTIntermediateResult.prototype.downBitPerSec = -1;
