@@ -63,8 +63,8 @@ var RMBTTest = (function() {
     var _numDownloadThreads = 0;
     var _numUploadThreads = 0;
 
-
-    var _bytesPerSecsPretest;
+    var _bytesPerSecsPretest = [];
+    var _totalBytesPerSecsPretest = 0;
 
     //this is a observable/subject
     //http://addyosmani.com/resources/essentialjsdesignpatterns/book/#observerpatternjavascript
@@ -316,13 +316,8 @@ var RMBTTest = (function() {
             debug(thread.id + ": start short download");
             _chunkSize = MIN_CHUNK_SIZE;
 
-            //only one thread downloads
-            if (thread.id === 0) {
-                shortDownloadtest(thread, _rmbtTestConfig.pretestDurationMs);
-            }
-            else {
-                thread.triggerNextState();
-            }
+            //all threads download, according to specification
+            shortDownloadtest(thread, _rmbtTestConfig.pretestDurationMs);
         });
 
         thread.onStateEnter(TestState.PING, function() {
@@ -340,6 +335,14 @@ var RMBTTest = (function() {
         thread.onStateEnter(TestState.DOWN, function() {
             setState(TestState.DOWN);
 
+            //set threads and chunksize
+            if (_bytesPerSecsPretest.length > 0) {
+                let chunkSizes = calculateChunkSizes(_bytesPerSecsPretest, _rmbtTestConfig.downloadThreadsLimitsMbit, false);
+                _numDownloadThreads = chunkSizes.numThreads;
+                _chunkSize = chunkSizes.chunkSize;
+                _bytesPerSecsPretest = [];
+            }
+
             //maybe not all threads have to conduct a download speed test
             if (thread.id < _numDownloadThreads) {
                 downloadTest(thread, registrationResponse.test_duration);
@@ -352,16 +355,20 @@ var RMBTTest = (function() {
         thread.onStateEnter(TestState.INIT_UP, function() {
             setState(TestState.INIT_UP);
             _chunkSize = MIN_CHUNK_SIZE;
-            if (thread.id === 0) {
-                shortUploadtest(thread, _rmbtTestConfig.pretestDurationMs);
-            }
-            else {
-                thread.triggerNextState();
-            }
+
+            shortUploadtest(thread, _rmbtTestConfig.pretestDurationMs);
         });
 
         thread.onStateEnter(TestState.UP, function() {
             setState(TestState.UP);
+
+            //set threads and chunksize
+            if (_bytesPerSecsPretest.length > 0) {
+                let chunkSizes = calculateChunkSizes(_bytesPerSecsPretest, _rmbtTestConfig.uploadThreadsLimitsMbit, true);
+                _numUploadThreads = chunkSizes.numThreads;
+                _chunkSize = chunkSizes.chunkSize;
+                _bytesPerSecsPretest = [];
+            }
 
             //maybe not all threads have to conduct an upload speed test
             if (thread.id < _numUploadThreads) {
@@ -467,6 +474,72 @@ var RMBTTest = (function() {
     }
 
     /**
+     * Calcuate chunk size, total pretest bandwirth according
+     * to single thread results during upload/download pre-test
+     * @param bytesPerSecsPretest array containing single measurement results
+     * @param threadLimits limits for determining how many threads to use
+     * @param limitToExistingChunks only use chunk sizes that are buffered already (and delete all others)
+     * @returns {{numThreads: number, chunkSize: number, bytesPerSecs: number}}
+     */
+    function calculateChunkSizes(bytesPerSecsPretest, threadLimits, limitToExistingChunks) {
+        _totalBytesPerSecsPretest = bytesPerSecsPretest.reduce((acc, val) => acc + val);
+
+        debug("total: circa " + _totalBytesPerSecsPretest / 1000 + " KB/sec");
+        debug("total: circa " + _totalBytesPerSecsPretest * 8 / 1e6 + " MBit/sec");
+
+        //set number of upload threads according to mbit/s measured
+        let mbits = _totalBytesPerSecsPretest * 8 / 1e6;
+        let threads = 0;
+        Object.keys(threadLimits).forEach((thresholdMbit) => {
+            if (mbits > thresholdMbit) {
+                threads = threadLimits[thresholdMbit];
+            }
+        });
+        threads = Math.min(_numThreadsAllowed, threads);
+        debug("set number of threads to be used in upcoming speed test to: " + threads);
+
+        //set chunk size to accordingly 1 chunk every n/2 ms on average with n threads
+        let calculatedChunkSize = _totalBytesPerSecsPretest / (1000 / ((_rmbtTestConfig.measurementPointsTimespan / 2)));
+
+        //round to the nearest full KB
+        calculatedChunkSize -= calculatedChunkSize % 1024;
+
+        //but min 4KiB
+        calculatedChunkSize = Math.max(MIN_CHUNK_SIZE, calculatedChunkSize);
+
+        //and max MAX_CHUNKSIZE
+        calculatedChunkSize = Math.min(MAX_CHUNK_SIZE, calculatedChunkSize);
+
+        debug("calculated chunksize for upcoming speed test " + calculatedChunkSize / 1024 + " KB");
+
+        if (limitToExistingChunks) {
+            //get closest chunk size where there are saved chunks available
+            let closest = Number.POSITIVE_INFINITY;
+            Object.keys(_arrayBuffers).forEach((key) => {
+                let diff = Math.abs(calculatedChunkSize - key);
+                if (diff < Math.abs(calculatedChunkSize - closest)) {
+                    closest = key;
+                }
+                else {
+                    //if there is already a closer chunk selected, we don't need this
+                    //anymore in this test and can dereference it to save heap memory
+                    delete _arrayBuffers[key];
+                    delete _endArrayBuffers[key];
+                }
+            });
+
+            calculatedChunkSize = closest;
+            debug("fallback to existing chunksize for upcoming speed test " + calculatedChunkSize / 1024 + " KB");
+        }
+
+        return {
+            numThreads: threads,
+            chunkSize: calculatedChunkSize,
+            bytesPerSecs: _totalBytesPerSecsPretest
+        };
+    }
+
+    /**
      * conduct the short pretest to recognize if the connection
      * is too slow for multiple threads
      * @param {RMBTTestThread} thread
@@ -477,45 +550,18 @@ var RMBTTest = (function() {
         var startTime = nowNs() / 1e6; //ms since page load
         var n = 1;
         var bytesReceived = 0;
+        let chunksize = _chunkSize;
 
         var loop = function() {
-            downloadChunks(thread, n, function(msg) {
-                bytesReceived += n * _chunkSize;
+            downloadChunks(thread, n, chunksize, function(msg) {
+                bytesReceived += n * chunksize;
                 debug(thread.id + ": " + msg);
                 let timeNs = parseInt(msg.substring(5));
 
                 var now = nowNs() / 1e6;
                 if ((now - startTime) > durationMs) {
                     //save circa result
-                    _bytesPerSecsPretest = n * _chunkSize / (timeNs / 1e9);
-                    debug(thread.id + ": circa " + _bytesPerSecsPretest / 1000 + " KB/sec");
-                    debug(thread.id + ": circa " + _bytesPerSecsPretest * 8 / 1e6 + " MBit/sec");
-
-                    //set number of upload threads according to mbit/s measured
-                    let mbits = _bytesPerSecsPretest * 8 / 1e6;
-                    Object.keys(_rmbtTestConfig.downloadThreadsLimitsMbit).forEach((thresholdMbit) => {
-                        if (mbits > thresholdMbit) {
-                            _numDownloadThreads = _rmbtTestConfig.downloadThreadsLimitsMbit[thresholdMbit];
-                        }
-                    });
-                    _numDownloadThreads = Math.min(_numThreadsAllowed, _numDownloadThreads);
-                    debug(thread.id + ": set number of threads to be used in download speed test to: " + _numDownloadThreads);
-
-                    //set chunk size to accordingly 1 chunk every n/2 ms on average with n threads
-                    let calculatedChunkSize = _bytesPerSecsPretest / (1000 / ((_rmbtTestConfig.measurementPointsTimespan / 2)));
-
-                    //round to the nearest full KB
-                    calculatedChunkSize -= calculatedChunkSize % 1024;
-
-                    //but min 4KiB
-                    calculatedChunkSize = Math.max(MIN_CHUNK_SIZE, calculatedChunkSize);
-
-                    //and max MAX_CHUNKSIZE
-                    calculatedChunkSize = Math.min(MAX_CHUNK_SIZE, calculatedChunkSize);
-
-                    debug(thread.id + ": calculated chunksize for download speed test " + calculatedChunkSize / 1024 + " KB");
-
-                    _chunkSize = calculatedChunkSize;
+                    _bytesPerSecsPretest.push(n * chunksize / (timeNs / 1e9));
 
                     //"break"
                     thread.socket.onmessage = prevListener;
@@ -526,7 +572,7 @@ var RMBTTest = (function() {
                         loop();
                     }
                     else {
-                        _chunkSize = Math.min(_chunkSize * 2, MAX_CHUNK_SIZE);
+                        chunksize = Math.min(chunksize * 2, MAX_CHUNK_SIZE);
                         loop();
                     }
                 }
@@ -542,7 +588,7 @@ var RMBTTest = (function() {
      * @param {RMBTThread} thread containing an open socket
      * @param {Callback} onsuccess expects one argument (String)
      */
-    function downloadChunks(thread, total, onsuccess) {
+    function downloadChunks(thread, total, chunkSize, onsuccess) {
         //console.log(String.format(Locale.US, "thread %d: getting %d chunk(s)", threadId, chunks));
         var socket = thread.socket;
         var remainingChunks = total;
@@ -560,7 +606,7 @@ var RMBTTest = (function() {
 
             //in previous versions, the last byte was sent as a single websocket frame,
             //so we have to maintain compatibility at this time
-            if (event.data.byteLength === _chunkSize || event.data.byteLength === 1) {
+            if (event.data.byteLength === chunkSize || event.data.byteLength === 1) {
                 remainingChunks--;
             }
 
@@ -573,20 +619,20 @@ var RMBTTest = (function() {
                 };
 
                 socket.send("OK\n");
-                _endArrayBuffers[_chunkSize] = event.data;
+                _endArrayBuffers[chunkSize] = event.data;
             }
             else {
-                if (!_arrayBuffers.hasOwnProperty(_chunkSize)) {
-                    _arrayBuffers[_chunkSize] = [];
+                if (!_arrayBuffers.hasOwnProperty(chunkSize)) {
+                    _arrayBuffers[chunkSize] = [];
                 }
-                if (_arrayBuffers[_chunkSize].length < _rmbtTestConfig.savedChunks) {
-                    _arrayBuffers[_chunkSize].push(event.data);
+                if (_arrayBuffers[chunkSize].length < _rmbtTestConfig.savedChunks) {
+                    _arrayBuffers[chunkSize].push(event.data);
                 }
             }
         };
         socket.onmessage = downloadChunkListener;
         debug(thread.id + ": downloading " + total + " chunks, " + (expectBytes / 1000) + " KB");
-        var send = "GETCHUNKS " + total +  ((_chunkSize !== DEFAULT_CHUNK_SIZE)? " " + _chunkSize : "") + "\n";
+        var send = "GETCHUNKS " + total +  ((chunkSize !== DEFAULT_CHUNK_SIZE)? " " + chunkSize : "") + "\n";
         socket.send(send);
     }
 
@@ -745,6 +791,7 @@ var RMBTTest = (function() {
         var startTime = nowNs() / 1e6; //ms since page load
         var n = 1;
         var bytesSent = 0;
+        let chunkSize = _chunkSize;
 
         var performanceTest = window.setTimeout(function() {
             var endTime = nowNs() / 1e6;
@@ -753,8 +800,8 @@ var RMBTTest = (function() {
         },durationMs);
 
         var loop = function() {
-            uploadChunks(thread, n, function(msg) {
-                bytesSent += n * _chunkSize;
+            uploadChunks(thread, n, chunkSize, function(msg) {
+                bytesSent += n * chunkSize;
                 debug(thread.id + ": " + msg);
 
                 var now = nowNs() / 1e6;
@@ -765,61 +812,17 @@ var RMBTTest = (function() {
                     var timeNs = parseInt(msg.substring(5)); //1e9
 
                     //save circa result
-                    _bytesPerSecsPretest = (n * _chunkSize) / (timeNs / 1e9);
-                    debug(thread.id + ": circa " + _bytesPerSecsPretest / 1e3 + " KB/sec up");
-                    debug(thread.id + ": circa " + _bytesPerSecsPretest * 8 / 1e6 + " MBit/sec up");
-
-                    //set number of upload threads according to mbit/s measured
-                    let mbits = _bytesPerSecsPretest * 8 / 1e6;
-                    Object.keys(_rmbtTestConfig.uploadThreadsLimitsMbit).forEach((thresholdMbit) => {
-                        if (mbits > thresholdMbit) {
-                            _numUploadThreads = _rmbtTestConfig.uploadThreadsLimitsMbit[thresholdMbit];
-                        }
-                    });
-                    _numUploadThreads = Math.min(_numThreadsAllowed, _numUploadThreads);
-                    debug(thread.id + ": set number of threads to be used in upload speed test to: " + _numUploadThreads);
-
-
-                    //set chunk size to accordingly 1 chunk every n/2 ms on average with n threads
-                    let calculatedChunkSize = _bytesPerSecsPretest / (1000 / ((_rmbtTestConfig.measurementPointsTimespan / 2)));
-
-                    //round to the nearest full KB
-                    calculatedChunkSize -= calculatedChunkSize % 1024;
-
-                    //but min 4KiB
-                    calculatedChunkSize = Math.max(DEFAULT_CHUNK_SIZE, calculatedChunkSize);
-
-                    //and max MAX_CHUNKSIZE
-                    calculatedChunkSize = Math.min(MAX_CHUNK_SIZE, calculatedChunkSize);
-
-                    //get closest chunk size where there are saved chunks available
-                    let closest = Number.POSITIVE_INFINITY;
-                    Object.keys(_arrayBuffers).forEach((key) => {
-                        let diff = Math.abs(calculatedChunkSize-key);
-                        if (diff < Math.abs(calculatedChunkSize - closest)) {
-                            closest = key;
-                        }
-                        else {
-                            //if there is already a closer chunk selected, we don't need this
-                            //anymore in this test and can dereference it to save heap memory
-                            delete _arrayBuffers[key];
-                            delete _endArrayBuffers[key];
-                        }
-                    });
-
-                    debug(thread.id + ": calculated chunksize for upload speed test " + calculatedChunkSize / 1024 + " KB");
-                    debug(thread.id + ": used chunk size for upload speed test will be: " + closest / 1024 + " KB");
-                    _chunkSize = closest;
+                    _bytesPerSecsPretest.push((n * chunkSize) / (timeNs / 1e9));
                 }
                 else {
                     //increase chunk size only if there are saved chunks for it!
-                    var newChunkSize = _chunkSize * 2;
+                    var newChunkSize = chunkSize * 2;
                     if (n < 8 || !_endArrayBuffers.hasOwnProperty(newChunkSize) || !_changeChunkSizes) {
                         n = n * 2;
                         loop();
                     }
                     else {
-                        _chunkSize = Math.min(_chunkSize * 2, MAX_CHUNK_SIZE);
+                        chunkSize = Math.min(chunkSize * 2, MAX_CHUNK_SIZE);
                         loop();
                     }
                 }
@@ -835,7 +838,7 @@ var RMBTTest = (function() {
      * @param {RMBTThread} thread containing an open socket
      * @param {Callback} onsuccess expects one argument (String)
      */
-    function uploadChunks(thread, total, onsuccess) {
+    function uploadChunks(thread, total, chunkSize, onsuccess) {
         //console.log(String.format(Locale.US, "thread %d: getting %d chunk(s)", threadId, chunks));
         var socket = thread.socket;
 
@@ -853,15 +856,15 @@ var RMBTTest = (function() {
             }
         };
 
-        debug(thread.id + ": uploading " + total + " chunks, " + ((_chunkSize * total) / 1000) + " KB");
-        socket.send("PUTNORESULT" + ((_changeChunkSizes) ? " " + _chunkSize : "") + "\n"); //Put no result
+        debug(thread.id + ": uploading " + total + " chunks, " + ((chunkSize * total) / 1000) + " KB");
+        socket.send("PUTNORESULT" + ((_changeChunkSizes) ? " " + chunkSize : "") + "\n"); //Put no result
         for (var i = 0; i < total; i++) {
             var blob;
             if (i === (total - 1)) {
-                blob = _endArrayBuffers[_chunkSize];
+                blob = _endArrayBuffers[chunkSize];
             }
             else {
-                blob = _arrayBuffers[_chunkSize][0];
+                blob = _arrayBuffers[chunkSize][0];
             }
             socket.send(blob);
         }
@@ -876,11 +879,11 @@ var RMBTTest = (function() {
         var previousListener = thread.socket.onmessage;
 
         //if less than approx half a second is left in the buffer - resend!
-        const fixedUnderrunBytes = (_bytesPerSecsPretest / 2) / _numUploadThreads;
+        const fixedUnderrunBytes = (_totalBytesPerSecsPretest / 2) / _numUploadThreads;
 
         //send data for approx one second at once
         //@TODO adapt with changing connection speeds
-        const sendAtOnceChunks = Math.ceil((_bytesPerSecsPretest / _numUploadThreads) / _chunkSize);
+        const sendAtOnceChunks = Math.ceil((_totalBytesPerSecsPretest / _numUploadThreads) / _chunkSize);
 
         var receivedEndTime = false;
         var keepSendingData = true;
