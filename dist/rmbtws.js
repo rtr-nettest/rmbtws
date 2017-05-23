@@ -241,36 +241,20 @@ var RMBTTest = function () {
             _intermediateResult.pingNano = _rmbtTestResult.ping_median;
 
             if (_intermediateResult.status === TestState.DOWN) {
-                //download
-                var total = 0;
-                var targetTime = Infinity;
-                for (var i = 0; i < _threads.length > 0; i++) {
-                    var down = _rmbtTestResult.threads[i].down;
-                    if (down.length > 0) {
-                        total += down[down.length - 1].bytes;
-                        if (down[down.length - 1].duration < targetTime) {
-                            targetTime = down[down.length - 1].duration;
-                        }
-                    }
-                }
-                _intermediateResult.downBitPerSec = Math.max(0, total * 8 / (targetTime / 1e9));
+                var results = RMBTTestResult.calculateOverallSpeedFromMultipleThreads(_rmbtTestResult.threads, function (thread) {
+                    return thread.down;
+                });
+
+                _intermediateResult.downBitPerSec = results.speed;
                 _intermediateResult.downBitPerSecLog = (log10(_intermediateResult.downBitPerSec / 1e6) + 2) / 4;
             }
 
             if (_intermediateResult.status === TestState.UP) {
-                //upload
-                total = 0;
-                targetTime = Infinity;
-                for (var i = 0; i < _threads.length; i++) {
-                    var up = _rmbtTestResult.threads[i].up;
-                    if (up.length > 0) {
-                        total += up[up.length - 1].bytes;
-                        if (up[up.length - 1].duration < targetTime) {
-                            targetTime = up[up.length - 1].duration;
-                        }
-                    }
-                }
-                _intermediateResult.upBitPerSec = Math.max(0, total * 8 / (targetTime / 1e9));
+                var _results = RMBTTestResult.calculateOverallSpeedFromMultipleThreads(_rmbtTestResult.threads, function (thread) {
+                    return thread.up;
+                });
+
+                _intermediateResult.upBitPerSec = _results.speed;
                 _intermediateResult.upBitPerSecLog = (log10(_intermediateResult.upBitPerSec / 1e6) + 2) / 4;
             }
         }
@@ -1952,7 +1936,7 @@ RMBTTestConfig.prototype.uuid = "";
 RMBTTestConfig.prototype.type = "DESKTOP";
 RMBTTestConfig.prototype.version_code = "0.3"; //minimal version compatible with the test
 RMBTTestConfig.prototype.client_version = "0.3"; //filled out by version information from RMBTServer
-RMBTTestConfig.prototype.client_software_version = "0.6.1";
+RMBTTestConfig.prototype.client_software_version = "0.6.3";
 RMBTTestConfig.prototype.os_version = 1;
 RMBTTestConfig.prototype.platform = "RMBTws";
 RMBTTestConfig.prototype.model = "Websocket";
@@ -2115,62 +2099,62 @@ RMBTTestResult.prototype.totalDownBytes = -1;
 RMBTTestResult.prototype.totalUpBytes = -1;
 RMBTTestResult.prototype.beginTime = -1;
 RMBTTestResult.prototype.geoLocations = [];
-RMBTTestResult.prototype.calculateAll = function () {
+RMBTTestResult.calculateOverallSpeedFromMultipleThreads = function (threads, phaseResults) {
     //TotalTestResult.java:118 (Commit 7d5519ce6ad9121896866d4d8f30299c7c19910d)
-    var calculate = function calculate(threads, phaseResults) {
-        var numThreads = threads.length;
-        var targetTime = Infinity;
-        for (var i = 0; i < numThreads; i++) {
-            var nsecs = phaseResults(threads[i]);
-            if (nsecs.length > 0) {
-                if (nsecs[nsecs.length - 1].duration < targetTime) {
-                    targetTime = nsecs[nsecs.length - 1].duration;
-                }
+    var numThreads = threads.length;
+    var targetTime = Infinity;
+    for (var i = 0; i < numThreads; i++) {
+        var nsecs = phaseResults(threads[i]);
+        if (nsecs.length > 0) {
+            if (nsecs[nsecs.length - 1].duration < targetTime) {
+                targetTime = nsecs[nsecs.length - 1].duration;
             }
         }
+    }
 
-        var totalBytes = 0;
+    var totalBytes = 0;
 
-        for (var i = 0; i < numThreads; i++) {
-            var thread = threads[i];
-            if (thread !== null && phaseResults(thread).length > 0) {
-                var targetIdx = phaseResults(thread).length;
-                for (var j = 0; j < phaseResults(thread).length; j++) {
-                    if (phaseResults(thread)[j].duration > targetTime) {
-                        targetIdx = j;
-                        break;
-                    }
+    for (var i = 0; i < numThreads; i++) {
+        var thread = threads[i];
+        if (thread !== null && phaseResults(thread).length > 0) {
+            var targetIdx = phaseResults(thread).length;
+            for (var j = 0; j < phaseResults(thread).length; j++) {
+                if (phaseResults(thread)[j].duration > targetTime) {
+                    targetIdx = j;
+                    break;
                 }
-                var calcBytes;
-                if (targetIdx === phaseResults(thread).length) {
-                    // nsec[max] == targetTime
-                    calcBytes = phaseResults(thread)[phaseResults(thread).length - 1].bytes;
-                } else {
-                    var bytes1 = targetIdx === 0 ? 0 : phaseResults(thread)[targetIdx - 1].bytes;
-                    var bytes2 = phaseResults(thread)[targetIdx].bytes;
-                    var bytesDiff = bytes2 - bytes1;
-                    var nsec1 = targetIdx === 0 ? 0 : phaseResults(thread)[targetIdx - 1].duration;
-                    var nsec2 = phaseResults(thread)[targetIdx].duration;
-                    var nsecDiff = nsec2 - nsec1;
-                    var nsecCompensation = targetTime - nsec1;
-                    var factor = nsecCompensation / nsecDiff;
-                    var compensation = Math.round(bytesDiff * factor);
-                    if (compensation < 0) {
-                        compensation = 0;
-                    }
-                    calcBytes = bytes1 + compensation;
-                }
-                totalBytes += calcBytes;
             }
+            var calcBytes;
+            if (targetIdx === phaseResults(thread).length) {
+                // nsec[max] == targetTime
+                calcBytes = phaseResults(thread)[phaseResults(thread).length - 1].bytes;
+            } else {
+                var bytes1 = targetIdx === 0 ? 0 : phaseResults(thread)[targetIdx - 1].bytes;
+                var bytes2 = phaseResults(thread)[targetIdx].bytes;
+                var bytesDiff = bytes2 - bytes1;
+                var nsec1 = targetIdx === 0 ? 0 : phaseResults(thread)[targetIdx - 1].duration;
+                var nsec2 = phaseResults(thread)[targetIdx].duration;
+                var nsecDiff = nsec2 - nsec1;
+                var nsecCompensation = targetTime - nsec1;
+                var factor = nsecCompensation / nsecDiff;
+                var compensation = Math.round(bytesDiff * factor);
+                if (compensation < 0) {
+                    compensation = 0;
+                }
+                calcBytes = bytes1 + compensation;
+            }
+            totalBytes += calcBytes;
         }
+    }
 
-        return {
-            bytes: totalBytes,
-            nsec: targetTime,
-            speed: totalBytes * 8 / (targetTime / 1e9) / 1e3
-        };
+    return {
+        bytes: totalBytes,
+        nsec: targetTime,
+        speed: totalBytes * 8 / (targetTime / 1e9)
     };
+};
 
+RMBTTestResult.prototype.calculateAll = function () {
     //speed items down
     for (var i = 0; i < this.threads.length; i++) {
         var down = this.threads[i].down;
@@ -2190,10 +2174,10 @@ RMBTTestResult.prototype.calculateAll = function () {
     var targetTime = Infinity;
 
     //down
-    var results = calculate(this.threads, function (thread) {
+    var results = RMBTTestResult.calculateOverallSpeedFromMultipleThreads(this.threads, function (thread) {
         return thread.down;
     });
-    this.speed_download = results.speed;
+    this.speed_download = results.speed / 1e3; //bps -> kbps
     this.bytes_download = results.bytes;
     this.nsec_download = results.nsec;
 
@@ -2213,10 +2197,10 @@ RMBTTestResult.prototype.calculateAll = function () {
     }
 
     //up
-    var results = calculate(this.threads, function (thread) {
+    var results = RMBTTestResult.calculateOverallSpeedFromMultipleThreads(this.threads, function (thread) {
         return thread.up;
     });
-    this.speed_upload = results.speed;
+    this.speed_upload = results.speed / 1e3; //bps -> kbps
     this.bytes_upload = results.bytes;
     this.nsec_upload = results.nsec;
 

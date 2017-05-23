@@ -245,36 +245,20 @@ var RMBTTest = (function() {
             _intermediateResult.pingNano = _rmbtTestResult.ping_median;
 
             if (_intermediateResult.status === TestState.DOWN) {
-                //download
-                var total = 0;
-                var targetTime = Infinity;
-                for (var i = 0; i < _threads.length > 0; i++) {
-                    var down = _rmbtTestResult.threads[i].down;
-                    if (down.length > 0) {
-                        total += down[down.length - 1].bytes;
-                        if (down[down.length - 1].duration < targetTime) {
-                            targetTime = down[down.length - 1].duration;
-                        }
-                    }
-                }
-                _intermediateResult.downBitPerSec = Math.max(0, (total * 8) / (targetTime / 1e9));
+                let results = RMBTTestResult.calculateOverallSpeedFromMultipleThreads(_rmbtTestResult.threads, function (thread) {
+                    return thread.down;
+                });
+
+                _intermediateResult.downBitPerSec = results.speed;
                 _intermediateResult.downBitPerSecLog = (log10(_intermediateResult.downBitPerSec / 1e6) + 2) / 4;
             }
 
             if (_intermediateResult.status === TestState.UP) {
-                //upload
-                total = 0;
-                targetTime = Infinity;
-                for (var i = 0; i < _threads.length; i++) {
-                    var up = _rmbtTestResult.threads[i].up;
-                    if (up.length > 0) {
-                        total += up[up.length - 1].bytes;
-                        if (up[up.length - 1].duration < targetTime) {
-                            targetTime = up[up.length - 1].duration;
-                        }
-                    }
-                }
-                _intermediateResult.upBitPerSec = Math.max(0, (total * 8) / (targetTime / 1e9));
+                let results = RMBTTestResult.calculateOverallSpeedFromMultipleThreads(_rmbtTestResult.threads, function (thread) {
+                    return thread.up;
+                });
+
+                _intermediateResult.upBitPerSec = results.speed;
                 _intermediateResult.upBitPerSecLog = (log10(_intermediateResult.upBitPerSec / 1e6) + 2) / 4;
             }
         }
