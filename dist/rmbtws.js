@@ -1936,7 +1936,7 @@ RMBTTestConfig.prototype.uuid = "";
 RMBTTestConfig.prototype.type = "DESKTOP";
 RMBTTestConfig.prototype.version_code = "0.3"; //minimal version compatible with the test
 RMBTTestConfig.prototype.client_version = "0.3"; //filled out by version information from RMBTServer
-RMBTTestConfig.prototype.client_software_version = "0.6.3";
+RMBTTestConfig.prototype.client_software_version = "0.6.4";
 RMBTTestConfig.prototype.os_version = 1;
 RMBTTestConfig.prototype.platform = "RMBTws";
 RMBTTestConfig.prototype.model = "Websocket";
@@ -2197,7 +2197,7 @@ RMBTTestResult.prototype.calculateAll = function () {
     }
 
     //up
-    var results = RMBTTestResult.calculateOverallSpeedFromMultipleThreads(this.threads, function (thread) {
+    results = RMBTTestResult.calculateOverallSpeedFromMultipleThreads(this.threads, function (thread) {
         return thread.up;
     });
     this.speed_upload = results.speed / 1e3; //bps -> kbps

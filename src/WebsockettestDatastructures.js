@@ -274,7 +274,7 @@ RMBTTestResult.prototype.calculateAll = function() {
     }
 
     //up
-    let results = RMBTTestResult.calculateOverallSpeedFromMultipleThreads(this.threads, function (thread) {
+    results = RMBTTestResult.calculateOverallSpeedFromMultipleThreads(this.threads, function (thread) {
         return thread.up;
     });
     this.speed_upload = results.speed / 1e3; //bps -> kbps
