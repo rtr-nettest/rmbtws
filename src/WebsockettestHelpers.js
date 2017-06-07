@@ -1,5 +1,8 @@
 "use strict";
 
+function nowMs() {}
+
+
 //polyfill for microsecond-time
 //https://gist.github.com/paulirish/5438650
 (function() {
@@ -15,7 +18,7 @@
     }
 
     if (!window.performance.now || window.performance.now === undefined) {
-        var nowOffset = Date.now();
+        let nowOffset = Date.now();
 
         if (performance.timing && performance.timing.navigationStart) {
             nowOffset = performance.timing.navigationStart;
@@ -27,7 +30,9 @@
         }
 
     }
+    nowMs = window.performance.now;
 })();
+
 
 function nowNs() {
     return Math.round(window.performance.now() * 1e6); //from ms to ns
@@ -36,10 +41,10 @@ function nowNs() {
 
 
 //Cyclic Barrier (Java: http://docs.oracle.com/javase/7/docs/api/java/util/concurrent/CyclicBarrier.html )
-var CyclicBarrier = (function() {
+let CyclicBarrier = (function() {
     "use strict";
-    var _parties;
-    var _callbacks = [];
+    let _parties;
+    let _callbacks = [];
 
     /**
      * Creates a new cyclic barrier
