@@ -1,14 +1,14 @@
 "use strict";
 
-var curGeoPos;
-var geo_callback, loc_timeout;
+let curGeoPos;
+let geo_callback, loc_timeout;
 
 
 function runCallback() {
 	if (geo_callback != undefined && typeof geo_callback == 'function') {
 		window.setTimeout(function() {
             geo_callback();
-        },1);
+        }, 1);
 	}
 }
 
@@ -25,65 +25,60 @@ function getCurLocation() {
  * @param {Function} callback
  */
 function getLocation(geoAccuracy, geoTimeout, geoMaxAge, callback) {
-        var ausgabe = document.getElementById("infogeo");
-        geo_callback = callback;
+    let ausgabe = document.getElementById("infogeo");
+    geo_callback = callback;
 
-        if (!navigator.geolocation) {
-                //maybe there is a position in a cookie
-                //because the user had been asked for his address
-                var coords = getCookie('coords');
-                if (coords) {
-                    var tmpcoords = JSON.parse(coords);
-                    if (tmpcoords && tmpcoords['lat'] > 0 && tmpcoords['long'] > 0) {
-                        testVisualization.setLocation(tmpcoords['lat'], tmpcoords['long']);
-                    }
-                }
-                else {
-                    ausgabe.innerHTML = Lang.getString('NotSupported');
-                }
-
-                runCallback();
-                return;
+    if (!navigator.geolocation) {
+        //maybe there is a position in a cookie
+        //because the user had been asked for his address
+        let coords = getCookie('coords');
+        if (coords) {
+            let tmpcoords = JSON.parse(coords);
+            if (tmpcoords && tmpcoords['lat'] > 0 && tmpcoords['long'] > 0) {
+                testVisualization.setLocation(tmpcoords['lat'], tmpcoords['long']);
+            }
+        } else {
+            ausgabe.innerHTML = Lang.getString('NotSupported');
         }
+
         runCallback();
-        //var TestEnvironment.getGeoTracker() = new GeoTracker();
-        TestEnvironment.getGeoTracker().start(function(successful,error) {
-                if (successful === true) {
-                }
-                else {
-                        //user did not allow geolocation or other reason
-                        switch (error.code) {
-                                case error.PERMISSION_DENIED:
-                                        ausgabe.innerHTML = Lang.getString('NoPermission');
-                                        break;
-                                case error.TIMEOUT:
-                                        //@TODO: Position is determined...
-                                        //alert(1);
-                                        break;
-                                case error.POSITION_UNAVAILABLE:
-                                        ausgabe.innerHTML = Lang.getString('NotAvailable');
-                                        break;
-                                case error.UNKNOWN_ERROR:
-                                        ausgabe.innerHTML = Lang.getString('NotAvailable') + "(" + error.code +")";
-                                        break;
-                        }
-
-                }
-
-        }, TestEnvironment.getTestVisualization());
+        return;
+    }
+    runCallback();
+    //var TestEnvironment.getGeoTracker() = new GeoTracker();
+    TestEnvironment.getGeoTracker().start(function(successful, error) {
+        if (successful !== true) {
+            //user did not allow geolocation or other reason
+            switch (error.code) {
+                case error.PERMISSION_DENIED:
+                        ausgabe.innerHTML = Lang.getString('NoPermission');
+                        break;
+                case error.TIMEOUT:
+                        //@TODO: Position is determined...
+                        //alert(1);
+                        break;
+                case error.POSITION_UNAVAILABLE:
+                        ausgabe.innerHTML = Lang.getString('NotAvailable');
+                        break;
+                case error.UNKNOWN_ERROR:
+                        ausgabe.innerHTML = Lang.getString('NotAvailable') + "(" + error.code +")";
+                        break;
+            }
+        }
+    }, TestEnvironment.getTestVisualization());
 }
 
 
 //Geolocation tracking
-var GeoTracker = (function() {
+let GeoTracker = (function() {
     "use strict";
 
-    var _positions;
-    var _clientCallback;
-    var _testVisualization = null;
+    let _positions;
+    let _clientCallback;
+    let _testVisualization = null;
 
-    var _watcher;
-    var _firstPositionIsInAccurate;
+    let _watcher;
+    let _firstPositionIsInAccurate;
 
     function GeoTracker() {
         _positions = [];
@@ -123,7 +118,7 @@ var GeoTracker = (function() {
             });
         }
         else {
-            var t = _clientCallback;
+            let t = _clientCallback;
             _clientCallback = null;
             t(false);
         }
@@ -136,7 +131,7 @@ var GeoTracker = (function() {
      * Is called when a geolocation query returns a result
      * @param {Position} position the result https://developer.mozilla.org/en-US/docs/Web/API/Position
      */
-    var successFunction = function(position) {
+    let successFunction = function(position) {
         //rough first position and now more accurate one -> remove the inaccurate one
         if (_positions.length === 1 && _firstPositionIsInAccurate) {
             _positions = [];
@@ -155,7 +150,7 @@ var GeoTracker = (function() {
         });
         if (_clientCallback !== null) {
             //call client that we now have a result
-            var t = _clientCallback;
+            let t = _clientCallback;
             _clientCallback = null;
             t(true);
         }
@@ -165,18 +160,18 @@ var GeoTracker = (function() {
         updateCookie(position);
     };
 
-    var errorFunction = function(reason) {
+    let errorFunction = function(reason) {
         //PositionError Object (https://developer.mozilla.org/en-US/docs/Web/API/PositionError)
         if (_clientCallback !== null) {
             //call client that we now have an error
-            var t = _clientCallback;
+            let t = _clientCallback;
             _clientCallback = null;
             t(false, reason);
         }
     };
 
-    var updateCookie = function(position) {
-        var coords = {};
+    let updateCookie = function(position) {
+        let coords = {};
         coords['lat'] = position.coords.latitude;
         coords['long'] = position.coords.longitude;
         coords['accuracy'] = position.coords.accuracy;
@@ -214,13 +209,13 @@ if (typeof window.setCookie === 'undefined') {
         //var exdate = new Date();
         //exdate.setDate(exdate.getDate() + cookie_exdays);
 
-        var futuredate = new Date();
-        var expdate = futuredate.getTime();
-        expdate += cookie_exseconds*1000;
+        let futuredate = new Date();
+        let expdate = futuredate.getTime();
+        expdate += cookie_exseconds * 1000;
         futuredate.setTime(expdate);
 
         //var c_value=escape(cookie_value) + ((cookie_exdays==null) ? ";" : "; expires="+exdate.toUTCString() +";");
-        var c_value = encodeURIComponent(cookie_value) + ((cookie_exseconds==null) ? ";" : "; expires=" + futuredate.toUTCString() + ";");
+        let c_value = encodeURIComponent(cookie_value) + ((cookie_exseconds==null) ? ";" : "; expires=" + futuredate.toUTCString() + ";");
         document.cookie = cookie_name + "=" + c_value + " path=/;";
     }
 }

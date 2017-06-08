@@ -1,7 +1,5 @@
 "use strict";
 
-function nowMs() {}
-
 
 //polyfill for microsecond-time
 //https://gist.github.com/paulirish/5438650
@@ -28,16 +26,17 @@ function nowMs() {}
         window.performance.now = function now() {
             return Date.now() - nowOffset;
         }
-
     }
-    nowMs = window.performance.now;
 })();
 
+
+function nowMs() {
+    return window.performance.now();
+}
 
 function nowNs() {
     return Math.round(window.performance.now() * 1e6); //from ms to ns
 }
-
 
 
 //Cyclic Barrier (Java: http://docs.oracle.com/javase/7/docs/api/java/util/concurrent/CyclicBarrier.html )
@@ -73,10 +72,10 @@ let CyclicBarrier = (function() {
     function release() {
         //first, copy and clear callbacks
         //to prohibit that a callback registers before all others are released
-        var tmp = _callbacks.slice();
+        let tmp = _callbacks.slice();
         _callbacks = [];
 
-        for (var i = 0; i < _parties; i++) {
+        for (let i = 0; i < _parties; i++) {
             //prevent side effects in last function that called "await"
             window.setTimeout(tmp[i], 1);
         }
@@ -84,6 +83,7 @@ let CyclicBarrier = (function() {
 
     return CyclicBarrier;
 })();
+
 
 /**
  * Finds the median number in the given array
@@ -96,7 +96,7 @@ Math.median = function(values) {
         return a - b;
     });
 
-    var half = Math.floor(values.length / 2);
+    let half = Math.floor(values.length / 2);
 
     if (values.length % 2) {
         return values[half];

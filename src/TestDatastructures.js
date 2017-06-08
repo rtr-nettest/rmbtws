@@ -1,8 +1,8 @@
 "use strict";
 
 const TestEnvironment = (function () {
-    var testVisualization = null;
-    var geoTracker = null;
+    let testVisualization = null;
+    let geoTracker = null;
 
     return {
         /**
@@ -51,7 +51,7 @@ const TestState = {
 //Intermediate Result
 function RMBTIntermediateResult() { }
 RMBTIntermediateResult.prototype.setLogValues = function () {
-    var toLog = function (value) {
+    let toLog = function (value) {
         if (value < 10000) {
             return 0;
         }

@@ -35,10 +35,10 @@ RMBTTestConfig.prototype.uploadThreadsLimitsMbit = {
     80: 3,
     150: 5
 };
-RMBTTestConfig.prototype.userServerSelection = ((typeof window.userServerSelection !== 'undefined')? userServerSelection : 0); //for QoSTest
+RMBTTestConfig.prototype.userServerSelection = ((typeof window.userServerSelection !== 'undefined') ? userServerSelection : 0); //for QoSTest
 
 
-var RMBTControlServerRegistrationResponse = (function() {
+let RMBTControlServerRegistrationResponse = (function() {
         RMBTControlServerRegistrationResponse.prototype.client_remote_ip;
         RMBTControlServerRegistrationResponse.prototype.provider;
         RMBTControlServerRegistrationResponse.prototype.test_server_encryption = "";
@@ -84,8 +84,8 @@ function RMBTTestThread(cyclicBarrier) {
         console.log(text);
     };
 
-    var _callbacks = {};
-    var _cyclicBarrier = cyclicBarrier;
+    let _callbacks = {};
+    let _cyclicBarrier = cyclicBarrier;
 
     return {
         /**
@@ -97,16 +97,14 @@ function RMBTTestThread(cyclicBarrier) {
         setState: function(state) {
             this.state = state;
             debug(this.id + ": reached state: " + state);
-            var that = this;
+            let that = this;
             _cyclicBarrier.await(function() {
                 debug(that.id + ": all threads reached state: " + state);
-                if (_callbacks[state] !== undefined &&
-                        _callbacks[state] !== null) {
-                    var callback = _callbacks[state];
+                if (_callbacks[state] !== undefined && _callbacks[state] !== null) {
+                    let callback = _callbacks[state];
                     //_callbacks[state] = null;
                     callback();
-                }
-                else {
+                } else {
                     debug(that.id + ": no callback registered");
                 }
             });
@@ -131,10 +129,10 @@ function RMBTTestThread(cyclicBarrier) {
          * Triggers the next state in the thread
          */
         triggerNextState: function() {
-            var states = [TestState.INIT, TestState.INIT_DOWN, TestState.PING,
+            let states = [TestState.INIT, TestState.INIT_DOWN, TestState.PING,
                 TestState.DOWN, TestState.INIT_UP, TestState.UP, TestState.END];
             if (this.state !== TestState.END) {
-                var nextState = states[states.indexOf(this.state) + 1];
+                let nextState = states[states.indexOf(this.state) + 1];
                 debug(this.id + ": triggered state " + nextState);
                 this.setState(nextState);
             }
@@ -177,10 +175,10 @@ RMBTTestResult.prototype.beginTime = -1;
 RMBTTestResult.prototype.geoLocations = [];
 RMBTTestResult.calculateOverallSpeedFromMultipleThreads = (threads, phaseResults) => {
     //TotalTestResult.java:118 (Commit 7d5519ce6ad9121896866d4d8f30299c7c19910d)
-    var numThreads = threads.length;
-    var targetTime = Infinity;
-    for (var i = 0; i < numThreads; i++) {
-        var nsecs = phaseResults(threads[i]);
+    let numThreads = threads.length;
+    let targetTime = Infinity;
+    for (let i = 0; i < numThreads; i++) {
+        let nsecs = phaseResults(threads[i]);
         if (nsecs.length > 0) {
             if (nsecs[nsecs.length - 1].duration < targetTime) {
                 targetTime = nsecs[nsecs.length - 1].duration;
@@ -188,33 +186,34 @@ RMBTTestResult.calculateOverallSpeedFromMultipleThreads = (threads, phaseResults
         }
     }
 
-    var totalBytes = 0;
+    let totalBytes = 0;
 
-    for (var i = 0; i < numThreads; i++) {
-        var thread = threads[i];
+    for (let i = 0; i < numThreads; i++) {
+        let thread = threads[i];
         if (thread !== null && phaseResults(thread).length > 0) {
-            var targetIdx = phaseResults(thread).length;
-            for (var j = 0; j < phaseResults(thread).length; j++) {
+            let targetIdx = phaseResults(thread).length;
+            for (let j = 0; j < phaseResults(thread).length; j++) {
                 if (phaseResults(thread)[j].duration > targetTime) {
                     targetIdx = j;
                     break;
                 }
             }
-            var calcBytes;
+            let calcBytes;
             if (targetIdx === phaseResults(thread).length) {
                 // nsec[max] == targetTime
                 calcBytes = phaseResults(thread)[phaseResults(thread).length - 1].bytes;
             }
             else {
-                var bytes1 = targetIdx === 0 ? 0 : phaseResults(thread)[targetIdx - 1].bytes;
-                var bytes2 = phaseResults(thread)[targetIdx].bytes;
-                var bytesDiff = bytes2 - bytes1;
-                var nsec1 = targetIdx === 0 ? 0 : phaseResults(thread)[targetIdx - 1].duration;
-                var nsec2 = phaseResults(thread)[targetIdx].duration;
-                var nsecDiff = nsec2 - nsec1;
-                var nsecCompensation = targetTime - nsec1;
-                var factor = nsecCompensation / nsecDiff;
-                var compensation = Math.round(bytesDiff * factor);
+                let bytes1 = targetIdx === 0 ? 0 : phaseResults(thread)[targetIdx - 1].bytes;
+                let bytes2 = phaseResults(thread)[targetIdx].bytes;
+                let bytesDiff = bytes2 - bytes1;
+                let nsec1 = targetIdx === 0 ? 0 : phaseResults(thread)[targetIdx - 1].duration;
+                let nsec2 = phaseResults(thread)[targetIdx].duration;
+                let nsecDiff = nsec2 - nsec1;
+                let nsecCompensation = targetTime - nsec1;
+                let factor = nsecCompensation / nsecDiff;
+                let compensation = Math.round(bytesDiff * factor);
+
                 if (compensation < 0) {
                     compensation = 0;
                 }
@@ -233,10 +232,10 @@ RMBTTestResult.calculateOverallSpeedFromMultipleThreads = (threads, phaseResults
 
 RMBTTestResult.prototype.calculateAll = function() {
     //speed items down
-    for (var i = 0; i < this.threads.length; i++) {
-        var down = this.threads[i].down;
+    for (let i = 0; i < this.threads.length; i++) {
+        let down = this.threads[i].down;
         if (down.length > 0) {
-            for (var j = 0; j < down.length; j++) {
+            for (let j = 0; j < down.length; j++) {
                 this.speedItems.push({
                     direction: "download",
                     thread: i,
@@ -247,8 +246,8 @@ RMBTTestResult.prototype.calculateAll = function() {
         }
     }
 
-    var total = 0;
-    var targetTime = Infinity;
+    let total = 0;
+    let targetTime = Infinity;
 
     //down
     let results = RMBTTestResult.calculateOverallSpeedFromMultipleThreads(this.threads, function (thread) {
@@ -259,10 +258,10 @@ RMBTTestResult.prototype.calculateAll = function() {
     this.nsec_download = results.nsec;
 
     //speed items up
-    for (var i = 0; i < this.threads.length; i++) {
-        var up = this.threads[i].up;
+    for (let i = 0; i < this.threads.length; i++) {
+        let up = this.threads[i].up;
         if (up.length > 0) {
-            for (var j = 0; j < up.length; j++) {
+            for (let j = 0; j < up.length; j++) {
                 this.speedItems.push({
                     direction: "upload",
                     thread: i,
@@ -282,9 +281,9 @@ RMBTTestResult.prototype.calculateAll = function() {
     this.nsec_upload = results.nsec;
 
     //ping
-    var pings = this.threads[0].pings;
-    var shortest = Infinity;
-    for (var i = 0; i < pings.length; i++) {
+    let pings = this.threads[0].pings;
+    let shortest = Infinity;
+    for (let i = 0; i < pings.length; i++) {
         this.pings.push({
            value: pings[i].client,
            value_server: pings[i].server,
@@ -322,7 +321,7 @@ RMBTPingResult.prototype.timeNs = -1;
  * @callback RMBTControlServerRegistrationResponseCallback
  * @param {RMBTControlServerRegistrationResponse} json
  */
-var RMBTError = {
+let RMBTError = {
     NOT_SUPPORTED : "WebSockets are not supported",
     SOCKET_INIT_FAILED : "WebSocket initialization failed",
     CONNECT_FAILED : "connecting to test server failed"

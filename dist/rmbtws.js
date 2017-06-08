@@ -31,21 +31,21 @@ var RMBTTest = function () {
         console.log(text);
     };
 
-    var _chunkSize;
+    var _chunkSize = void 0;
     var MAX_CHUNK_SIZE = 4194304;
-    var MIN_CHUNK_SIZE;
-    var DEFAULT_CHUNK_SIZE;
+    var MIN_CHUNK_SIZE = void 0;
+    var DEFAULT_CHUNK_SIZE = void 0;
     var _changeChunkSizes = false;
 
     /**
      *  @var rmbtTestConfig RMBTTestConfig
      **/
-    var _rmbtTestConfig;
+    var _rmbtTestConfig = void 0;
     var _rmbtTestResult = null;
     var _errorCallback = null;
 
-    var _state;
-    var _stateChangeMs;
+    var _state = void 0;
+    var _stateChangeMs = void 0;
     var _statesInfo = {
         durationInitMs: 2500,
         durationPingMs: 500,
@@ -59,15 +59,15 @@ var RMBTTest = function () {
     var _arrayBuffers = {};
     var _endArrayBuffers = {};
 
-    var _cyclicBarrier;
-    var _numThreadsAllowed;
+    var _cyclicBarrier = void 0;
+    var _numThreadsAllowed = void 0;
     var _numDownloadThreads = 0;
     var _numUploadThreads = 0;
 
     var _bytesPerSecsPretest = [];
     var _totalBytesPerSecsPretest = 0;
 
-    //this is a observable/subject
+    //this is an observable/subject
     //http://addyosmani.com/resources/essentialjsdesignpatterns/book/#observerpatternjavascript
     //RMBTTest.prototype = new Subject();
 
@@ -90,7 +90,7 @@ var RMBTTest = function () {
     function setState(state) {
         if (_state === undefined || _state !== state) {
             _state = state;
-            _stateChangeMs = performance.now();
+            _stateChangeMs = nowMs();
         }
     }
 
@@ -173,7 +173,7 @@ var RMBTTest = function () {
                 }, response.test_wait * 1e3);
             };
 
-            var wsGeoTracker;
+            var wsGeoTracker = void 0;
             //get the user's geolocation
             if (TestEnvironment.getGeoTracker() !== null) {
                 wsGeoTracker = TestEnvironment.getGeoTracker();
@@ -439,7 +439,7 @@ var RMBTTest = function () {
     }
 
     /**
-     * Calcuate chunk size, total pretest bandwirth according
+     * Calculate chunk size, total pretest bandwidth according
      * to single thread results during upload/download pre-test
      * @param bytesPerSecsPretest array containing single measurement results
      * @param threadLimits limits for determining how many threads to use
@@ -513,7 +513,7 @@ var RMBTTest = function () {
      */
     function shortDownloadtest(thread, durationMs) {
         var prevListener = thread.socket.onmessage;
-        var startTime = nowNs() / 1e6; //ms since page load
+        var startTime = nowMs(); //ms since page load
         var n = 1;
         var bytesReceived = 0;
         var chunksize = _chunkSize;
@@ -524,7 +524,7 @@ var RMBTTest = function () {
                 debug(thread.id + ": " + msg);
                 var timeNs = parseInt(msg.substring(5));
 
-                var now = nowNs() / 1e6;
+                var now = nowMs();
                 if (now - startTime > durationMs) {
                     //save circa result
                     _bytesPerSecsPretest.push(n * chunksize / (timeNs / 1e9));
@@ -564,7 +564,7 @@ var RMBTTest = function () {
                 return;
             }
 
-            //var lastByte;
+            //let lastByte;
             //console.log("received chunk with " + line.length + " bytes");
             totalRead = totalRead + event.data.byteLength;
 
@@ -647,8 +647,8 @@ var RMBTTest = function () {
      * @param {Callback} onsuccess upon success
      */
     function ping(thread, onsuccess) {
-        var begin;
-        var clientDuration;
+        var begin = void 0;
+        var clientDuration = void 0;
         var pingListener = function pingListener(event) {
             if (event.data === "PONG\n") {
                 var end = nowNs();
@@ -679,8 +679,8 @@ var RMBTTest = function () {
         var readChunks = 0;
         var lastReportedChunks = -1;
 
-        var interval;
-        var lastRead;
+        var interval = void 0;
+        var lastRead = void 0;
         var lastChunk = null;
         var lastTime = null;
 
@@ -708,7 +708,7 @@ var RMBTTest = function () {
                 bytes: totalRead
             });
 
-            //var now = nowNs();
+            //let now = nowNs();
             lastRead = now;
 
             if (lastByte[0] >= 0xFF) {
@@ -747,13 +747,13 @@ var RMBTTest = function () {
     */
     function shortUploadtest(thread, durationMs) {
         var prevListener = thread.socket.onmessage;
-        var startTime = nowNs() / 1e6; //ms since page load
+        var startTime = nowMs(); //ms since page load
         var n = 1;
         var bytesSent = 0;
         var chunkSize = _chunkSize;
 
         var performanceTest = window.setTimeout(function () {
-            var endTime = nowNs() / 1e6;
+            var endTime = nowMs();
             var duration = endTime - startTime;
             debug("diff:" + (duration - durationMs) + " (" + (duration - durationMs) / durationMs + " %)");
         }, durationMs);
@@ -763,7 +763,7 @@ var RMBTTest = function () {
                 bytesSent += n * chunkSize;
                 debug(thread.id + ": " + msg);
 
-                var now = nowNs() / 1e6;
+                var now = nowMs();
                 if (now - startTime > durationMs) {
                     //"break"
                     thread.socket.onmessage = prevListener;
@@ -790,8 +790,9 @@ var RMBTTest = function () {
 
     /**
      * Upload n Chunks to the test server
-     * @param {Number} total how many chunks to upload
      * @param {RMBTThread} thread containing an open socket
+     * @param {Number} total how many chunks to upload
+     * @param {Number} chunkSize size of single chunk in bytes
      * @param {Callback} onsuccess expects one argument (String)
      */
     function uploadChunks(thread, total, chunkSize, onsuccess) {
@@ -813,7 +814,7 @@ var RMBTTest = function () {
         debug(thread.id + ": uploading " + total + " chunks, " + chunkSize * total / 1000 + " KB");
         socket.send("PUTNORESULT" + (_changeChunkSizes ? " " + chunkSize : "") + "\n"); //Put no result
         for (var i = 0; i < total; i++) {
-            var blob;
+            var blob = void 0;
             if (i === total - 1) {
                 blob = _endArrayBuffers[chunkSize];
             } else {
@@ -1039,7 +1040,7 @@ var RMBTTest = function () {
             contentType: "application/json",
             data: json,
             success: function success(data) {
-                //var config = new RMBTControlServerRegistrationResponse(data);
+                //let config = new RMBTControlServerRegistrationResponse(data);
                 //onsuccess(config);
                 debug("https://develop.netztest.at/en/Verlauf?" + registrationResponse.test_uuid);
                 //window.location.href = "https://develop.netztest.at/en/Verlauf?" + registrationResponse.test_uuid;
@@ -1063,8 +1064,9 @@ var RMBTTest = function () {
 }();
 "use strict";
 
-var curGeoPos;
-var geo_callback, loc_timeout;
+var curGeoPos = void 0;
+var geo_callback = void 0,
+    loc_timeout = void 0;
 
 function runCallback() {
     if (geo_callback != undefined && typeof geo_callback == 'function') {
@@ -1108,7 +1110,7 @@ function getLocation(geoAccuracy, geoTimeout, geoMaxAge, callback) {
     runCallback();
     //var TestEnvironment.getGeoTracker() = new GeoTracker();
     TestEnvironment.getGeoTracker().start(function (successful, error) {
-        if (successful === true) {} else {
+        if (successful !== true) {
             //user did not allow geolocation or other reason
             switch (error.code) {
                 case error.PERMISSION_DENIED:
@@ -1133,12 +1135,12 @@ function getLocation(geoAccuracy, geoTimeout, geoMaxAge, callback) {
 var GeoTracker = function () {
     "use strict";
 
-    var _positions;
-    var _clientCallback;
+    var _positions = void 0;
+    var _clientCallback = void 0;
     var _testVisualization = null;
 
-    var _watcher;
-    var _firstPositionIsInAccurate;
+    var _watcher = void 0;
+    var _firstPositionIsInAccurate = void 0;
 
     function GeoTracker() {
         _positions = [];
@@ -2114,8 +2116,8 @@ RMBTTestResult.calculateOverallSpeedFromMultipleThreads = function (threads, pha
 
     var totalBytes = 0;
 
-    for (var i = 0; i < numThreads; i++) {
-        var thread = threads[i];
+    for (var _i = 0; _i < numThreads; _i++) {
+        var thread = threads[_i];
         if (thread !== null && phaseResults(thread).length > 0) {
             var targetIdx = phaseResults(thread).length;
             for (var j = 0; j < phaseResults(thread).length; j++) {
@@ -2124,7 +2126,7 @@ RMBTTestResult.calculateOverallSpeedFromMultipleThreads = function (threads, pha
                     break;
                 }
             }
-            var calcBytes;
+            var calcBytes = void 0;
             if (targetIdx === phaseResults(thread).length) {
                 // nsec[max] == targetTime
                 calcBytes = phaseResults(thread)[phaseResults(thread).length - 1].bytes;
@@ -2138,6 +2140,7 @@ RMBTTestResult.calculateOverallSpeedFromMultipleThreads = function (threads, pha
                 var nsecCompensation = targetTime - nsec1;
                 var factor = nsecCompensation / nsecDiff;
                 var compensation = Math.round(bytesDiff * factor);
+
                 if (compensation < 0) {
                     compensation = 0;
                 }
@@ -2182,15 +2185,15 @@ RMBTTestResult.prototype.calculateAll = function () {
     this.nsec_download = results.nsec;
 
     //speed items up
-    for (var i = 0; i < this.threads.length; i++) {
-        var up = this.threads[i].up;
+    for (var _i2 = 0; _i2 < this.threads.length; _i2++) {
+        var up = this.threads[_i2].up;
         if (up.length > 0) {
-            for (var j = 0; j < up.length; j++) {
+            for (var _j = 0; _j < up.length; _j++) {
                 this.speedItems.push({
                     direction: "upload",
-                    thread: i,
-                    time: up[j].duration,
-                    bytes: up[j].bytes
+                    thread: _i2,
+                    time: up[_j].duration,
+                    bytes: up[_j].bytes
                 });
             }
         }
@@ -2207,15 +2210,15 @@ RMBTTestResult.prototype.calculateAll = function () {
     //ping
     var pings = this.threads[0].pings;
     var shortest = Infinity;
-    for (var i = 0; i < pings.length; i++) {
+    for (var _i3 = 0; _i3 < pings.length; _i3++) {
         this.pings.push({
-            value: pings[i].client,
-            value_server: pings[i].server,
-            time_ns: pings[i].timeNs
+            value: pings[_i3].client,
+            value_server: pings[_i3].server,
+            time_ns: pings[_i3].timeNs
         });
 
-        if (pings[i].client < shortest) {
-            shortest = pings[i].client;
+        if (pings[_i3].client < shortest) {
+            shortest = pings[_i3].client;
         }
     }
     this.ping_shortest = shortest;
@@ -2278,6 +2281,10 @@ var RMBTError = {
     }
 })();
 
+function nowMs() {
+    return window.performance.now();
+}
+
 function nowNs() {
     return Math.round(window.performance.now() * 1e6); //from ms to ns
 }
@@ -2286,7 +2293,7 @@ function nowNs() {
 var CyclicBarrier = function () {
     "use strict";
 
-    var _parties;
+    var _parties = void 0;
     var _callbacks = [];
 
     /**
