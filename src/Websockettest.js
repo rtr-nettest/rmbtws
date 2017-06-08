@@ -37,9 +37,13 @@ let RMBTTest = (function() {
     let _changeChunkSizes = false;
 
     /**
-     *  @var rmbtTestConfig RMBTTestConfig
+     *  @type {RMBTTestConfig}
      **/
     let _rmbtTestConfig;
+    /**
+     * @type {RMBTControlServerCommunication}
+     */
+    let _rmbtControlServer;
     let _rmbtTestResult = null;
     let _errorCallback = null;
 
@@ -75,9 +79,10 @@ let RMBTTest = (function() {
      * @param {RMBTTestConfig} rmbtTestConfig
      * @returns {}
      */
-    function RMBTTest(rmbtTestConfig) {
+    function RMBTTest(rmbtTestConfig, rmbtControlServer) {
         //init socket
         _rmbtTestConfig = rmbtTestConfig;// = new RMBTTestConfig();
+        _rmbtControlServer = rmbtControlServer;
         _state = TestState.INIT;
     }
 
@@ -128,9 +133,9 @@ let RMBTTest = (function() {
         setState(TestState.INIT);
         _rmbtTestResult = new RMBTTestResult();
         //connect to controlserver
-        getDataCollectorInfo(_rmbtTestConfig);
+        _rmbtControlServer.getDataCollectorInfo(_rmbtTestConfig);
 
-        obtainControlServerRegistration(_rmbtTestConfig, function(response) {
+        _rmbtControlServer.obtainControlServerRegistration(_rmbtTestConfig, function(response) {
             _numThreadsAllowed = parseInt(response.test_numthreads);
             _cyclicBarrier = new CyclicBarrier(_numThreadsAllowed);
             _statesInfo.durationDownMs = response.test_duration * 1e3;
@@ -139,10 +144,12 @@ let RMBTTest = (function() {
             //@TODO: Nicer
             //if there is testVisualization, make use of it!
             if (TestEnvironment.getTestVisualization() !== null) {
-                    TestEnvironment.getTestVisualization().updateInfo(response.test_server_name,
-                                response.client_remote_ip,
-                                response.provider,
-                                response.test_uuid);
+                    TestEnvironment.getTestVisualization().updateInfo(
+                        response.test_server_name,
+                        response.client_remote_ip,
+                        response.provider,
+                        response.test_uuid
+                    );
             }
 
             let continuation = function() {
@@ -165,9 +172,13 @@ let RMBTTest = (function() {
                             wsGeoTracker.stop();
                             _rmbtTestResult.geoLocations = wsGeoTracker.getResults();
                             _rmbtTestResult.calculateAll();
-                            submitResults(response, function() {
-                                setState(TestState.END);
-                            });
+                            _rmbtControlServer.submitResults(
+                                _rmbtTestConfig.controlServerURL + _rmbtTestConfig.controlServerResultResource,
+                                prepareResult(response),
+                                () => {
+                                    setState(TestState.END);
+                                }
+                            );
                         });
 
                         _threads.push(thread);
@@ -180,15 +191,13 @@ let RMBTTest = (function() {
             if (TestEnvironment.getGeoTracker() !== null) {
                 wsGeoTracker = TestEnvironment.getGeoTracker();
                 continuation();
-            }
-            else {
+            } else {
                 wsGeoTracker = new GeoTracker();
                 debug("getting geolocation");
                 wsGeoTracker.start(function() {
                     continuation();
                 });
             }
-
         });
     };
 
@@ -270,7 +279,7 @@ let RMBTTest = (function() {
      * Conduct the test
      * @param {RMBTControlServerRegistrationResponse} registrationResponse
      * @param {RMBTTestThread} thread info about the thread/local thread data structures
-     * @param {Callback} callback as soon as all tests are finished
+     * @param {Function} callback as soon as all tests are finished
      */
     function conductTest(registrationResponse, thread, callback) {
         let server = ((registrationResponse.test_server_encryption) ? "wss://" : "ws://") +
@@ -554,9 +563,10 @@ let RMBTTest = (function() {
 
     /**
      * Download n Chunks from the test server
+     * @param {RMBTTestThread} thread containing an open socket
      * @param {Number} total how many chunks to download
-     * @param {RMBTThread} thread containing an open socket
-     * @param {Callback} onsuccess expects one argument (String)
+     * @param {Number} chunkSize size of single chunk in bytes
+     * @param {Function} onsuccess expects one argument (String)
      */
     function downloadChunks(thread, total, chunkSize, onsuccess) {
         //console.log(String.format(Locale.US, "thread %d: getting %d chunk(s)", threadId, chunks));
@@ -651,7 +661,7 @@ let RMBTTest = (function() {
     /**
      *
      * @param {RMBTTestThread} thread
-     * @param {Callback} onsuccess upon success
+     * @param {Function} onsuccess upon success
      */
     function ping(thread, onsuccess) {
         let begin;
@@ -798,10 +808,10 @@ let RMBTTest = (function() {
 
     /**
      * Upload n Chunks to the test server
-     * @param {RMBTThread} thread containing an open socket
+     * @param {RMBTTestThread} thread containing an open socket
      * @param {Number} total how many chunks to upload
      * @param {Number} chunkSize size of single chunk in bytes
-     * @param {Callback} onsuccess expects one argument (String)
+     * @param {Function} onsuccess expects one argument (String)
      */
     function uploadChunks(thread, total, chunkSize, onsuccess) {
         //console.log(String.format(Locale.US, "thread %d: getting %d chunk(s)", threadId, chunks));
@@ -946,74 +956,13 @@ let RMBTTest = (function() {
     }
 
     /**
-     *
-     * @param {RMBTTestConfig} rmbtTestConfig
-     * @param {RMBTControlServerRegistrationResponseCallback} onsuccess called on completion
-     */
-    function obtainControlServerRegistration(rmbtTestConfig, onsuccess) {
-        let json_data = {
-            version: rmbtTestConfig.version,
-            language: rmbtTestConfig.language,
-            uuid: rmbtTestConfig.uuid,
-            type: rmbtTestConfig.type,
-            version_code: rmbtTestConfig.version_code,
-            client: rmbtTestConfig.client,
-            timezone: rmbtTestConfig.timezone,
-            time: new Date().getTime()
-        };
-
-        if (typeof userServerSelection !== "undefined" && userServerSelection > 0
-                && typeof UserConf !== "undefined" && UserConf.preferredServer !== undefined && UserConf.preferredServer !== "default") {
-            json_data['prefer_server'] = UserConf.preferredServer;
-            json_data['user_server_selection'] = userServerSelection;
-        }
-
-        $.ajax({
-            url: rmbtTestConfig.controlServerURL + rmbtTestConfig.controlServerRegistrationResource,
-            type: "post",
-            dataType: "json",
-            contentType: "application/json",
-            data: JSON.stringify(json_data),
-            success: function(data) {
-                let config = new RMBTControlServerRegistrationResponse(data);
-                onsuccess(config);
-            },
-            error: function() {
-                debug("error getting testID");
-            }
-        });
-
-    }
-
-    /**
-     * get "data collector" metadata (like browser family)
-     * @param {RMBTTestConfig} rmbtTestConfig
-     */
-    function getDataCollectorInfo(rmbtTestConfig) {
-        $.ajax({
-           url: rmbtTestConfig.controlServerURL + rmbtTestConfig.controlServerDataCollectorResource,
-           type: "get",
-           dataType: "json",
-           contentType: "application/json",
-           success: function(data) {
-               rmbtTestConfig.product = data.agent.substring(0, Math.min(150, data.agent.length));
-               rmbtTestConfig.model = data.product;
-               //rmbtTestConfig.platform = data.product;
-               rmbtTestConfig.os_version = data.version;
-           },
-           error: function() {
-               debug("error getting data collection response");
-           }
-        });
-    }
-
-    /**
+     * Gather test result and prepare data to be sent to server
      *
      * @param {RMBTControlServerRegistrationResponse} registrationResponse
-     * @param {Callback} callback
+     * @return {Object} Test result to send to server
      */
-    function submitResults(registrationResponse, callback) {
-        let json_data = {
+    function prepareResult(registrationResponse) {
+        return {
             client_language: "de",
             client_name: _rmbtTestConfig.client,
             client_uuid: _rmbtTestConfig.uuid,
@@ -1035,6 +984,7 @@ let RMBTTest = (function() {
             test_speed_download: _rmbtTestResult.speed_download,
             test_speed_upload: _rmbtTestResult.speed_upload,
             test_token: registrationResponse.test_token,
+            test_uuid: registrationResponse.test_token.split('_')[0],
             time: _rmbtTestResult.beginTime,
             timezone: "Europe/Vienna",
             type: "DESKTOP",
@@ -1042,25 +992,6 @@ let RMBTTest = (function() {
             speed_detail: _rmbtTestResult.speedItems,
             user_server_selection: _rmbtTestConfig.userServerSelection
         };
-        let json = JSON.stringify(json_data);
-        debug("Submit size: " + json.length);
-        $.ajax({
-            url: _rmbtTestConfig.controlServerURL + _rmbtTestConfig.controlServerResultResource,
-            type: "post",
-            dataType: "json",
-            contentType: "application/json",
-            data: json,
-            success: function(data) {
-                //let config = new RMBTControlServerRegistrationResponse(data);
-                //onsuccess(config);
-                debug("https://develop.netztest.at/en/Verlauf?" + registrationResponse.test_uuid);
-                //window.location.href = "https://develop.netztest.at/en/Verlauf?" + registrationResponse.test_uuid;
-                callback();
-            },
-            error: function() {
-                debug("error submitting results");
-            }
-        });
     }
 
     /**

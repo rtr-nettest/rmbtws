@@ -106,3 +106,21 @@ Math.median = function(values) {
 };
 
 
+let Logger = (function () {
+    function Logger() {
+    }
+    Logger.prototype.debug = function (msg) {
+        console.debug(msg);
+    };
+    Logger.prototype.info = function (msg) {
+        console.info(msg);
+    };
+    Logger.prototype.warn = function (msg) {
+        console.warn(msg);
+    };
+    Logger.prototype.error = function (msg) {
+        console.error(msg);
+    };
+    return Logger;
+}());
+
