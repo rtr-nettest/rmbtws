@@ -25,7 +25,7 @@ function getCurLocation() {
  * @param {Function} callback
  */
 function getLocation(geoAccuracy, geoTimeout, geoMaxAge, callback) {
-    let ausgabe = document.getElementById("infogeo");
+    const ausgabe = document.getElementById("infogeo");
     geo_callback = callback;
 
     if (!navigator.geolocation) {
@@ -70,7 +70,7 @@ function getLocation(geoAccuracy, geoTimeout, geoMaxAge, callback) {
 
 
 //Geolocation tracking
-let GeoTracker = (function() {
+const GeoTracker = (function() {
     "use strict";
 
     let _positions;
@@ -131,7 +131,7 @@ let GeoTracker = (function() {
      * Is called when a geolocation query returns a result
      * @param {Position} position the result https://developer.mozilla.org/en-US/docs/Web/API/Position
      */
-    let successFunction = function(position) {
+    const successFunction = function(position) {
         //rough first position and now more accurate one -> remove the inaccurate one
         if (_positions.length === 1 && _firstPositionIsInAccurate) {
             _positions = [];
@@ -160,7 +160,7 @@ let GeoTracker = (function() {
         updateCookie(position);
     };
 
-    let errorFunction = function(reason) {
+    const errorFunction = function(reason) {
         //PositionError Object (https://developer.mozilla.org/en-US/docs/Web/API/PositionError)
         if (_clientCallback !== null) {
             //call client that we now have an error
@@ -170,7 +170,7 @@ let GeoTracker = (function() {
         }
     };
 
-    let updateCookie = function(position) {
+    const updateCookie = function(position) {
         let coords = {};
         coords['lat'] = position.coords.latitude;
         coords['long'] = position.coords.longitude;
