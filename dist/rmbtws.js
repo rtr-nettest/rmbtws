@@ -258,7 +258,7 @@ var RMBTTest = function () {
                 });
 
                 _intermediateResult.downBitPerSec = results.speed;
-                _intermediateResult.downBitPerSecLog = (log10(_intermediateResult.downBitPerSec / 1e6) + 2) / 4;
+                _intermediateResult.downBitPerSecLog = (Math.log10(_intermediateResult.downBitPerSec / 1e6) + 2) / 4;
             }
 
             if (_intermediateResult.status === TestState.UP) {
@@ -267,7 +267,7 @@ var RMBTTest = function () {
                 });
 
                 _intermediateResult.upBitPerSec = _results.speed;
-                _intermediateResult.upBitPerSecLog = (log10(_intermediateResult.upBitPerSec / 1e6) + 2) / 4;
+                _intermediateResult.upBitPerSecLog = (Math.log10(_intermediateResult.upBitPerSec / 1e6) + 2) / 4;
             }
         }
         return _intermediateResult;
@@ -440,7 +440,7 @@ var RMBTTest = function () {
             } else if (event.data === "ACCEPT TOKEN QUIT\n") {
                 thread.socket.send("TOKEN " + token + "\n");
             } else if (event.data === "OK\n" && thread.state === TestState.INIT) {
-                debug(thread.id + ": Token accepted");
+                logger.debug(thread.id + ": Token accepted");
             } else if (event.data === "ERR\n") {
                 errorHandler();
                 logger.error("got error msg");
