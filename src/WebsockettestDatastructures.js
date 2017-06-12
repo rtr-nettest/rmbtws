@@ -78,12 +78,12 @@ let RMBTControlServerRegistrationResponse = (function() {
  * @returns {RMBTTestThread}
  */
 function RMBTTestThread(cyclicBarrier) {
-    const debug = (text) => {
-        //return; //no debug
-        $("#debug").prepend(text + "\n");
-        console.log(text);
-    };
 
+    /**
+     *
+     * @type {Logger}
+     */
+    let logger = new Logger();
     let _callbacks = {};
     let _cyclicBarrier = cyclicBarrier;
 
@@ -96,16 +96,16 @@ function RMBTTestThread(cyclicBarrier) {
          */
         setState: function(state) {
             this.state = state;
-            debug(this.id + ": reached state: " + state);
+            logger.debug(this.id + ": reached state: " + state);
             let that = this;
             _cyclicBarrier.await(function() {
-                debug(that.id + ": all threads reached state: " + state);
+                logger.debug(that.id + ": all threads reached state: " + state);
                 if (_callbacks[state] !== undefined && _callbacks[state] !== null) {
                     let callback = _callbacks[state];
                     //_callbacks[state] = null;
                     callback();
                 } else {
-                    debug(that.id + ": no callback registered");
+                    logger.warn(that.id + ": no callback registered");
                 }
             });
 
@@ -133,7 +133,7 @@ function RMBTTestThread(cyclicBarrier) {
                 TestState.DOWN, TestState.INIT_UP, TestState.UP, TestState.END];
             if (this.state !== TestState.END) {
                 let nextState = states[states.indexOf(this.state) + 1];
-                debug(this.id + ": triggered state " + nextState);
+                logger.debug(this.id + ": triggered state " + nextState);
                 this.setState(nextState);
             }
         },
@@ -153,14 +153,14 @@ function RMBTTestResult() {
 RMBTTestResult.prototype.addThread = function(rmbtThreadTestResult) {
     this.threads.push(rmbtThreadTestResult);
 };
-RMBTTestResult.prototype.ip_local;
-RMBTTestResult.prototype.ip_server;
-RMBTTestResult.prototype.port_remote;
-RMBTTestResult.prototype.num_threads;
+RMBTTestResult.prototype.ip_local = undefined;
+RMBTTestResult.prototype.ip_server = undefined;
+RMBTTestResult.prototype.port_remote = undefined;
+RMBTTestResult.prototype.num_threads = undefined;
 RMBTTestResult.prototype.encryption = "NONE";
 RMBTTestResult.prototype.ping_shortest = -1;
 RMBTTestResult.prototype.ping_median = -1;
-RMBTTestResult.prototype.client_version;
+RMBTTestResult.prototype.client_version = undefined;
 RMBTTestResult.prototype.pings = [];
 RMBTTestResult.prototype.speed_download = -1;
 RMBTTestResult.prototype.speed_upload = -1;
@@ -306,9 +306,9 @@ function RMBTThreadTestResult() {
 }
 //no inheritance(other than in Java RMBTClient)
 //RMBTThreadTestResult.prototype = new RMBTTestResult();
-RMBTThreadTestResult.prototype.down;
-RMBTThreadTestResult.prototype.up;
-RMBTThreadTestResult.prototype.pings;
+RMBTThreadTestResult.prototype.down = undefined;
+RMBTThreadTestResult.prototype.up = undefined;
+RMBTThreadTestResult.prototype.pings = undefined;
 RMBTThreadTestResult.prototype.totalDownBytes = -1;
 RMBTThreadTestResult.prototype.totalUpBytes = -1;
 

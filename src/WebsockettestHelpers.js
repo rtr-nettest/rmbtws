@@ -47,7 +47,7 @@ let CyclicBarrier = (function() {
 
     /**
      * Creates a new cyclic barrier
-     * @param {Integer} parties the number of threads that must invoke await()
+     * @param {number} parties the number of threads that must invoke await()
      *      before the barrier is tripped
      */
     function CyclicBarrier(parties) {

@@ -87,7 +87,7 @@ let GeoTracker = (function() {
 
     /**
      * Start geolocating
-     * @param {Callback(Boolean)} callback expects param 'successful' (boolean, ErrorReason) and
+     * @param {Function(Boolean)} callback expects param 'successful' (boolean, ErrorReason) and
      *      is called as soon as there is a result available or the user cancelled
      * @param {TestVisualization} testVisualization optional
      */
