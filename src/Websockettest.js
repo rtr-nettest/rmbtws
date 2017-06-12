@@ -507,6 +507,9 @@ const RMBTTest = (function() {
             Object.keys(_arrayBuffers).forEach((key) => {
                 let diff = Math.abs(calculatedChunkSize - key);
                 if (diff < Math.abs(calculatedChunkSize - closest)) {
+                    if (typeof key == "string") {
+                        key = parseInt(key);
+                    }
                     closest = key;
                 } else {
                     //if there is already a closer chunk selected, we don't need this
@@ -581,24 +584,39 @@ const RMBTTest = (function() {
         let remainingChunks = total;
         let expectBytes = _chunkSize * total;
         let totalRead = 0;
+        let lastBuffer = null;
+
+        // https://stackoverflow.com/questions/33702838/how-to-append-bytes-multi-bytes-and-buffer-to-arraybuffer-in-javascript
+        const concatBuffer = function (a, b) {
+            let c = new Uint8Array(a.length + b.length);
+            c.set(a, 0);
+            c.set(b, a.length);
+            return c;
+        };
 
         const downloadChunkListener = function(event) {
             if (typeof event.data === 'string') {
                 return;
             }
 
-            //let lastByte;
+            let fullChunk = false;
+
+            if (lastBuffer == null) {
+                lastBuffer = new Uint8Array(event.data);
+            } else {
+                lastBuffer = concatBuffer(lastBuffer, new Uint8Array(event.data));
+            }
+
             //console.log("received chunk with " + line.length + " bytes");
             totalRead = totalRead + event.data.byteLength;
 
-            //in previous versions, the last byte was sent as a single websocket frame,
-            //so we have to maintain compatibility at this time
-            if (event.data.byteLength === chunkSize || event.data.byteLength === 1) {
+            if (lastBuffer.length === chunkSize) {
                 remainingChunks--;
+                fullChunk = true;
             }
 
             //zero junks remain - get time
-            if (remainingChunks === 0) {
+            if (fullChunk && lastBuffer[lastBuffer.length - 1] == 0xFF) {
                 //get info
                 socket.onmessage = function (line) {
                     let infomsg = line.data;
@@ -606,13 +624,17 @@ const RMBTTest = (function() {
                 };
 
                 socket.send("OK\n");
-                _endArrayBuffers[chunkSize] = event.data;
+                _endArrayBuffers[chunkSize] = lastBuffer.buffer;
+                lastBuffer = null;
             } else {
                 if (!_arrayBuffers.hasOwnProperty(chunkSize)) {
                     _arrayBuffers[chunkSize] = [];
                 }
-                if (_arrayBuffers[chunkSize].length < _rmbtTestConfig.savedChunks) {
-                    _arrayBuffers[chunkSize].push(event.data);
+                if (fullChunk) {
+                    if (_arrayBuffers[chunkSize].length < _rmbtTestConfig.savedChunks) {
+                        _arrayBuffers[chunkSize].push(lastBuffer.buffer);
+                    }
+                    lastBuffer = null;
                 }
             }
         };
