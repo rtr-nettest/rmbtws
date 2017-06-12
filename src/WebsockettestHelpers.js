@@ -1,6 +1,5 @@
 "use strict";
 
-
 //polyfill for microsecond-time
 //https://gist.github.com/paulirish/5438650
 (function() {
@@ -40,7 +39,7 @@ function nowNs() {
 
 
 //Cyclic Barrier (Java: http://docs.oracle.com/javase/7/docs/api/java/util/concurrent/CyclicBarrier.html )
-let CyclicBarrier = (function() {
+const CyclicBarrier = (function() {
     "use strict";
     let _parties;
     let _callbacks = [];

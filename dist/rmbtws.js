@@ -765,7 +765,7 @@ var RMBTTest = function () {
         var bytesSent = 0;
         var chunkSize = _chunkSize;
 
-        var performanceTest = window.setTimeout(function () {
+        window.setTimeout(function () {
             var endTime = nowMs();
             var duration = endTime - startTime;
             logger.debug("diff:" + (duration - durationMs) + " (" + (duration - durationMs) / durationMs + " %)");
