@@ -51,7 +51,7 @@ const TestState = {
 //Intermediate Result
 function RMBTIntermediateResult() { }
 RMBTIntermediateResult.prototype.setLogValues = function () {
-    let toLog = function (value) {
+    const toLog = function (value) {
         if (value < 10000) {
             return 0;
         }

@@ -21,7 +21,7 @@
 "use strict";
 
 //structure from: http://www.typescriptlang.org/Playground
-let RMBTTest = (function() {
+const RMBTTest = (function() {
     const _server_override = "wss://developv4-rmbtws.netztest.at:19002";
 
     /**
@@ -119,7 +119,7 @@ let RMBTTest = (function() {
      * Calls the error function (but only once!)
      * @param {RMBTError} error
      */
-    let callErrorCallback = function(error) {
+    const callErrorCallback = function(error) {
         if (!error === RMBTError.NOT_SUPPORTED) {
             setState(TestState.ERROR);
         }
@@ -294,7 +294,7 @@ let RMBTTest = (function() {
         //server = server_override;
         logger.debug(server);
 
-        let errorFunctions = function() {
+        const errorFunctions = function() {
             return {
                 IGNORE : function() {
                     //ignore error :)
@@ -540,7 +540,7 @@ let RMBTTest = (function() {
         let bytesReceived = 0;
         let chunksize = _chunkSize;
 
-        let loop = function() {
+        const loop = function() {
             downloadChunks(thread, n, chunksize, function(msg) {
                 bytesReceived += n * chunksize;
                 logger.debug(thread.id + ": " + msg);
@@ -582,7 +582,7 @@ let RMBTTest = (function() {
         let expectBytes = _chunkSize * total;
         let totalRead = 0;
 
-        let downloadChunkListener = function(event) {
+        const downloadChunkListener = function(event) {
             if (typeof event.data === 'string') {
                 return;
             }
@@ -627,7 +627,7 @@ let RMBTTest = (function() {
         let prevListener = thread.socket.onmessage;
         let pingsRemaining = _rmbtTestConfig.numPings;
 
-        let onsuccess = function(pingResult) {
+        const onsuccess = function(pingResult) {
             pingsRemaining--;
 
             thread.result.pings.push(pingResult);
@@ -673,7 +673,7 @@ let RMBTTest = (function() {
     function ping(thread, onsuccess) {
         let begin;
         let clientDuration;
-        let pingListener = function(event) {
+        const pingListener = function(event) {
             if (event.data === "PONG\n") {
                 let end = nowNs();
                 clientDuration = end - begin;
@@ -777,7 +777,7 @@ let RMBTTest = (function() {
         let bytesSent = 0;
         let chunkSize = _chunkSize;
 
-        let performanceTest = window.setTimeout(function() {
+        window.setTimeout(function() {
              let endTime = nowMs();
              let duration = endTime - startTime;
              logger.debug("diff:" + (duration - durationMs) + " (" + (duration-durationMs)/durationMs + " %)");
@@ -929,7 +929,7 @@ let RMBTTest = (function() {
 
         const pattern = /TIME (\d+) BYTES (\d+)/;
         const patternEnd = /TIME (\d+)/;
-        let uploadListener = function(event) {
+        const uploadListener = function(event) {
             //start conducting the test
             if (event.data === "OK\n") {
                 sendChunks();
