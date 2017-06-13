@@ -922,6 +922,8 @@ const RMBTTest = (function() {
 
         debug(thread.id + ": set timeout");
 
+        // ms -> ns
+        const timespan = _rmbtTestConfig.measurementPointsTimespan * 1e6;
         const pattern = /TIME (\d+) BYTES (\d+)/;
         const patternEnd = /TIME (\d+)/;
         const uploadListener = function(event) {
@@ -939,9 +941,11 @@ const RMBTTest = (function() {
                     duration: parseInt(matches[1]),
                     bytes: parseInt(matches[2])
                 };
-                lastDurationInfo = data.duration;
-                //debug(thread.id + ": " + JSON.stringify(data));
-                thread.result.up.push(data);
+                if (data.duration - lastDurationInfo > timespan) {
+                    lastDurationInfo = data.duration;
+                    //debug(thread.id + ": " + JSON.stringify(data));
+                    thread.result.up.push(data);
+                }
             } else {
                 matches = patternEnd.exec(event.data);
                 if (matches !== null) {
