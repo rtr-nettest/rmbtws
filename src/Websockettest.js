@@ -42,6 +42,7 @@ const RMBTTest = (function() {
     let _rmbtTestConfig;
     let _rmbtTestResult = null;
     let _errorCallback = null;
+    let _stateChangeCallback = null;
 
     let _state;
     let _stateChangeMs;
@@ -90,6 +91,9 @@ const RMBTTest = (function() {
         if (_state === undefined || _state !== state) {
             _state = state;
             _stateChangeMs = nowMs();
+            if (_stateChangeCallback) {
+                _stateChangeCallback(state);
+            }
         }
     }
 
@@ -101,6 +105,14 @@ const RMBTTest = (function() {
      */
     RMBTTest.prototype.onError = function(fct)  {
         _errorCallback = fct;
+    };
+
+    /**
+     * Callback when the test changes execution state
+     * @param {Function} callback
+     */
+    RMBTTest.prototype.onStateChange = function (callback) {
+        _stateChangeCallback = callback;
     };
 
     /**
