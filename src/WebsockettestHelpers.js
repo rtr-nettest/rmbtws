@@ -105,6 +105,15 @@ Math.median = function(values) {
 };
 
 
+// Polyfill log10 for internet explorer
+(function() {
+    if (!Math.log10) {
+        Math.log10 = (x) => {
+            return Math.log(x) / Math.LN10;
+        }
+    }
+})();
+
 let Logger = (function () {
     function Logger() {
     }

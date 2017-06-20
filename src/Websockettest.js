@@ -140,9 +140,9 @@ const RMBTTest = (function() {
         setState(TestState.INIT);
         _rmbtTestResult = new RMBTTestResult();
         //connect to control server
-        _rmbtControlServer.getDataCollectorInfo(_rmbtTestConfig);
+        _rmbtControlServer.getDataCollectorInfo();
 
-        _rmbtControlServer.obtainControlServerRegistration(_rmbtTestConfig, function(response) {
+        _rmbtControlServer.obtainControlServerRegistration(function(response) {
             _numThreadsAllowed = parseInt(response.test_numthreads);
             _cyclicBarrier = new CyclicBarrier(_numThreadsAllowed);
             _statesInfo.durationDownMs = response.test_duration * 1e3;
@@ -159,7 +159,7 @@ const RMBTTest = (function() {
                     );
             }
 
-            let continuation = function() {
+            const continuation = function() {
                 logger.debug("got geolocation, obtaining token and websocket address");
                 setState(TestState.WAIT);
 
@@ -180,7 +180,6 @@ const RMBTTest = (function() {
                             _rmbtTestResult.geoLocations = wsGeoTracker.getResults();
                             _rmbtTestResult.calculateAll();
                             _rmbtControlServer.submitResults(
-                                _rmbtTestConfig.controlServerURL + _rmbtTestConfig.controlServerResultResource,
                                 prepareResult(response),
                                 () => {
                                     setState(TestState.END);
@@ -507,6 +506,8 @@ const RMBTTest = (function() {
             Object.keys(_arrayBuffers).forEach((key) => {
                 let diff = Math.abs(calculatedChunkSize - key);
                 if (diff < Math.abs(calculatedChunkSize - closest)) {
+                    // Fix for strange bug, where key sometimes is a string
+                    // TODO: investigate source
                     if (typeof key == "string") {
                         key = parseInt(key);
                     }
@@ -1013,7 +1014,7 @@ const RMBTTest = (function() {
             test_speed_download: _rmbtTestResult.speed_download,
             test_speed_upload: _rmbtTestResult.speed_upload,
             test_token: registrationResponse.test_token,
-            test_uuid: registrationResponse.test_token.split('_')[0],
+            test_uuid: registrationResponse.test_uuid,
             time: _rmbtTestResult.beginTime,
             timezone: "Europe/Vienna",
             type: "DESKTOP",

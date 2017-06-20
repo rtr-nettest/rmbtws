@@ -36,7 +36,7 @@
     <script>
         function start() {
             var config = new RMBTTestConfig();
-            var ctrl = new RMBTControlServerCommunication();
+            var ctrl = new RMBTControlServerCommunication(config);
             config.uuid = "d105ee81-59c4-4850-abf7-d38f82c27345";
             var websocketTest = new RMBTTest(config, ctrl);
             websocketTest.startTest();

@@ -141,9 +141,9 @@ var RMBTTest = function () {
         setState(TestState.INIT);
         _rmbtTestResult = new RMBTTestResult();
         //connect to control server
-        _rmbtControlServer.getDataCollectorInfo(_rmbtTestConfig);
+        _rmbtControlServer.getDataCollectorInfo();
 
-        _rmbtControlServer.obtainControlServerRegistration(_rmbtTestConfig, function (response) {
+        _rmbtControlServer.obtainControlServerRegistration(function (response) {
             _numThreadsAllowed = parseInt(response.test_numthreads);
             _cyclicBarrier = new CyclicBarrier(_numThreadsAllowed);
             _statesInfo.durationDownMs = response.test_duration * 1e3;
@@ -175,7 +175,7 @@ var RMBTTest = function () {
                             wsGeoTracker.stop();
                             _rmbtTestResult.geoLocations = wsGeoTracker.getResults();
                             _rmbtTestResult.calculateAll();
-                            _rmbtControlServer.submitResults(_rmbtTestConfig.controlServerURL + _rmbtTestConfig.controlServerResultResource, prepareResult(response), function () {
+                            _rmbtControlServer.submitResults(prepareResult(response), function () {
                                 setState(TestState.END);
                             });
                         });
@@ -497,6 +497,8 @@ var RMBTTest = function () {
             Object.keys(_arrayBuffers).forEach(function (key) {
                 var diff = Math.abs(calculatedChunkSize - key);
                 if (diff < Math.abs(calculatedChunkSize - closest)) {
+                    // Fix for strange bug, where key sometimes is a string
+                    // TODO: investigate source
                     if (typeof key == "string") {
                         key = parseInt(key);
                     }
@@ -1000,7 +1002,7 @@ var RMBTTest = function () {
             test_speed_download: _rmbtTestResult.speed_download,
             test_speed_upload: _rmbtTestResult.speed_upload,
             test_token: registrationResponse.test_token,
-            test_uuid: registrationResponse.test_token.split('_')[0],
+            test_uuid: registrationResponse.test_uuid,
             time: _rmbtTestResult.beginTime,
             timezone: "Europe/Vienna",
             type: "DESKTOP",
@@ -1240,30 +1242,35 @@ if (typeof window.setCookie === 'undefined') {
 "use strict";
 
 var RMBTControlServerCommunication = function () {
-    function RMBTControlServerCommunication() {
-        this.logger = new Logger();
+    function RMBTControlServerCommunication(rmbtTestConfig) {
+        this._logger = new Logger();
+        this._rmbtTestConfig = rmbtTestConfig;
     }
 
     /**
      *
      * @type {Logger}
      */
-    RMBTControlServerCommunication.prototype.logger = null;
+    RMBTControlServerCommunication.prototype._logger = null;
+    /**
+     *
+     * @type {RMBTTestConfig}
+     */
+    RMBTControlServerCommunication.prototype._rmbtTestConfig = null;
 
     /**
      *
-     * @param {RMBTTestConfig} rmbtTestConfig
      * @param {RMBTControlServerRegistrationResponseCallback} onsuccess called on completion
      */
-    RMBTControlServerCommunication.prototype.obtainControlServerRegistration = function (rmbtTestConfig, onsuccess) {
+    RMBTControlServerCommunication.prototype.obtainControlServerRegistration = function (onsuccess) {
         var json_data = {
-            version: rmbtTestConfig.version,
-            language: rmbtTestConfig.language,
-            uuid: rmbtTestConfig.uuid,
-            type: rmbtTestConfig.type,
-            version_code: rmbtTestConfig.version_code,
-            client: rmbtTestConfig.client,
-            timezone: rmbtTestConfig.timezone,
+            version: this._rmbtTestConfig.version,
+            language: this._rmbtTestConfig.language,
+            uuid: this._rmbtTestConfig.uuid,
+            type: this._rmbtTestConfig.type,
+            version_code: this._rmbtTestConfig.version_code,
+            client: this._rmbtTestConfig.client,
+            timezone: this._rmbtTestConfig.timezone,
             time: new Date().getTime()
         };
         if (typeof userServerSelection !== "undefined" && userServerSelection > 0 && typeof UserConf !== "undefined" && UserConf.preferredServer !== undefined && UserConf.preferredServer !== "default") {
@@ -1271,7 +1278,7 @@ var RMBTControlServerCommunication = function () {
             json_data['user_server_selection'] = userServerSelection;
         }
         $.ajax({
-            url: rmbtTestConfig.controlServerURL + rmbtTestConfig.controlServerRegistrationResource,
+            url: this._rmbtTestConfig.controlServerURL + this._rmbtTestConfig.controlServerRegistrationResource,
             type: "post",
             dataType: "json",
             contentType: "application/json",
@@ -1281,7 +1288,7 @@ var RMBTControlServerCommunication = function () {
                 onsuccess(config);
             },
             error: function error() {
-                this.logger.error("error getting testID");
+                this._logger.error("error getting testID");
             }
         });
     };
@@ -1289,22 +1296,23 @@ var RMBTControlServerCommunication = function () {
     /**
      * get "data collector" metadata (like browser family) and update config
      *
-     * @param {RMBTTestConfig} rmbtTestConfig
      */
-    RMBTControlServerCommunication.prototype.getDataCollectorInfo = function (rmbtTestConfig) {
+    RMBTControlServerCommunication.prototype.getDataCollectorInfo = function () {
+        var _this = this;
+
         $.ajax({
-            url: rmbtTestConfig.controlServerURL + rmbtTestConfig.controlServerDataCollectorResource,
+            url: this._rmbtTestConfig.controlServerURL + this._rmbtTestConfig.controlServerDataCollectorResource,
             type: "get",
             dataType: "json",
             contentType: "application/json",
             success: function success(data) {
-                rmbtTestConfig.product = data.agent.substring(0, Math.min(150, data.agent.length));
-                rmbtTestConfig.model = data.product;
-                //rmbtTestConfig.platform = data.product;
-                rmbtTestConfig.os_version = data.version;
+                _this._rmbtTestConfig.product = data.agent.substring(0, Math.min(150, data.agent.length));
+                _this._rmbtTestConfig.model = data.product;
+                //this._rmbtTestConfig.platform = data.product;
+                _this._rmbtTestConfig.os_version = data.version;
             },
             error: function error() {
-                this.logger.error("error getting data collection response");
+                this._logger.error("error getting data collection response");
             }
         });
     };
@@ -1312,28 +1320,27 @@ var RMBTControlServerCommunication = function () {
     /**
      *  Post test result
      *
-     * @param {String} url Where to send test result
      * @param {Object}  json_data Data to be sent to server
      * @param {Function} callback
      */
-    RMBTControlServerCommunication.prototype.submitResults = function (url, json_data, callback) {
-        var _this = this;
+    RMBTControlServerCommunication.prototype.submitResults = function (json_data, callback) {
+        var _this2 = this;
 
         var json = JSON.stringify(json_data);
-        this.logger.debug("Submit size: " + json.length);
+        this._logger.debug("Submit size: " + json.length);
         $.ajax({
-            url: url,
+            url: this._rmbtTestConfig.controlServerURL + this._rmbtTestConfig.controlServerResultResource,
             type: "post",
             dataType: "json",
             contentType: "application/json",
             data: json,
             success: function success(data) {
-                _this.logger.debug("https://develop.netztest.at/en/Verlauf?" + json_data.test_uuid);
+                _this2._logger.debug("https://develop.netztest.at/en/Verlauf?" + json_data.test_uuid);
                 //window.location.href = "https://develop.netztest.at/en/Verlauf?" + data.test_uuid;
                 callback();
             },
             error: function error() {
-                _this.logger.error("error submitting results");
+                _this2._logger.error("error submitting results");
             }
         });
     };
@@ -2142,14 +2149,14 @@ function RMBTTestResult() {
 RMBTTestResult.prototype.addThread = function (rmbtThreadTestResult) {
     this.threads.push(rmbtThreadTestResult);
 };
-RMBTTestResult.prototype.ip_local = undefined;
-RMBTTestResult.prototype.ip_server = undefined;
-RMBTTestResult.prototype.port_remote = undefined;
-RMBTTestResult.prototype.num_threads = undefined;
+RMBTTestResult.prototype.ip_local;
+RMBTTestResult.prototype.ip_server;
+RMBTTestResult.prototype.port_remote = null;
+RMBTTestResult.prototype.num_threads = null;
 RMBTTestResult.prototype.encryption = "NONE";
 RMBTTestResult.prototype.ping_shortest = -1;
 RMBTTestResult.prototype.ping_median = -1;
-RMBTTestResult.prototype.client_version = undefined;
+RMBTTestResult.prototype.client_version = null;
 RMBTTestResult.prototype.pings = [];
 RMBTTestResult.prototype.speed_download = -1;
 RMBTTestResult.prototype.speed_upload = -1;
@@ -2292,9 +2299,9 @@ function RMBTThreadTestResult() {
 }
 //no inheritance(other than in Java RMBTClient)
 //RMBTThreadTestResult.prototype = new RMBTTestResult();
-RMBTThreadTestResult.prototype.down = undefined;
-RMBTThreadTestResult.prototype.up = undefined;
-RMBTThreadTestResult.prototype.pings = undefined;
+RMBTThreadTestResult.prototype.down = null;
+RMBTThreadTestResult.prototype.up = null;
+RMBTThreadTestResult.prototype.pings = null;
 RMBTThreadTestResult.prototype.totalDownBytes = -1;
 RMBTThreadTestResult.prototype.totalUpBytes = -1;
 
@@ -2415,6 +2422,15 @@ Math.median = function (values) {
         return (values[half - 1] + values[half]) / 2.0;
     }
 };
+
+// Polyfill log10 for internet explorer
+(function () {
+    if (!Math.log10) {
+        Math.log10 = function (x) {
+            return Math.log(x) / Math.LN10;
+        };
+    }
+})();
 
 var Logger = function () {
     function Logger() {}

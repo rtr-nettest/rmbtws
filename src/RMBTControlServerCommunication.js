@@ -1,28 +1,33 @@
 let RMBTControlServerCommunication = (function () {
-    function RMBTControlServerCommunication() {
-        this.logger = new Logger();
+    function RMBTControlServerCommunication(rmbtTestConfig) {
+        this._logger = new Logger();
+        this._rmbtTestConfig = rmbtTestConfig;
     }
 
     /**
      *
      * @type {Logger}
      */
-    RMBTControlServerCommunication.prototype.logger = null;
+    RMBTControlServerCommunication.prototype._logger = null;
+    /**
+     *
+     * @type {RMBTTestConfig}
+     */
+    RMBTControlServerCommunication.prototype._rmbtTestConfig = null;
 
     /**
      *
-     * @param {RMBTTestConfig} rmbtTestConfig
      * @param {RMBTControlServerRegistrationResponseCallback} onsuccess called on completion
      */
-    RMBTControlServerCommunication.prototype.obtainControlServerRegistration = function (rmbtTestConfig, onsuccess) {
+    RMBTControlServerCommunication.prototype.obtainControlServerRegistration = function (onsuccess) {
         let json_data = {
-            version: rmbtTestConfig.version,
-            language: rmbtTestConfig.language,
-            uuid: rmbtTestConfig.uuid,
-            type: rmbtTestConfig.type,
-            version_code: rmbtTestConfig.version_code,
-            client: rmbtTestConfig.client,
-            timezone: rmbtTestConfig.timezone,
+            version: this._rmbtTestConfig.version,
+            language: this._rmbtTestConfig.language,
+            uuid: this._rmbtTestConfig.uuid,
+            type: this._rmbtTestConfig.type,
+            version_code: this._rmbtTestConfig.version_code,
+            client: this._rmbtTestConfig.client,
+            timezone: this._rmbtTestConfig.timezone,
             time: new Date().getTime()
         };
         if (typeof userServerSelection !== "undefined" && userServerSelection > 0
@@ -31,7 +36,7 @@ let RMBTControlServerCommunication = (function () {
             json_data['user_server_selection'] = userServerSelection;
         }
         $.ajax({
-            url: rmbtTestConfig.controlServerURL + rmbtTestConfig.controlServerRegistrationResource,
+            url: this._rmbtTestConfig.controlServerURL + this._rmbtTestConfig.controlServerRegistrationResource,
             type: "post",
             dataType: "json",
             contentType: "application/json",
@@ -41,7 +46,7 @@ let RMBTControlServerCommunication = (function () {
                 onsuccess(config);
             },
             error: function () {
-                this.logger.error("error getting testID");
+                this._logger.error("error getting testID");
             }
         });
     };
@@ -49,22 +54,21 @@ let RMBTControlServerCommunication = (function () {
     /**
      * get "data collector" metadata (like browser family) and update config
      *
-     * @param {RMBTTestConfig} rmbtTestConfig
      */
-    RMBTControlServerCommunication.prototype.getDataCollectorInfo = function (rmbtTestConfig) {
+    RMBTControlServerCommunication.prototype.getDataCollectorInfo = function () {
         $.ajax({
-            url: rmbtTestConfig.controlServerURL + rmbtTestConfig.controlServerDataCollectorResource,
+            url: this._rmbtTestConfig.controlServerURL + this._rmbtTestConfig.controlServerDataCollectorResource,
             type: "get",
             dataType: "json",
             contentType: "application/json",
-            success: function (data) {
-                rmbtTestConfig.product = data.agent.substring(0, Math.min(150, data.agent.length));
-                rmbtTestConfig.model = data.product;
-                //rmbtTestConfig.platform = data.product;
-                rmbtTestConfig.os_version = data.version;
+            success: (data) => {
+                this._rmbtTestConfig.product = data.agent.substring(0, Math.min(150, data.agent.length));
+                this._rmbtTestConfig.model = data.product;
+                //this._rmbtTestConfig.platform = data.product;
+                this._rmbtTestConfig.os_version = data.version;
             },
             error: function () {
-                this.logger.error("error getting data collection response");
+                this._logger.error("error getting data collection response");
             }
         });
     };
@@ -72,26 +76,25 @@ let RMBTControlServerCommunication = (function () {
     /**
      *  Post test result
      *
-     * @param {String} url Where to send test result
      * @param {Object}  json_data Data to be sent to server
      * @param {Function} callback
      */
-    RMBTControlServerCommunication.prototype.submitResults = function (url, json_data, callback) {
+    RMBTControlServerCommunication.prototype.submitResults = function (json_data, callback) {
         let json = JSON.stringify(json_data);
-        this.logger.debug("Submit size: " + json.length);
+        this._logger.debug("Submit size: " + json.length);
         $.ajax({
-            url: url,
+            url: this._rmbtTestConfig.controlServerURL + this._rmbtTestConfig.controlServerResultResource,
             type: "post",
             dataType: "json",
             contentType: "application/json",
             data: json,
             success: (data) => {
-                this.logger.debug("https://develop.netztest.at/en/Verlauf?" + json_data.test_uuid);
+                this._logger.debug("https://develop.netztest.at/en/Verlauf?" + json_data.test_uuid);
                 //window.location.href = "https://develop.netztest.at/en/Verlauf?" + data.test_uuid;
                 callback();
             },
             error: () => {
-                this.logger.error("error submitting results");
+                this._logger.error("error submitting results");
             }
         });
     };

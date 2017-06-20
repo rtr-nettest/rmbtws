@@ -153,14 +153,14 @@ function RMBTTestResult() {
 RMBTTestResult.prototype.addThread = function(rmbtThreadTestResult) {
     this.threads.push(rmbtThreadTestResult);
 };
-RMBTTestResult.prototype.ip_local = undefined;
-RMBTTestResult.prototype.ip_server = undefined;
-RMBTTestResult.prototype.port_remote = undefined;
-RMBTTestResult.prototype.num_threads = undefined;
+RMBTTestResult.prototype.ip_local = null;
+RMBTTestResult.prototype.ip_server = null;
+RMBTTestResult.prototype.port_remote = null;
+RMBTTestResult.prototype.num_threads = null;
 RMBTTestResult.prototype.encryption = "NONE";
 RMBTTestResult.prototype.ping_shortest = -1;
 RMBTTestResult.prototype.ping_median = -1;
-RMBTTestResult.prototype.client_version = undefined;
+RMBTTestResult.prototype.client_version = null;
 RMBTTestResult.prototype.pings = [];
 RMBTTestResult.prototype.speed_download = -1;
 RMBTTestResult.prototype.speed_upload = -1;
@@ -306,9 +306,9 @@ function RMBTThreadTestResult() {
 }
 //no inheritance(other than in Java RMBTClient)
 //RMBTThreadTestResult.prototype = new RMBTTestResult();
-RMBTThreadTestResult.prototype.down = undefined;
-RMBTThreadTestResult.prototype.up = undefined;
-RMBTThreadTestResult.prototype.pings = undefined;
+RMBTThreadTestResult.prototype.down = null;
+RMBTThreadTestResult.prototype.up = null;
+RMBTThreadTestResult.prototype.pings = null;
 RMBTThreadTestResult.prototype.totalDownBytes = -1;
 RMBTThreadTestResult.prototype.totalUpBytes = -1;
 
