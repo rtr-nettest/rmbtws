@@ -941,7 +941,7 @@ const RMBTTest = (function() {
                     duration: parseInt(matches[1]),
                     bytes: parseInt(matches[2])
                 };
-                if (data.duration - lastDurationInfo > timespan) {
+                if ((data.duration - lastDurationInfo) > timespan) {
                     lastDurationInfo = data.duration;
                     //debug(thread.id + ": " + JSON.stringify(data));
                     thread.result.up.push(data);
