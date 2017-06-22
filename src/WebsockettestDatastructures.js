@@ -79,11 +79,7 @@ let RMBTControlServerRegistrationResponse = (function() {
  */
 function RMBTTestThread(cyclicBarrier) {
 
-    /**
-     *
-     * @type {Logger}
-     */
-    let logger = new Logger();
+    let _logger = log.getLogger("rmbtws");
     let _callbacks = {};
     let _cyclicBarrier = cyclicBarrier;
 
@@ -96,16 +92,16 @@ function RMBTTestThread(cyclicBarrier) {
          */
         setState: function(state) {
             this.state = state;
-            logger.debug(this.id + ": reached state: " + state);
+            _logger.debug(this.id + ": reached state: " + state);
             let that = this;
             _cyclicBarrier.await(function() {
-                logger.debug(that.id + ": all threads reached state: " + state);
+                _logger.debug(that.id + ": all threads reached state: " + state);
                 if (_callbacks[state] !== undefined && _callbacks[state] !== null) {
                     let callback = _callbacks[state];
                     //_callbacks[state] = null;
                     callback();
                 } else {
-                    logger.warn(that.id + ": no callback registered");
+                    _logger.info(that.id + ": no callback registered for state: " + state);
                 }
             });
 
@@ -133,7 +129,7 @@ function RMBTTestThread(cyclicBarrier) {
                 TestState.DOWN, TestState.INIT_UP, TestState.UP, TestState.END];
             if (this.state !== TestState.END) {
                 let nextState = states[states.indexOf(this.state) + 1];
-                logger.debug(this.id + ": triggered state " + nextState);
+                _logger.debug(this.id + ": triggered state " + nextState);
                 this.setState(nextState);
             }
         },

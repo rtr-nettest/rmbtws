@@ -106,29 +106,20 @@ Math.median = function(values) {
 
 
 // Polyfill log10 for internet explorer
-(function() {
-    if (!Math.log10) {
-        Math.log10 = (x) => {
-            return Math.log(x) / Math.LN10;
+// https://developer.mozilla.org/de/docs/Web/JavaScript/Reference/Global_Objects/Math/log10#Polyfill
+Math.log10 = Math.log10 || function (x) {
+        return Math.log(x) / Math.LN10;
+    };
+
+//"loglevel" module is used, but if not available, it will fallback to console.log
+const log = log || {
+        debug: console.log,
+        trace: console.trace,
+        info: console.info,
+        warn: console.warn,
+        error: console.error,
+        setLevel: () => {},
+        getLogger: () => {
+            return log;
         }
-    }
-})();
-
-let Logger = (function () {
-    function Logger() {
-    }
-    Logger.prototype.debug = function (msg) {
-        console.debug(msg);
     };
-    Logger.prototype.info = function (msg) {
-        console.info(msg);
-    };
-    Logger.prototype.warn = function (msg) {
-        console.warn(msg);
-    };
-    Logger.prototype.error = function (msg) {
-        console.error(msg);
-    };
-    return Logger;
-}());
-
