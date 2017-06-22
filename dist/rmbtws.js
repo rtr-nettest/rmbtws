@@ -2427,7 +2427,7 @@ Math.log10 = Math.log10 || function (x) {
 };
 
 //"loglevel" module is used, but if not available, it will fallback to console.log
-var log = log || {
+self.log = self.log || {
     debug: console.log,
     trace: console.trace,
     info: console.info,
