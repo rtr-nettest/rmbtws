@@ -5,7 +5,7 @@ let geo_callback, loc_timeout;
 
 
 function runCallback() {
-	if (geo_callback != undefined && typeof geo_callback == 'function') {
+	if (geo_callback != undefined && typeof geo_callback === 'function') {
 		window.setTimeout(function() {
             geo_callback();
         }, 1);

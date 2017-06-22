@@ -40,7 +40,7 @@ const RMBTTest = (function() {
     /**
      * @type {RMBTControlServerCommunication}
      */
-    let _rmbtControlServer;
+    let _rmbtControlServer = null;
     let _rmbtTestResult = null;
     let _errorCallback = null;
     let _stateChangeCallback = null;
@@ -512,7 +512,7 @@ const RMBTTest = (function() {
                 if (diff < Math.abs(calculatedChunkSize - closest)) {
                     // Fix for strange bug, where key sometimes is a string
                     // TODO: investigate source
-                    if (typeof key == "string") {
+                    if (typeof key === "string") {
                         key = parseInt(key);
                     }
                     closest = key;
@@ -606,7 +606,7 @@ const RMBTTest = (function() {
 
             let fullChunk = false;
 
-            if (lastBuffer == null) {
+            if (lastBuffer === null) {
                 lastBuffer = new Uint8Array(event.data);
             } else {
                 lastBuffer = concatBuffer(lastBuffer, new Uint8Array(event.data));
@@ -621,7 +621,7 @@ const RMBTTest = (function() {
             }
 
             //zero junks remain - get time
-            if (fullChunk && lastBuffer[lastBuffer.length - 1] == 0xFF) {
+            if (fullChunk && lastBuffer[lastBuffer.length - 1] === 0xFF) {
                 //get info
                 socket.onmessage = function (line) {
                     let infomsg = line.data;
