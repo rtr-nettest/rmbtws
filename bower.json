@@ -25,6 +25,7 @@
     "tests"
   ],
   "dependencies": {
-    "jquery": "^3.2.1"
+    "jquery": "^3.2.1",
+    "loglevel": "^1.4.1"
   }
 }

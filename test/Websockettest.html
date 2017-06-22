@@ -26,18 +26,20 @@
         src="https://code.jquery.com/jquery-3.2.1.min.js"
         integrity="sha256-hwg4gsxgFZhOsEEamdOYGBf13FyQuiTwlAQgxVSNgt4="
         crossorigin="anonymous"></script>
-    <script>
+    <script src="https://rawgit.com/pimterry/loglevel/master/dist/loglevel.js"></script>
 
-    </script>
-
-    <script src="../dist/rmbtws.min.js"></script>
+    <script src="../dist/rmbtws.js"></script>
 </head>
 <body>
     <script>
         function start() {
+            //set logging level
+            log.getLogger("rmbtws").setLevel("debug");
+
             var config = new RMBTTestConfig();
+            var ctrl = new RMBTControlServerCommunication(config);
             config.uuid = "d105ee81-59c4-4850-abf7-d38f82c27345";
-            var websocketTest = new RMBTTest(config);
+            var websocketTest = new RMBTTest(config, ctrl);
             websocketTest.startTest();
 
             /** *
@@ -46,8 +48,6 @@
                 console.log(intermediateResult.status + ";" + intermediateResult.progress);
             },500); /* */
         }
-
-
     </script>
     <button onclick="start()">Start test</button>
     <!--<pre id="debug"></pre>-->

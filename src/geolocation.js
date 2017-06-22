@@ -5,7 +5,7 @@ let geo_callback, loc_timeout;
 
 
 function runCallback() {
-	if (geo_callback != undefined && typeof geo_callback == 'function') {
+	if (geo_callback != undefined && typeof geo_callback === 'function') {
 		window.setTimeout(function() {
             geo_callback();
         }, 1);
@@ -87,7 +87,7 @@ const GeoTracker = (function() {
 
     /**
      * Start geolocating
-     * @param {Callback(Boolean)} callback expects param 'successful' (boolean, ErrorReason) and
+     * @param {Function(Boolean)} callback expects param 'successful' (boolean, ErrorReason) and
      *      is called as soon as there is a result available or the user cancelled
      * @param {TestVisualization} testVisualization optional
      */

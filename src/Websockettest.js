@@ -24,11 +24,7 @@
 const RMBTTest = (function() {
     const _server_override = "wss://developv4-rmbtws.netztest.at:19002";
 
-    const debug = (text) => {
-        //return; //no debug
-        $("#debug").prepend(text + "\n");
-        console.log(text);
-    };
+    let _logger = null;
 
     let _chunkSize;
     let MAX_CHUNK_SIZE = 4194304;
@@ -37,9 +33,14 @@ const RMBTTest = (function() {
     let _changeChunkSizes = false;
 
     /**
-     *  @var rmbtTestConfig RMBTTestConfig
+     *  @type {RMBTTestConfig}
      **/
     let _rmbtTestConfig;
+
+    /**
+     * @type {RMBTControlServerCommunication}
+     */
+    let _rmbtControlServer = null;
     let _rmbtTestResult = null;
     let _errorCallback = null;
     let _stateChangeCallback = null;
@@ -74,12 +75,15 @@ const RMBTTest = (function() {
     /**
      *
      * @param {RMBTTestConfig} rmbtTestConfig
+     * @param {RMBTControlServerCommunication} rmbtControlServer
      * @returns {}
      */
-    function RMBTTest(rmbtTestConfig) {
+    function RMBTTest(rmbtTestConfig, rmbtControlServer) {
         //init socket
         _rmbtTestConfig = rmbtTestConfig;// = new RMBTTestConfig();
+        _rmbtControlServer = rmbtControlServer;
         _state = TestState.INIT;
+        _logger = log.getLogger("rmbtws");
     }
 
     /**
@@ -139,10 +143,10 @@ const RMBTTest = (function() {
 
         setState(TestState.INIT);
         _rmbtTestResult = new RMBTTestResult();
-        //connect to controlserver
-        getDataCollectorInfo(_rmbtTestConfig);
+        //connect to control server
+        _rmbtControlServer.getDataCollectorInfo();
 
-        obtainControlServerRegistration(_rmbtTestConfig, function(response) {
+        _rmbtControlServer.obtainControlServerRegistration(function(response) {
             _numThreadsAllowed = parseInt(response.test_numthreads);
             _cyclicBarrier = new CyclicBarrier(_numThreadsAllowed);
             _statesInfo.durationDownMs = response.test_duration * 1e3;
@@ -151,14 +155,16 @@ const RMBTTest = (function() {
             //@TODO: Nicer
             //if there is testVisualization, make use of it!
             if (TestEnvironment.getTestVisualization() !== null) {
-                    TestEnvironment.getTestVisualization().updateInfo(response.test_server_name,
-                                response.client_remote_ip,
-                                response.provider,
-                                response.test_uuid);
+                    TestEnvironment.getTestVisualization().updateInfo(
+                        response.test_server_name,
+                        response.client_remote_ip,
+                        response.provider,
+                        response.test_uuid
+                    );
             }
 
             const continuation = function() {
-                debug("got geolocation, obtaining token and websocket address");
+                _logger.debug("got geolocation, obtaining token and websocket address");
                 setState(TestState.WAIT);
 
                 //wait if we have to
@@ -173,13 +179,16 @@ const RMBTTest = (function() {
 
                         //only one thread will call after upload is finished
                         conductTest(response, thread, function() {
-                            debug("All tests finished");
+                            _logger.info("All tests finished");
                             wsGeoTracker.stop();
                             _rmbtTestResult.geoLocations = wsGeoTracker.getResults();
                             _rmbtTestResult.calculateAll();
-                            submitResults(response, function() {
-                                setState(TestState.END);
-                            });
+                            _rmbtControlServer.submitResults(
+                                prepareResult(response),
+                                () => {
+                                    setState(TestState.END);
+                                }
+                            );
                         });
 
                         _threads.push(thread);
@@ -192,15 +201,13 @@ const RMBTTest = (function() {
             if (TestEnvironment.getGeoTracker() !== null) {
                 wsGeoTracker = TestEnvironment.getGeoTracker();
                 continuation();
-            }
-            else {
+            } else {
                 wsGeoTracker = new GeoTracker();
-                debug("getting geolocation");
+                _logger.debug("getting geolocation");
                 wsGeoTracker.start(function() {
                     continuation();
                 });
             }
-
         });
     };
 
@@ -262,7 +269,7 @@ const RMBTTest = (function() {
                 });
 
                 _intermediateResult.downBitPerSec = results.speed;
-                _intermediateResult.downBitPerSecLog = (log10(_intermediateResult.downBitPerSec / 1e6) + 2) / 4;
+                _intermediateResult.downBitPerSecLog = (Math.log10(_intermediateResult.downBitPerSec / 1e6) + 2) / 4;
             }
 
             if (_intermediateResult.status === TestState.UP) {
@@ -271,7 +278,7 @@ const RMBTTest = (function() {
                 });
 
                 _intermediateResult.upBitPerSec = results.speed;
-                _intermediateResult.upBitPerSecLog = (log10(_intermediateResult.upBitPerSec / 1e6) + 2) / 4;
+                _intermediateResult.upBitPerSecLog = (Math.log10(_intermediateResult.upBitPerSec / 1e6) + 2) / 4;
             }
         }
         return _intermediateResult;
@@ -282,13 +289,13 @@ const RMBTTest = (function() {
      * Conduct the test
      * @param {RMBTControlServerRegistrationResponse} registrationResponse
      * @param {RMBTTestThread} thread info about the thread/local thread data structures
-     * @param {Callback} callback as soon as all tests are finished
+     * @param {Function} callback as soon as all tests are finished
      */
     function conductTest(registrationResponse, thread, callback) {
         let server = ((registrationResponse.test_server_encryption) ? "wss://" : "ws://") +
                 registrationResponse.test_server_address + ":" + registrationResponse.test_server_port;
         //server = server_override;
-        debug(server);
+        _logger.debug(server);
 
         const errorFunctions = function() {
             return {
@@ -309,7 +316,7 @@ const RMBTTest = (function() {
         //register state enter events
         thread.onStateEnter(TestState.INIT_DOWN, function() {
             setState(TestState.INIT_DOWN);
-            debug(thread.id + ": start short download");
+            _logger.debug(thread.id + ": start short download");
             _chunkSize = MIN_CHUNK_SIZE;
 
             //all threads download, according to specification
@@ -318,7 +325,7 @@ const RMBTTest = (function() {
 
         thread.onStateEnter(TestState.PING, function() {
             setState(TestState.PING);
-            debug(thread.id + ": starting ping");
+            _logger.debug(thread.id + ": starting ping");
             //only one thread pings
             if (thread.id === 0) {
                 pingTest(thread);
@@ -415,7 +422,7 @@ const RMBTTest = (function() {
         thread.socket.onerror = errorHandler;
 
         thread.socket.onmessage = function(event) {
-            //debug("thread " + thread.id + " triggered, state " + thread.state + " event: " + event);
+            //logger.debug("thread " + thread.id + " triggered, state " + thread.state + " event: " + event);
 
             //console.log(thread.id + ": Received: " + event.data);
             if (event.data.indexOf("CHUNKSIZE") === 0) {
@@ -431,7 +438,7 @@ const RMBTTest = (function() {
                     DEFAULT_CHUNK_SIZE = parseInt(parts[1]);
                     MIN_CHUNK_SIZE = DEFAULT_CHUNK_SIZE;
                 }
-                debug(thread.id + "Chunksizes: min " + MIN_CHUNK_SIZE +
+                _logger.debug(thread.id + ": Chunksizes: min " + MIN_CHUNK_SIZE +
                     ", max: " + MAX_CHUNK_SIZE +
                     ", default: " + DEFAULT_CHUNK_SIZE);
             } else if (event.data.indexOf("RMBTv") === 0) {
@@ -443,15 +450,15 @@ const RMBTTest = (function() {
                 } else if (version.indexOf("0.3") === 0) {
                     _changeChunkSizes = false;
                 } else {
-                    debug("unknown server version: " + version);
+                    _logger.warn("unknown server version: " + version);
                 }
             } else if (event.data === "ACCEPT TOKEN QUIT\n") {
                 thread.socket.send("TOKEN " + token + "\n");
             } else if (event.data === "OK\n" && thread.state === TestState.INIT) {
-                debug(thread.id + ": Token accepted");
+                _logger.debug(thread.id + ": Token accepted");
             } else if (event.data === "ERR\n") {
                 errorHandler();
-                debug("got error msg");
+                _logger.error("got error msg");
             } else if (event.data.indexOf("ACCEPT GETCHUNKS") === 0) {
                 thread.triggerNextState();
             }
@@ -469,8 +476,8 @@ const RMBTTest = (function() {
     function calculateChunkSizes(bytesPerSecsPretest, threadLimits, limitToExistingChunks) {
         _totalBytesPerSecsPretest = bytesPerSecsPretest.reduce((acc, val) => acc + val);
 
-        debug("total: circa " + _totalBytesPerSecsPretest / 1000 + " KB/sec");
-        debug("total: circa " + _totalBytesPerSecsPretest * 8 / 1e6 + " MBit/sec");
+        _logger.debug("total: circa " + _totalBytesPerSecsPretest / 1000 + " KB/sec");
+        _logger.debug("total: circa " + _totalBytesPerSecsPretest * 8 / 1e6 + " MBit/sec");
 
         //set number of upload threads according to mbit/s measured
         let mbits = _totalBytesPerSecsPretest * 8 / 1e6;
@@ -481,7 +488,7 @@ const RMBTTest = (function() {
             }
         });
         threads = Math.min(_numThreadsAllowed, threads);
-        debug("set number of threads to be used in upcoming speed test to: " + threads);
+        _logger.debug("set number of threads to be used in upcoming speed test to: " + threads);
 
         //set chunk size to accordingly 1 chunk every n/2 ms on average with n threads
         let calculatedChunkSize = _totalBytesPerSecsPretest / (1000 / ((_rmbtTestConfig.measurementPointsTimespan / 2)));
@@ -495,7 +502,7 @@ const RMBTTest = (function() {
         //and max MAX_CHUNKSIZE
         calculatedChunkSize = Math.min(MAX_CHUNK_SIZE, calculatedChunkSize);
 
-        debug("calculated chunksize for upcoming speed test " + calculatedChunkSize / 1024 + " KB");
+        _logger.debug("calculated chunksize for upcoming speed test " + calculatedChunkSize / 1024 + " KB");
 
         if (limitToExistingChunks) {
             //get closest chunk size where there are saved chunks available
@@ -503,6 +510,11 @@ const RMBTTest = (function() {
             Object.keys(_arrayBuffers).forEach((key) => {
                 let diff = Math.abs(calculatedChunkSize - key);
                 if (diff < Math.abs(calculatedChunkSize - closest)) {
+                    // Fix for strange bug, where key sometimes is a string
+                    // TODO: investigate source
+                    if (typeof key === "string") {
+                        key = parseInt(key);
+                    }
                     closest = key;
                 } else {
                     //if there is already a closer chunk selected, we don't need this
@@ -513,7 +525,7 @@ const RMBTTest = (function() {
             });
 
             calculatedChunkSize = closest;
-            debug("fallback to existing chunksize for upcoming speed test " + calculatedChunkSize / 1024 + " KB");
+            _logger.debug("fallback to existing chunksize for upcoming speed test " + calculatedChunkSize / 1024 + " KB");
         }
 
         return {
@@ -539,7 +551,7 @@ const RMBTTest = (function() {
         const loop = function() {
             downloadChunks(thread, n, chunksize, function(msg) {
                 bytesReceived += n * chunksize;
-                debug(thread.id + ": " + msg);
+                _logger.debug(thread.id + ": " + msg);
                 let timeNs = parseInt(msg.substring(5));
 
                 let now = nowMs();
@@ -566,9 +578,10 @@ const RMBTTest = (function() {
 
     /**
      * Download n Chunks from the test server
+     * @param {RMBTTestThread} thread containing an open socket
      * @param {Number} total how many chunks to download
-     * @param {RMBTThread} thread containing an open socket
-     * @param {Callback} onsuccess expects one argument (String)
+     * @param {Number} chunkSize size of single chunk in bytes
+     * @param {Function} onsuccess expects one argument (String)
      */
     function downloadChunks(thread, total, chunkSize, onsuccess) {
         //console.log(String.format(Locale.US, "thread %d: getting %d chunk(s)", threadId, chunks));
@@ -576,24 +589,39 @@ const RMBTTest = (function() {
         let remainingChunks = total;
         let expectBytes = _chunkSize * total;
         let totalRead = 0;
+        let lastBuffer = null;
+
+        // https://stackoverflow.com/questions/33702838/how-to-append-bytes-multi-bytes-and-buffer-to-arraybuffer-in-javascript
+        const concatBuffer = function (a, b) {
+            let c = new Uint8Array(a.length + b.length);
+            c.set(a, 0);
+            c.set(b, a.length);
+            return c;
+        };
 
         const downloadChunkListener = function(event) {
             if (typeof event.data === 'string') {
                 return;
             }
 
-            //let lastByte;
+            let fullChunk = false;
+
+            if (lastBuffer === null) {
+                lastBuffer = new Uint8Array(event.data);
+            } else {
+                lastBuffer = concatBuffer(lastBuffer, new Uint8Array(event.data));
+            }
+
             //console.log("received chunk with " + line.length + " bytes");
             totalRead = totalRead + event.data.byteLength;
 
-            //in previous versions, the last byte was sent as a single websocket frame,
-            //so we have to maintain compatibility at this time
-            if (event.data.byteLength === chunkSize || event.data.byteLength === 1) {
+            if (lastBuffer.length === chunkSize) {
                 remainingChunks--;
+                fullChunk = true;
             }
 
             //zero junks remain - get time
-            if (remainingChunks === 0) {
+            if (fullChunk && lastBuffer[lastBuffer.length - 1] === 0xFF) {
                 //get info
                 socket.onmessage = function (line) {
                     let infomsg = line.data;
@@ -601,18 +629,22 @@ const RMBTTest = (function() {
                 };
 
                 socket.send("OK\n");
-                _endArrayBuffers[chunkSize] = event.data;
+                _endArrayBuffers[chunkSize] = lastBuffer.buffer;
+                lastBuffer = null;
             } else {
                 if (!_arrayBuffers.hasOwnProperty(chunkSize)) {
                     _arrayBuffers[chunkSize] = [];
                 }
-                if (_arrayBuffers[chunkSize].length < _rmbtTestConfig.savedChunks) {
-                    _arrayBuffers[chunkSize].push(event.data);
+                if (fullChunk) {
+                    if (_arrayBuffers[chunkSize].length < _rmbtTestConfig.savedChunks) {
+                        _arrayBuffers[chunkSize].push(lastBuffer.buffer);
+                    }
+                    lastBuffer = null;
                 }
             }
         };
         socket.onmessage = downloadChunkListener;
-        debug(thread.id + ": downloading " + total + " chunks, " + (expectBytes / 1000) + " KB");
+        _logger.debug(thread.id + ": downloading " + total + " chunks, " + (expectBytes / 1000) + " KB");
         let send = "GETCHUNKS " + total +  ((chunkSize !== DEFAULT_CHUNK_SIZE)? " " + chunkSize : "") + "\n";
         socket.send(send);
     }
@@ -630,7 +662,7 @@ const RMBTTest = (function() {
             if (pingResult.client < shortestPing) {
                 shortestPing = pingResult.client;
             }
-            debug(thread.id + ": PING " + pingResult.client + " ns client; " + pingResult.server + " ns server");
+            _logger.debug(thread.id + ": PING " + pingResult.client + " ns client; " + pingResult.server + " ns server");
 
             if (pingsRemaining > 0) {
                 //wait for new 'ACCEPT'-message
@@ -638,7 +670,7 @@ const RMBTTest = (function() {
                     if (event.data === "ACCEPT GETCHUNKS GETTIME PUT PUTNORESULT PING QUIT\n") {
                         ping(thread, onsuccess);
                     } else {
-                        debug("unexpected error during ping test")
+                        _logger.error("unexpected error during ping test")
                     }
                 };
             } else {
@@ -651,7 +683,7 @@ const RMBTTest = (function() {
                 }
                 _rmbtTestResult.ping_median = Math.median(tArray);
 
-                debug(thread.id + ": shortest: " + Math.round(shortestPing / 1000) / 1000 + " ms");
+                _logger.debug(thread.id + ": shortest: " + Math.round(shortestPing / 1000) / 1000 + " ms");
                 _rmbtTestResult.ping_shortest = shortestPing;
                 thread.socket.onmessage = prevListener;
             }
@@ -663,7 +695,7 @@ const RMBTTest = (function() {
     /**
      *
      * @param {RMBTTestThread} thread
-     * @param {Callback} onsuccess upon success
+     * @param {Function} onsuccess upon success
      */
     function ping(thread, onsuccess) {
         let begin;
@@ -717,7 +749,7 @@ const RMBTTest = (function() {
             lastReportedChunks = readChunks;
 
             let now = nowNs();
-            debug(thread.id + ": " + lastRead + "|" + _rmbtTestConfig.measurementPointsTimespan + "|" + now + "|" + readChunks);
+            _logger.debug(thread.id + ": " + lastRead + "|" + _rmbtTestConfig.measurementPointsTimespan + "|" + now + "|" + readChunks);
 
             let lastByte = new Uint8Array(lastChunk, lastChunk.byteLength - 1, 1);
 
@@ -732,13 +764,13 @@ const RMBTTest = (function() {
             lastRead = now;
 
             if (lastByte[0] >= 0xFF) {
-                debug(thread.id + ": received end chunk");
+                _logger.debug(thread.id + ": received end chunk");
                 window.clearInterval(interval);
 
                 //last chunk received - get time
                 thread.socket.onmessage = function (event) {
                     //TIME
-                    debug(event.data);
+                    _logger.debug(event.data);
                     thread.socket.onmessage = previousListener;
                 };
                 thread.socket.send("OK\n");
@@ -775,13 +807,13 @@ const RMBTTest = (function() {
         window.setTimeout(function() {
              let endTime = nowMs();
              let duration = endTime - startTime;
-             debug("diff:" + (duration - durationMs) + " (" + (duration-durationMs)/durationMs + " %)");
+             _logger.debug("diff:" + (duration - durationMs) + " (" + (duration-durationMs)/durationMs + " %)");
         }, durationMs);
 
         let loop = function() {
             uploadChunks(thread, n, chunkSize, function(msg) {
                 bytesSent += n * chunkSize;
-                debug(thread.id + ": " + msg);
+                _logger.debug(thread.id + ": " + msg);
 
                 let now = nowMs();
                 if ((now - startTime) > durationMs) {
@@ -810,10 +842,10 @@ const RMBTTest = (function() {
 
     /**
      * Upload n Chunks to the test server
-     * @param {RMBTThread} thread containing an open socket
+     * @param {RMBTTestThread} thread containing an open socket
      * @param {Number} total how many chunks to upload
      * @param {Number} chunkSize size of single chunk in bytes
-     * @param {Callback} onsuccess expects one argument (String)
+     * @param {Function} onsuccess expects one argument (String)
      */
     function uploadChunks(thread, total, chunkSize, onsuccess) {
         //console.log(String.format(Locale.US, "thread %d: getting %d chunk(s)", threadId, chunks));
@@ -831,7 +863,7 @@ const RMBTTest = (function() {
             }
         };
 
-        debug(thread.id + ": uploading " + total + " chunks, " + ((chunkSize * total) / 1000) + " KB");
+        _logger.debug(thread.id + ": uploading " + total + " chunks, " + ((chunkSize * total) / 1000) + " KB");
         socket.send("PUTNORESULT" + ((_changeChunkSizes) ? " " + chunkSize : "") + "\n"); //Put no result
         for (let i = 0; i < total; i++) {
             let blob;
@@ -868,20 +900,20 @@ const RMBTTest = (function() {
         let timeoutFunction = function () {
             if (!receivedEndTime) {
                 //check how far we are in
-                debug(thread.id + ": is 7.2 sec in, got data for " + lastDurationInfo);
+                _logger.debug(thread.id + ": is 7.2 sec in, got data for " + lastDurationInfo);
                 //if measurements are for < 7sec, give it time
                 if ((lastDurationInfo < duration * 1e9) && (timeoutExtensionsMs < 3000)) {
                     window.setTimeout(timeoutFunction, 250);
                     timeoutExtensionsMs += 250;
                 } else {
                     //kill it with force!
-                    debug(thread.id + ": didn't finish, timeout extended by " + timeoutExtensionsMs + " ms, last info for " + lastDurationInfo);
+                    _logger.debug(thread.id + ": didn't finish, timeout extended by " + timeoutExtensionsMs + " ms, last info for " + lastDurationInfo);
                     thread.socket.onerror = () => {};
 
                     //do nothing, we kill it on purpose
                     thread.socket.close();
                     thread.socket.onmessage = previousListener;
-                    debug(thread.id + ": socket now closed: " + thread.socket.readyState);
+                    _logger.debug(thread.id + ": socket now closed: " + thread.socket.readyState);
                     thread.triggerNextState();
                 }
             }
@@ -894,12 +926,12 @@ const RMBTTest = (function() {
         const sendChunks = () => {
             // Monitor the buffersize as it sends and refill if it gets too low.
             if (thread.socket.bufferedAmount < fixedUnderrunBytes) {
-                //debug(thread.id + ": buffer underrun");
+                //logger.debug(thread.id + ": buffer underrun");
                 for (let i = 0; i < sendAtOnceChunks; i++) {
                     thread.socket.send(_arrayBuffers[_chunkSize][i % _arrayBuffers[_chunkSize].length]);
                 }
             } else {
-                //debug(thread.id + ": no buffer underrun");
+                //logger.debug(thread.id + ": no buffer underrun");
             }
 
             if (keepSendingData) {
@@ -920,7 +952,7 @@ const RMBTTest = (function() {
         }, duration * 1e3);
 
 
-        debug(thread.id + ": set timeout");
+        _logger.debug(thread.id + ": set timeout");
 
         // ms -> ns
         const timespan = _rmbtTestConfig.measurementPointsTimespan * 1e6;
@@ -934,7 +966,7 @@ const RMBTTest = (function() {
 
             //intermediate result - save it!
             //TIME 6978414829 BYTES 5738496
-            //debug(thread.id + ": rec: " + event.data);
+            //logger.debug(thread.id + ": rec: " + event.data);
             let matches = pattern.exec(event.data);
             if (matches !== null) {
                 const data = {
@@ -951,7 +983,7 @@ const RMBTTest = (function() {
                 if (matches !== null) {
                     //statistic for end match - upload phase complete
                     receivedEndTime = true;
-                    debug("Upload duration: " + matches[1]);
+                    _logger.debug("Upload duration: " + matches[1]);
                     thread.socket.onmessage = previousListener;
                 }
             }
@@ -962,74 +994,13 @@ const RMBTTest = (function() {
     }
 
     /**
-     *
-     * @param {RMBTTestConfig} rmbtTestConfig
-     * @param {RMBTControlServerRegistrationResponseCallback} onsuccess called on completion
-     */
-    function obtainControlServerRegistration(rmbtTestConfig, onsuccess) {
-        let json_data = {
-            version: rmbtTestConfig.version,
-            language: rmbtTestConfig.language,
-            uuid: rmbtTestConfig.uuid,
-            type: rmbtTestConfig.type,
-            version_code: rmbtTestConfig.version_code,
-            client: rmbtTestConfig.client,
-            timezone: rmbtTestConfig.timezone,
-            time: new Date().getTime()
-        };
-
-        if (typeof userServerSelection !== "undefined" && userServerSelection > 0
-                && typeof UserConf !== "undefined" && UserConf.preferredServer !== undefined && UserConf.preferredServer !== "default") {
-            json_data['prefer_server'] = UserConf.preferredServer;
-            json_data['user_server_selection'] = userServerSelection;
-        }
-
-        $.ajax({
-            url: rmbtTestConfig.controlServerURL + rmbtTestConfig.controlServerRegistrationResource,
-            type: "post",
-            dataType: "json",
-            contentType: "application/json",
-            data: JSON.stringify(json_data),
-            success: function(data) {
-                let config = new RMBTControlServerRegistrationResponse(data);
-                onsuccess(config);
-            },
-            error: function() {
-                debug("error getting testID");
-            }
-        });
-
-    }
-
-    /**
-     * get "data collector" metadata (like browser family)
-     * @param {RMBTTestConfig} rmbtTestConfig
-     */
-    function getDataCollectorInfo(rmbtTestConfig) {
-        $.ajax({
-           url: rmbtTestConfig.controlServerURL + rmbtTestConfig.controlServerDataCollectorResource,
-           type: "get",
-           dataType: "json",
-           contentType: "application/json",
-           success: function(data) {
-               rmbtTestConfig.product = data.agent.substring(0, Math.min(150, data.agent.length));
-               rmbtTestConfig.model = data.product;
-               //rmbtTestConfig.platform = data.product;
-               rmbtTestConfig.os_version = data.version;
-           },
-           error: function() {
-               debug("error getting data collection response");
-           }
-        });
-    }
-
-    /**
+     * Gather test result and prepare data to be sent to server
      *
      * @param {RMBTControlServerRegistrationResponse} registrationResponse
-     * @param {Callback} callback
+     * @return {Object} Test result to send to server
      */
-    function submitResults(registrationResponse, callback) {
-        let json_data = {
+    function prepareResult(registrationResponse) {
+        return {
             client_language: "de",
             client_name: _rmbtTestConfig.client,
             client_uuid: _rmbtTestConfig.uuid,
@@ -1051,6 +1022,7 @@ const RMBTTest = (function() {
             test_speed_download: _rmbtTestResult.speed_download,
             test_speed_upload: _rmbtTestResult.speed_upload,
             test_token: registrationResponse.test_token,
+            test_uuid: registrationResponse.test_uuid,
             time: _rmbtTestResult.beginTime,
             timezone: "Europe/Vienna",
             type: "DESKTOP",
@@ -1058,25 +1030,6 @@ const RMBTTest = (function() {
             speed_detail: _rmbtTestResult.speedItems,
             user_server_selection: _rmbtTestConfig.userServerSelection
         };
-        let json = JSON.stringify(json_data);
-        debug("Submit size: " + json.length);
-        $.ajax({
-            url: _rmbtTestConfig.controlServerURL + _rmbtTestConfig.controlServerResultResource,
-            type: "post",
-            dataType: "json",
-            contentType: "application/json",
-            data: json,
-            success: function(data) {
-                //let config = new RMBTControlServerRegistrationResponse(data);
-                //onsuccess(config);
-                debug("https://develop.netztest.at/en/Verlauf?" + registrationResponse.test_uuid);
-                //window.location.href = "https://develop.netztest.at/en/Verlauf?" + registrationResponse.test_uuid;
-                callback();
-            },
-            error: function() {
-                debug("error submitting results");
-            }
-        });
     }
 
     /**

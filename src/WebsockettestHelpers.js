@@ -46,7 +46,7 @@ const CyclicBarrier = (function() {
 
     /**
      * Creates a new cyclic barrier
-     * @param {Integer} parties the number of threads that must invoke await()
+     * @param {number} parties the number of threads that must invoke await()
      *      before the barrier is tripped
      */
     function CyclicBarrier(parties) {
@@ -105,3 +105,21 @@ Math.median = function(values) {
 };
 
 
+// Polyfill log10 for internet explorer
+// https://developer.mozilla.org/de/docs/Web/JavaScript/Reference/Global_Objects/Math/log10#Polyfill
+Math.log10 = Math.log10 || function (x) {
+        return Math.log(x) / Math.LN10;
+    };
+
+//"loglevel" module is used, but if not available, it will fallback to console.log
+const log = log || {
+        debug: console.log,
+        trace: console.trace,
+        info: console.info,
+        warn: console.warn,
+        error: console.error,
+        setLevel: () => {},
+        getLogger: () => {
+            return log;
+        }
+    };
