@@ -47,6 +47,7 @@ const RMBTTest = (function() {
     let _rmbtControlServer;
     let _rmbtTestResult = null;
     let _errorCallback = null;
+    let _stateChangeCallback = null;
 
     let _state;
     let _stateChangeMs;
@@ -102,6 +103,9 @@ const RMBTTest = (function() {
         if (_state === undefined || _state !== state) {
             _state = state;
             _stateChangeMs = nowMs();
+            if (_stateChangeCallback) {
+                _stateChangeCallback(state);
+            }
         }
     }
 
@@ -113,6 +117,14 @@ const RMBTTest = (function() {
      */
     RMBTTest.prototype.onError = function(fct)  {
         _errorCallback = fct;
+    };
+
+    /**
+     * Callback when the test changes execution state
+     * @param {Function} callback
+     */
+    RMBTTest.prototype.onStateChange = function (callback) {
+        _stateChangeCallback = callback;
     };
 
     /**
@@ -950,6 +962,8 @@ const RMBTTest = (function() {
 
         logger.debug(thread.id + ": set timeout");
 
+        // ms -> ns
+        const timespan = _rmbtTestConfig.measurementPointsTimespan * 1e6;
         const pattern = /TIME (\d+) BYTES (\d+)/;
         const patternEnd = /TIME (\d+)/;
         const uploadListener = function(event) {
@@ -967,9 +981,11 @@ const RMBTTest = (function() {
                     duration: parseInt(matches[1]),
                     bytes: parseInt(matches[2])
                 };
-                lastDurationInfo = data.duration;
-                //logger.debug(thread.id + ": " + JSON.stringify(data));
-                thread.result.up.push(data);
+                if ((data.duration - lastDurationInfo) > timespan) {
+                    lastDurationInfo = data.duration;
+                    //debug(thread.id + ": " + JSON.stringify(data));
+                    thread.result.up.push(data);
+                }
             } else {
                 matches = patternEnd.exec(event.data);
                 if (matches !== null) {
