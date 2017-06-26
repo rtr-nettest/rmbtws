@@ -332,7 +332,9 @@ var RMBTTest = function () {
             if (_bytesPerSecsPretest.length > 0) {
                 var chunkSizes = calculateChunkSizes(_bytesPerSecsPretest, _rmbtTestConfig.downloadThreadsLimitsMbit, false);
                 _numDownloadThreads = chunkSizes.numThreads;
-                _chunkSize = chunkSizes.chunkSize;
+                if (_changeChunkSizes) {
+                    _chunkSize = chunkSizes.chunkSize;
+                }
                 _bytesPerSecsPretest = [];
             }
 
@@ -358,7 +360,9 @@ var RMBTTest = function () {
             if (_bytesPerSecsPretest.length > 0) {
                 var chunkSizes = calculateChunkSizes(_bytesPerSecsPretest, _rmbtTestConfig.uploadThreadsLimitsMbit, true);
                 _numUploadThreads = chunkSizes.numThreads;
-                _chunkSize = chunkSizes.chunkSize;
+                if (_changeChunkSizes) {
+                    _chunkSize = chunkSizes.chunkSize;
+                }
                 _bytesPerSecsPretest = [];
             }
 
