@@ -21,9 +21,15 @@ const TestEnvironment = (function () {
             return geoTracker;
         },
 
-        init: function () {
-            testVisualization = new TestVisualization();
-            geoTracker = new GeoTracker();
+        init: function (tVisualization, gTracker) {
+            if (typeof tVisualization === 'undefined') {
+                tVisualization = new TestVisualization();
+            }
+            if (typeof gTracker === 'undefined') {
+                gTracker = new GeoTracker();
+            }
+            testVisualization = tVisualization;
+            geoTracker = gTracker;
         }
     };
 })();

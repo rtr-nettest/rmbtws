@@ -55,7 +55,7 @@ var RMBTTest = function () {
         durationDownMs: -1
     };
 
-    var _intermediateResult = new RMBTIntermediateResult();
+    var _intermediateResult = void 0;
 
     var _threads = [];
     var _arrayBuffers = {};
@@ -85,6 +85,7 @@ var RMBTTest = function () {
         _rmbtControlServer = rmbtControlServer;
         _state = TestState.INIT;
         _logger = log.getLogger("rmbtws");
+        _intermediateResult = new RMBTIntermediateResult();
     }
 
     /**
@@ -193,13 +194,15 @@ var RMBTTest = function () {
             //get the user's geolocation
             if (TestEnvironment.getGeoTracker() !== null) {
                 wsGeoTracker = TestEnvironment.getGeoTracker();
+
+                //in case of legacy code, the geoTracker will already be started
                 continuation();
             } else {
                 wsGeoTracker = new GeoTracker();
                 _logger.debug("getting geolocation");
                 wsGeoTracker.start(function () {
                     continuation();
-                });
+                }, TestEnvironment.getTestVisualization());
             }
         });
     };
@@ -254,9 +257,11 @@ var RMBTTest = function () {
         _intermediateResult.progress = Math.min(1, _intermediateResult.progress);
 
         if (_rmbtTestResult !== null) {
-            _intermediateResult.pingNano = _rmbtTestResult.ping_median;
+            if (_intermediateResult.status === TestState.PING || _intermediateResult.status === TestState.DOWN) {
+                _intermediateResult.pingNano = _rmbtTestResult.ping_median;
+            }
 
-            if (_intermediateResult.status === TestState.DOWN) {
+            if (_intermediateResult.status === TestState.DOWN || _intermediateResult.status == TestState.INIT_UP) {
                 var results = RMBTTestResult.calculateOverallSpeedFromMultipleThreads(_rmbtTestResult.threads, function (thread) {
                     return thread.down;
                 });
@@ -265,7 +270,7 @@ var RMBTTest = function () {
                 _intermediateResult.downBitPerSecLog = (Math.log10(_intermediateResult.downBitPerSec / 1e6) + 2) / 4;
             }
 
-            if (_intermediateResult.status === TestState.UP) {
+            if (_intermediateResult.status === TestState.UP || _intermediateResult.status == TestState.INIT_UP) {
                 var _results = RMBTTestResult.calculateOverallSpeedFromMultipleThreads(_rmbtTestResult.threads, function (thread) {
                     return thread.up;
                 });
@@ -1375,9 +1380,15 @@ var TestEnvironment = function () {
             return geoTracker;
         },
 
-        init: function init() {
-            testVisualization = new TestVisualization();
-            geoTracker = new GeoTracker();
+        init: function init(tVisualization, gTracker) {
+            if (typeof tVisualization === 'undefined') {
+                tVisualization = new TestVisualization();
+            }
+            if (typeof gTracker === 'undefined') {
+                gTracker = new GeoTracker();
+            }
+            testVisualization = tVisualization;
+            geoTracker = gTracker;
         }
     };
 }();

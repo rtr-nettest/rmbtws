@@ -54,7 +54,7 @@ const RMBTTest = (function() {
         durationDownMs: -1
     };
 
-    let _intermediateResult = new RMBTIntermediateResult();
+    let _intermediateResult;
 
     let _threads = [];
     let _arrayBuffers = {};
@@ -84,6 +84,7 @@ const RMBTTest = (function() {
         _rmbtControlServer = rmbtControlServer;
         _state = TestState.INIT;
         _logger = log.getLogger("rmbtws");
+        _intermediateResult = new RMBTIntermediateResult()
     }
 
     /**
@@ -200,13 +201,15 @@ const RMBTTest = (function() {
             //get the user's geolocation
             if (TestEnvironment.getGeoTracker() !== null) {
                 wsGeoTracker = TestEnvironment.getGeoTracker();
+
+                //in case of legacy code, the geoTracker will already be started
                 continuation();
             } else {
                 wsGeoTracker = new GeoTracker();
                 _logger.debug("getting geolocation");
                 wsGeoTracker.start(function() {
                     continuation();
-                });
+                }, TestEnvironment.getTestVisualization());
             }
         });
     };
@@ -261,9 +264,11 @@ const RMBTTest = (function() {
         _intermediateResult.progress = Math.min(1, _intermediateResult.progress);
 
         if (_rmbtTestResult !== null) {
-            _intermediateResult.pingNano = _rmbtTestResult.ping_median;
+            if (_intermediateResult.status === TestState.PING || _intermediateResult.status === TestState.DOWN) {
+                _intermediateResult.pingNano = _rmbtTestResult.ping_median;
+            }
 
-            if (_intermediateResult.status === TestState.DOWN) {
+            if (_intermediateResult.status === TestState.DOWN || _intermediateResult.status == TestState.INIT_UP) {
                 let results = RMBTTestResult.calculateOverallSpeedFromMultipleThreads(_rmbtTestResult.threads, function (thread) {
                     return thread.down;
                 });
@@ -272,7 +277,7 @@ const RMBTTest = (function() {
                 _intermediateResult.downBitPerSecLog = (Math.log10(_intermediateResult.downBitPerSec / 1e6) + 2) / 4;
             }
 
-            if (_intermediateResult.status === TestState.UP) {
+            if (_intermediateResult.status === TestState.UP || _intermediateResult.status == TestState.INIT_UP) {
                 let results = RMBTTestResult.calculateOverallSpeedFromMultipleThreads(_rmbtTestResult.threads, function (thread) {
                     return thread.up;
                 });
