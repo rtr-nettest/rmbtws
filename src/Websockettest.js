@@ -125,7 +125,8 @@ const RMBTTest = (function() {
      * @param {RMBTError} error
      */
     const callErrorCallback = function(error) {
-        if (!error === RMBTError.NOT_SUPPORTED) {
+        _logger.debug("error occurred during websocket test");
+        if (error !== RMBTError.NOT_SUPPORTED) {
             setState(TestState.ERROR);
         }
         if (_errorCallback !== null) {
@@ -188,6 +189,9 @@ const RMBTTest = (function() {
                                 prepareResult(response),
                                 () => {
                                     setState(TestState.END);
+                                },
+                                () => {
+                                    callErrorCallback(RMBTError.SUBMIT_FAILED);
                                 }
                             );
                         });
@@ -387,6 +391,7 @@ const RMBTTest = (function() {
                 //the socket is not needed anymore,
                 //close it to free up resources
                 thread.socket.onerror = errorFunctions.IGNORE;
+                thread.socket.onclose = errorFunctions.IGNORE;
                 if (thread.socket.readyState !== WebSocket.CLOSED) {
                     thread.socket.close();
                 }
@@ -429,6 +434,7 @@ const RMBTTest = (function() {
 
         thread.socket.binaryType = "arraybuffer";
         thread.socket.onerror = errorHandler;
+        thread.socket.onclose = errorHandler;
 
         thread.socket.onmessage = function(event) {
             //logger.debug("thread " + thread.id + " triggered, state " + thread.state + " event: " + event);
@@ -918,6 +924,7 @@ const RMBTTest = (function() {
                     //kill it with force!
                     _logger.debug(thread.id + ": didn't finish, timeout extended by " + timeoutExtensionsMs + " ms, last info for " + lastDurationInfo);
                     thread.socket.onerror = () => {};
+                    thread.socket.onclose = () => {};
 
                     //do nothing, we kill it on purpose
                     thread.socket.close();
@@ -956,6 +963,7 @@ const RMBTTest = (function() {
         //send end blob after 7s, quit
         window.setTimeout(() => {
             keepSendingData = false;
+            thread.socket.onclose = () => {};
             thread.socket.send(_endArrayBuffers[_chunkSize]);
             thread.socket.send("QUIT\n");
         }, duration * 1e3);

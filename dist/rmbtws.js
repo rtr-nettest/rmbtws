@@ -126,7 +126,8 @@ var RMBTTest = function () {
      * @param {RMBTError} error
      */
     var callErrorCallback = function callErrorCallback(error) {
-        if (!error === RMBTError.NOT_SUPPORTED) {
+        _logger.debug("error occurred during websocket test");
+        if (error !== RMBTError.NOT_SUPPORTED) {
             setState(TestState.ERROR);
         }
         if (_errorCallback !== null) {
@@ -182,6 +183,8 @@ var RMBTTest = function () {
                             _rmbtTestResult.calculateAll();
                             _rmbtControlServer.submitResults(prepareResult(response), function () {
                                 setState(TestState.END);
+                            }, function () {
+                                callErrorCallback(RMBTError.SUBMIT_FAILED);
                             });
                         });
 
@@ -378,6 +381,7 @@ var RMBTTest = function () {
                 //the socket is not needed anymore,
                 //close it to free up resources
                 thread.socket.onerror = errorFunctions.IGNORE;
+                thread.socket.onclose = errorFunctions.IGNORE;
                 if (thread.socket.readyState !== WebSocket.CLOSED) {
                     thread.socket.close();
                 }
@@ -420,6 +424,7 @@ var RMBTTest = function () {
 
         thread.socket.binaryType = "arraybuffer";
         thread.socket.onerror = errorHandler;
+        thread.socket.onclose = errorHandler;
 
         thread.socket.onmessage = function (event) {
             //logger.debug("thread " + thread.id + " triggered, state " + thread.state + " event: " + event);
@@ -907,6 +912,7 @@ var RMBTTest = function () {
                     //kill it with force!
                     _logger.debug(thread.id + ": didn't finish, timeout extended by " + timeoutExtensionsMs + " ms, last info for " + lastDurationInfo);
                     thread.socket.onerror = function () {};
+                    thread.socket.onclose = function () {};
 
                     //do nothing, we kill it on purpose
                     thread.socket.close();
@@ -945,6 +951,7 @@ var RMBTTest = function () {
         //send end blob after 7s, quit
         window.setTimeout(function () {
             keepSendingData = false;
+            thread.socket.onclose = function () {};
             thread.socket.send(_endArrayBuffers[_chunkSize]);
             thread.socket.send("QUIT\n");
         }, duration * 1e3);
@@ -1335,7 +1342,7 @@ var RMBTControlServerCommunication = function () {
      * @param {Object}  json_data Data to be sent to server
      * @param {Function} callback
      */
-    RMBTControlServerCommunication.prototype.submitResults = function (json_data, callback) {
+    RMBTControlServerCommunication.prototype.submitResults = function (json_data, onsuccess, onerror) {
         var json = JSON.stringify(json_data);
         _logger.debug("Submit size: " + json.length);
         $.ajax({
@@ -1347,10 +1354,11 @@ var RMBTControlServerCommunication = function () {
             success: function success(data) {
                 _logger.debug("https://develop.netztest.at/en/Verlauf?" + json_data.test_uuid);
                 //window.location.href = "https://develop.netztest.at/en/Verlauf?" + data.test_uuid;
-                callback();
+                onsuccess(true);
             },
             error: function error() {
                 _logger.error("error submitting results");
+                onerror(false);
             }
         });
     };
@@ -2329,7 +2337,8 @@ RMBTPingResult.prototype.timeNs = -1;
 var RMBTError = {
     NOT_SUPPORTED: "WebSockets are not supported",
     SOCKET_INIT_FAILED: "WebSocket initialization failed",
-    CONNECT_FAILED: "connecting to test server failed"
+    CONNECT_FAILED: "connection to test server failed",
+    SUBMIT_FAILED: "Error during submission of test results"
 };
 "use strict";
 

@@ -76,7 +76,7 @@ let RMBTControlServerCommunication = (function () {
      * @param {Object}  json_data Data to be sent to server
      * @param {Function} callback
      */
-    RMBTControlServerCommunication.prototype.submitResults = function (json_data, callback) {
+    RMBTControlServerCommunication.prototype.submitResults = function (json_data, onsuccess, onerror) {
         let json = JSON.stringify(json_data);
         _logger.debug("Submit size: " + json.length);
         $.ajax({
@@ -88,10 +88,11 @@ let RMBTControlServerCommunication = (function () {
             success: (data) => {
                 _logger.debug("https://develop.netztest.at/en/Verlauf?" + json_data.test_uuid);
                 //window.location.href = "https://develop.netztest.at/en/Verlauf?" + data.test_uuid;
-                callback();
+                onsuccess(true);
             },
             error: () => {
                 _logger.error("error submitting results");
+                onerror(false);
             }
         });
     };

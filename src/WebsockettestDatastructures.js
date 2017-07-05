@@ -320,5 +320,6 @@ RMBTPingResult.prototype.timeNs = -1;
 const RMBTError = {
     NOT_SUPPORTED : "WebSockets are not supported",
     SOCKET_INIT_FAILED : "WebSocket initialization failed",
-    CONNECT_FAILED : "connecting to test server failed"
+    CONNECT_FAILED : "connection to test server failed",
+    SUBMIT_FAILED : "Error during submission of test results"
 };
