@@ -215,6 +215,9 @@ const RMBTTest = (function() {
                     continuation();
                 }, TestEnvironment.getTestVisualization());
             }
+        }, () => {
+            //no internet connection
+            callErrorCallback(RMBTError.REGISTRATION_FAILED);
         });
     };
 

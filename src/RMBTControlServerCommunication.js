@@ -16,7 +16,7 @@ let RMBTControlServerCommunication = (function () {
      *
      * @param {RMBTControlServerRegistrationResponseCallback} onsuccess called on completion
      */
-    RMBTControlServerCommunication.prototype.obtainControlServerRegistration = function (onsuccess) {
+    RMBTControlServerCommunication.prototype.obtainControlServerRegistration = function (onsuccess, onerror) {
         let json_data = {
             version: _rmbtTestConfig.version,
             language: _rmbtTestConfig.language,
@@ -44,6 +44,7 @@ let RMBTControlServerCommunication = (function () {
             },
             error: function () {
                 _logger.error("error getting testID");
+                onerror();
             }
         });
     };

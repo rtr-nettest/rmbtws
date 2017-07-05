@@ -207,6 +207,9 @@ var RMBTTest = function () {
                     continuation();
                 }, TestEnvironment.getTestVisualization());
             }
+        }, function () {
+            //no internet connection
+            callErrorCallback(RMBTError.REGISTRATION_FAILED);
         });
     };
 
@@ -1283,7 +1286,7 @@ var RMBTControlServerCommunication = function () {
      *
      * @param {RMBTControlServerRegistrationResponseCallback} onsuccess called on completion
      */
-    RMBTControlServerCommunication.prototype.obtainControlServerRegistration = function (onsuccess) {
+    RMBTControlServerCommunication.prototype.obtainControlServerRegistration = function (onsuccess, onerror) {
         var json_data = {
             version: _rmbtTestConfig.version,
             language: _rmbtTestConfig.language,
@@ -1310,6 +1313,7 @@ var RMBTControlServerCommunication = function () {
             },
             error: function error() {
                 _logger.error("error getting testID");
+                onerror();
             }
         });
     };
@@ -2338,7 +2342,8 @@ var RMBTError = {
     NOT_SUPPORTED: "WebSockets are not supported",
     SOCKET_INIT_FAILED: "WebSocket initialization failed",
     CONNECT_FAILED: "connection to test server failed",
-    SUBMIT_FAILED: "Error during submission of test results"
+    SUBMIT_FAILED: "Error during submission of test results",
+    REGISTRATION_FAILED: "Error during test registration"
 };
 "use strict";
 
