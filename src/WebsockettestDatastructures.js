@@ -36,6 +36,8 @@ RMBTTestConfig.prototype.uploadThreadsLimitsMbit = {
     150: 5
 };
 RMBTTestConfig.prototype.userServerSelection = ((typeof window.userServerSelection !== 'undefined') ? userServerSelection : 0); //for QoSTest
+RMBTTestConfig.prototype.additionalRegistrationParameters = {}; //will be transmitted in ControlServer registration, if any
+RMBTTestConfig.prototype.additionalSubmissionParameters = {}; //will be transmitted in ControlServer result submission, if any
 
 
 let RMBTControlServerRegistrationResponse = (function() {

@@ -1297,6 +1297,10 @@ var RMBTControlServerCommunication = function () {
             timezone: _rmbtTestConfig.timezone,
             time: new Date().getTime()
         };
+
+        //add additional parameters from the configuration, if any
+        Object.assign(json_data, _rmbtTestConfig.additionalRegistrationParameters);
+
         if (typeof userServerSelection !== "undefined" && userServerSelection > 0 && typeof UserConf !== "undefined" && UserConf.preferredServer !== undefined && UserConf.preferredServer !== "default") {
             json_data['prefer_server'] = UserConf.preferredServer;
             json_data['user_server_selection'] = userServerSelection;
@@ -1347,6 +1351,9 @@ var RMBTControlServerCommunication = function () {
      * @param {Function} callback
      */
     RMBTControlServerCommunication.prototype.submitResults = function (json_data, onsuccess, onerror) {
+        //add additional parameters from the configuration, if any
+        Object.assign(json_data, _rmbtTestConfig.additionalSubmissionParameters);
+
         var json = JSON.stringify(json_data);
         _logger.debug("Submit size: " + json.length);
         $.ajax({
@@ -2063,6 +2070,8 @@ RMBTTestConfig.prototype.uploadThreadsLimitsMbit = {
     150: 5
 };
 RMBTTestConfig.prototype.userServerSelection = typeof window.userServerSelection !== 'undefined' ? userServerSelection : 0; //for QoSTest
+RMBTTestConfig.prototype.additionalRegistrationParameters = {}; //will be transmitted in ControlServer registration, if any
+RMBTTestConfig.prototype.additionalSubmissionParameters = {}; //will be transmitted in ControlServer result submission, if any
 
 
 var RMBTControlServerRegistrationResponse = function () {
@@ -2467,3 +2476,33 @@ self.log = self.log || {
         return log;
     }
 };
+
+//Polyfill
+if (typeof Object.assign != 'function') {
+    Object.assign = function (target, varArgs) {
+        // .length of function is 2
+        'use strict';
+
+        if (target == null) {
+            // TypeError if undefined or null
+            throw new TypeError('Cannot convert undefined or null to object');
+        }
+
+        var to = Object(target);
+
+        for (var index = 1; index < arguments.length; index++) {
+            var nextSource = arguments[index];
+
+            if (nextSource != null) {
+                // Skip over if undefined or null
+                for (var nextKey in nextSource) {
+                    // Avoid bugs when hasOwnProperty is shadowed
+                    if (Object.prototype.hasOwnProperty.call(nextSource, nextKey)) {
+                        to[nextKey] = nextSource[nextKey];
+                    }
+                }
+            }
+        }
+        return to;
+    };
+}

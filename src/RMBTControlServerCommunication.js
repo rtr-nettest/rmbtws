@@ -27,6 +27,10 @@ let RMBTControlServerCommunication = (function () {
             timezone: _rmbtTestConfig.timezone,
             time: new Date().getTime()
         };
+
+        //add additional parameters from the configuration, if any
+        Object.assign(json_data, _rmbtTestConfig.additionalRegistrationParameters);
+
         if (typeof userServerSelection !== "undefined" && userServerSelection > 0
             && typeof UserConf !== "undefined" && UserConf.preferredServer !== undefined && UserConf.preferredServer !== "default") {
             json_data['prefer_server'] = UserConf.preferredServer;
@@ -78,6 +82,9 @@ let RMBTControlServerCommunication = (function () {
      * @param {Function} callback
      */
     RMBTControlServerCommunication.prototype.submitResults = function (json_data, onsuccess, onerror) {
+        //add additional parameters from the configuration, if any
+        Object.assign(json_data, _rmbtTestConfig.additionalSubmissionParameters);
+
         let json = JSON.stringify(json_data);
         _logger.debug("Submit size: " + json.length);
         $.ajax({
