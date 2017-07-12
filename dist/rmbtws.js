@@ -2247,7 +2247,7 @@ RMBTTestResult.calculateOverallSpeedFromMultipleThreads = function (threads, pha
         if (thread !== null && phaseResults(thread).length > 0) {
             var targetIdx = phaseResults(thread).length;
             for (var j = 0; j < phaseResults(thread).length; j++) {
-                if (phaseResults(thread)[j].duration > targetTime) {
+                if (phaseResults(thread)[j].duration >= targetTime) {
                     targetIdx = j;
                     break;
                 }
