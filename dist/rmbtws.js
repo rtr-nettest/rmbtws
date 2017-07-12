@@ -1476,8 +1476,6 @@ RMBTIntermediateResult.prototype.remainingWait = -1;
  *  As soon as the test reaches the "End"-State, the result page is called
  */
 
-var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; };
-
 var TestVisualization = function () {
     var _imageDirectory = '../img/';
 
@@ -1485,20 +1483,20 @@ var TestVisualization = function () {
     var _qosTestDurationMs = 10000;
     var _startTimeQos = -1;
 
-    var _rmbtTest;
+    var _rmbtTest = void 0;
 
     var _noCanvas = false;
 
     //canvas initialization
-    var _canvas1; //progession canvas
-    var _canvas2; //upload/download-canvas
+    var _canvas1 = void 0; //progression canvas
+    var _canvas2 = void 0; //upload/download-canvas
 
-    var _ctx1; //context of progression canvas
-    var _ctx2; //context of upload/download-canvas
+    var _ctx1 = void 0; //context of progression canvas
+    var _ctx2 = void 0; //context of upload/download-canvas
 
     //dimensions
-    var _W;
-    var _H;
+    var _W = void 0;
+    var _H = void 0;
 
     //Variables
     var _degrees_status = 0; //current status of the animation
@@ -1508,16 +1506,17 @@ var TestVisualization = function () {
     var _new_degrees_updwn = 0;
     var _difference = 0;
 
-    //var color = "lightgreen"; //green looks better to me
+    //let color = "lightgreen"; //green looks better to me
     var _bgcolor = "#2E4653";
-    var _text;
-    var _animation_loop, _redraw_loop;
+    var _text = void 0;
+    var _animation_loop = void 0,
+        _redraw_loop = void 0;
 
-    var _image;
+    var _image = void 0;
 
     // Create gradients
-    var _grad1;
-    var _grad2;
+    var _grad1 = void 0;
+    var _grad2 = void 0;
 
     var _infogeo = null;
     var _infoserver = null;
@@ -1531,11 +1530,7 @@ var TestVisualization = function () {
 
         //Check if Canvas is supported
         var canvasTurnOff = getParam('nocanvas');
-        if (!Modernizr.canvas || canvasTurnOff) {
-            _noCanvas = true;
-        } else {
-            _noCanvas = false;
-        }
+        _noCanvas = !Modernizr.canvas || canvasTurnOff;
 
         //init the canvas
         if (_noCanvas) {
@@ -1556,7 +1551,7 @@ var TestVisualization = function () {
         _infostatus = document.getElementById("infostatus");
         _infoprovider = document.getElementById("infoprovider");
         _spinnertarget = document.getElementById("activity-indicator");
-    };
+    }
 
     /**
      * Sets the RMBT Test object
@@ -1642,7 +1637,7 @@ var TestVisualization = function () {
     }
 
     function resetCanvas() {
-        //Clear the canvas everytime a chart is drawn
+        //Clear the canvas every time a chart is drawn
         _ctx1.clearRect(0, 0, _W, _H);
         _ctx2.clearRect(0, 0, _W, _H);
 
@@ -1657,7 +1652,7 @@ var TestVisualization = function () {
         _ctx2.beginPath();
         _ctx2.strokeStyle = _bgcolor;
         _ctx2.lineWidth = 35;
-        _ctx2.arc(_W / 2, _H / 2, 114, 0 * Math.PI / 180, Math.PI * 1.7, false);
+        _ctx2.arc(_W / 2, _H / 2, 114, 0 / 180, Math.PI * 1.7, false);
         //you can see the arc now
         _ctx2.stroke();
 
@@ -1680,7 +1675,7 @@ var TestVisualization = function () {
         _ctx2.lineWidth = 18;
         //The arc starts from the rightmost end. If we deduct 90 degrees from the angles
         //the arc will start from the topmost end
-        _ctx2.arc(_W / 2, _H / 2, 114, 0 - 0 * Math.PI / 180, radians2 - 0 * Math.PI / 180, false);
+        _ctx2.arc(_W / 2, _H / 2, 114, 0, radians2, false);
         //you can see the arc now
         _ctx2.stroke();
 
@@ -1696,7 +1691,7 @@ var TestVisualization = function () {
         _ctx1.fillText(_text, _W / 2 - text_width / 2 + 4, _H / 2 + 7);
 
         // Down-, Upload Images
-        //var image = new Image();
+        //let image = new Image();
         //image.src = "img/speedtest/download-icon.png";
         if (_image !== null && _image.src !== "") {
             _ctx2.drawImage(_image, _W / 2 - 15, _H / 2 - 24);
@@ -1776,8 +1771,13 @@ var TestVisualization = function () {
             }
         };
 
-        var status, ping, down, up, up_log, down_log;
-        var progress,
+        var status = void 0,
+            ping = void 0,
+            down = void 0,
+            up = void 0,
+            up_log = void 0,
+            down_log = void 0;
+        var progress = void 0,
             showup = "-",
             showdown = "-",
             showping = "-";
@@ -1835,7 +1835,9 @@ var TestVisualization = function () {
             //if (status != 'END' && status != 'ERROR' && status != 'ABORTED') {
 
             //Cancel any movement animation if a new chart is requested
-            if ((typeof _animation_loop === "undefined" ? "undefined" : _typeof(_animation_loop)) !== undefined) clearInterval(_animation_loop);
+            if (typeof _animation_loop !== "undefined") {
+                clearInterval(_animation_loop);
+            }
 
             //random degree from 0 to 360
             //new_degrees = Math.round(Math.random()*360);
@@ -1853,11 +1855,13 @@ var TestVisualization = function () {
                     _image.src = imgPath;
                 }
             } else if (status === "UP") {
-                if (up_log > 1) up_log = 1;
+                if (up_log > 1) {
+                    up_log = 1;
+                }
                 _degrees_updwn = Math.round(up_log * 360);
-                var imgPath = _imageDirectory + "speedtest/upload-icon.png";
-                if (_image.src !== imgPath) {
-                    _image.src = imgPath;
+                var _imgPath = _imageDirectory + "speedtest/upload-icon.png";
+                if (_image.src !== _imgPath) {
+                    _image.src = _imgPath;
                 }
             }
             //console.log("up_log: "+up_log);
@@ -1872,13 +1876,21 @@ var TestVisualization = function () {
         };
         var drawNoCanvas = function drawNoCanvas() {
             var show_prog = progress * 100;
-            if (show_prog < 100) show_prog = show_prog.toPrecision(2);else show_prog = 100;
+            if (show_prog < 100) {
+                show_prog = show_prog.toPrecision(2);
+            } else {
+                show_prog = 100;
+            }
             $('#progbar').css('width', Math.floor(210 + show_prog * 2.1) + 'px');
             var show_prog_tmp = show_prog / 2;
             if (status === TestState.UP) {
                 show_prog_tmp += 50;
             }
-            if (show_prog_tmp < 100) show_prog_tmp = show_prog_tmp.toPrecision(2);else show_prog_tmp = 100;
+            if (show_prog_tmp < 100) {
+                show_prog_tmp = show_prog_tmp.toPrecision(2);
+            } else {
+                show_prog_tmp = 100;
+            }
             $('#progbar').html(show_prog_tmp + "%");
             $('#activity-indicator').html("(" + show_prog + "%)");
             var ulbar_width = Math.floor(up_log * 420);
@@ -1903,7 +1915,6 @@ var TestVisualization = function () {
             _redraw_loop = setTimeout(draw, 250);
             //Draw a new chart
         } else if (status === "ERROR" || status === "ABORTED") {} else if (status === "END") {
-
             redirectToTestResult();
         }
         //  }
@@ -1967,8 +1978,8 @@ var TestVisualization = function () {
             case TestState.SPEEDTEST_END:
                 //this could be the NDT test running
                 if (_rmbtTest.getNdtStatus() !== null && _rmbtTest.getNdtStatus().toString() === "RUNNING") {
-                    var progress = _rmbtTest.getNdtProgress();
-                    _infostatus.innerHTML = Lang.getString('NDT') + " (" + Math.round(progress * 100) + "&nbsp;%)";
+                    var _progress = _rmbtTest.getNdtProgress();
+                    _infostatus.innerHTML = Lang.getString('NDT') + " (" + Math.round(_progress * 100) + "&nbsp;%)";
                 }
 
                 break;
@@ -2025,7 +2036,9 @@ var TestVisualization = function () {
      */
     function animate_to() {
         //clear animation loop if degrees reaches to new_degrees
-        if (_degrees_status >= _new_degrees_status) clearInterval(_animation_loop);
+        if (_degrees_status >= _new_degrees_status) {
+            clearInterval(_animation_loop);
+        }
 
         if (_degrees_status < _new_degrees_status) {
             _degrees_status++;
