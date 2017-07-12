@@ -10,73 +10,67 @@
  *  As soon as the test reaches the "End"-State, the result page is called
  */
 
-var TestVisualization = (function() {
-    var _imageDirectory = '../img/';
-    
-    //static values for the duration of ndt, qos since there is no info from the applet
-    var _qosTestDurationMs = 10000;
-    var _startTimeQos = -1;
-    
-    var _rmbtTest;
+let TestVisualization = (function() {
+    let _imageDirectory = '../img/';
 
-    var _noCanvas = false;
+    //static values for the duration of ndt, qos since there is no info from the applet
+    let _qosTestDurationMs = 10000;
+    let _startTimeQos = -1;
+
+    let _rmbtTest;
+
+    let _noCanvas = false;
 
     //canvas initialization
-    var _canvas1; //progession canvas
-    var _canvas2; //upload/download-canvas
+    let _canvas1; //progression canvas
+    let _canvas2; //upload/download-canvas
 
-    var _ctx1; //context of progression canvas
-    var _ctx2; //context of upload/download-canvas
+    let _ctx1; //context of progression canvas
+    let _ctx2; //context of upload/download-canvas
 
     //dimensions
-    var _W;
-    var _H;
+    let _W;
+    let _H;
 
     //Variables
-    var _degrees_status = 0; //current status of the animation
-    var _new_degrees_status = 0; //current goal of the animation, volatile to jstest.js
-    var _old_degrees_status = 0; //the current goal the animation is trying to achieve
-    var _degrees_updwn = 0;
-    var _new_degrees_updwn = 0;
-    var _difference = 0;
+    let _degrees_status = 0; //current status of the animation
+    let _new_degrees_status = 0; //current goal of the animation, volatile to jstest.js
+    let _old_degrees_status = 0; //the current goal the animation is trying to achieve
+    let _degrees_updwn = 0;
+    let _new_degrees_updwn = 0;
+    let _difference = 0;
 
-    //var color = "lightgreen"; //green looks better to me
-    var _bgcolor = "#2E4653";
-    var _text;
-    var _animation_loop, _redraw_loop;
+    //let color = "lightgreen"; //green looks better to me
+    let _bgcolor = "#2E4653";
+    let _text;
+    let _animation_loop, _redraw_loop;
 
-    var _image;
+    let _image;
 
     // Create gradients
-    var _grad1;
-    var _grad2;
+    let _grad1;
+    let _grad2;
 
-    var _infogeo = null;
-    var _infoserver = null;
-    var _infoip = null;
-    var _infostatus = null;
-    var _infoprovider = null;
-    var _spinner = null;
-    var _spinnertarget = null;
+    let _infogeo = null;
+    let _infoserver = null;
+    let _infoip = null;
+    let _infostatus = null;
+    let _infoprovider = null;
+    let _spinner = null;
+    let _spinnertarget = null;
 
-    
+
     function TestVisualization() {
-        
+
         //Check if Canvas is supported
-        var canvasTurnOff = getParam('nocanvas');
-        if (!Modernizr.canvas || canvasTurnOff) {
-            _noCanvas = true;
-        }
-        else {
-            _noCanvas = false;
-        }
-        
+        let canvasTurnOff = getParam('nocanvas');
+        _noCanvas = (!Modernizr.canvas || canvasTurnOff);
+
         //init the canvas
         if (_noCanvas) {
             $("#dashboard").detach();
             $("#dashboard_easy").show();
-        }
-        else {
+        } else {
             $("#error_placeholder").hide();
             $("#dashboard").show();
             $("#dashboard_easy").detach();
@@ -84,15 +78,15 @@ var TestVisualization = (function() {
         }
         $("#error_placeholder").hide();
         $("#loading-placeholder").hide();
-        
+
         _infogeo = document.getElementById("infogeo");
         _infoserver = document.getElementById("infoserver");
         _infoip = document.getElementById("infoip");
         _infostatus = document.getElementById("infostatus");
         _infoprovider = document.getElementById("infoprovider");
         _spinnertarget = document.getElementById("activity-indicator");
-    };
-    
+    }
+
     /**
      * Sets the RMBT Test object
      * @param {Object} rmbtTest has to support {RMBTIntermediateResult}.getIntermediateResult
@@ -102,13 +96,13 @@ var TestVisualization = (function() {
     };
 
     function progress_segment(status, progress) {
-        var ProgressSegmentsTotal = 96;
-        var ProgressSegmentsInit = 14;
-        var ProgressSegmentsPing = 15;
-        var ProgressSegmentsDown = 34;
-        var ProgressSegmentsUp = 33;
-        var progressValue = 0;
-        var progressSegments = 0;
+        let ProgressSegmentsTotal = 96;
+        let ProgressSegmentsInit = 14;
+        let ProgressSegmentsPing = 15;
+        let ProgressSegmentsDown = 34;
+        let ProgressSegmentsUp = 33;
+        let progressValue = 0;
+        let progressSegments = 0;
         switch (status) {
             case "INIT":
             case "INIT_DOWN":
@@ -177,7 +171,7 @@ var TestVisualization = (function() {
     }
 
     function resetCanvas() {
-        //Clear the canvas everytime a chart is drawn
+        //Clear the canvas every time a chart is drawn
         _ctx1.clearRect(0, 0, _W, _H);
         _ctx2.clearRect(0, 0, _W, _H);
 
@@ -192,14 +186,14 @@ var TestVisualization = (function() {
         _ctx2.beginPath();
         _ctx2.strokeStyle = _bgcolor;
         _ctx2.lineWidth = 35;
-        _ctx2.arc(_W / 2, _H / 2, 114, 0 * Math.PI / 180, Math.PI * 1.7, false);
+        _ctx2.arc(_W / 2, _H / 2, 114, 0 / 180, Math.PI * 1.7, false);
         //you can see the arc now
         _ctx2.stroke();
 
         //gauge will be a simple arc
         //Angle in radians = angle in degrees * PI / 180
-        var radians1 = _degrees_status * Math.PI / 240;
-        var radians2 = _degrees_updwn * Math.PI / 212;
+        let radians1 = _degrees_status * Math.PI / 240;
+        let radians2 = _degrees_updwn * Math.PI / 212;
 
         _ctx1.beginPath();
         _ctx1.strokeStyle = _grad1;
@@ -215,7 +209,7 @@ var TestVisualization = (function() {
         _ctx2.lineWidth = 18;
         //The arc starts from the rightmost end. If we deduct 90 degrees from the angles
         //the arc will start from the topmost end
-        _ctx2.arc(_W / 2, _H / 2, 114, 0 - 0 * Math.PI / 180, radians2 - 0 * Math.PI / 180, false);
+        _ctx2.arc(_W / 2, _H / 2, 114, 0, radians2, false);
         //you can see the arc now
         _ctx2.stroke();
 
@@ -225,13 +219,13 @@ var TestVisualization = (function() {
         _text = Math.floor(_degrees_status / 360 * 100) + "%";
         //Lets center the text
         //deducting half of text width from position x
-        var text_width = _ctx1.measureText(_text).width;
+        let text_width = _ctx1.measureText(_text).width;
         //adding manual value to position y since the height of the text cannot
         //be measured easily. There are hacks but we will keep it manual for now.
         _ctx1.fillText(_text, _W / 2 - text_width / 2 + 4, _H / 2 + 7);
 
         // Down-, Upload Images
-        //var image = new Image();
+        //let image = new Image();
         //image.src = "img/speedtest/download-icon.png";
         if (_image !== null && _image.src !== "") {
             _ctx2.drawImage(_image, _W / 2 - 15, _H / 2 - 24);
@@ -250,10 +244,10 @@ var TestVisualization = (function() {
          */
     }
 
-    var _serverName = null;
-    var _remoteIp = null;
-    var _providerName = null;
-    var _testUUID = '';
+    let _serverName = null;
+    let _remoteIp = null;
+    let _providerName = null;
+    let _testUUID = '';
     TestVisualization.prototype.updateInfo = function(serverName, remoteIp, providerName, testUUID) {
         _serverName = serverName;
         _remoteIp = remoteIp;
@@ -264,23 +258,23 @@ var TestVisualization = (function() {
     TestVisualization.prototype.setStatus = function(status) {
         set_status(status);
     };
-    
+
     TestVisualization.prototype.setLocation = function(latitude, longitude) {
         //from Opentest.js
-        var formatCoordinate = function(decimal, label_positive, label_negative) {
-            var label = (deg < 0) ? label_negative : label_positive;
-            var deg = Math.floor(Math.abs(decimal));
-            var tmp = Math.abs(decimal) - deg;
-            var min = tmp * 60;
+        let formatCoordinate = function(decimal, label_positive, label_negative) {
+            let label = (deg < 0) ? label_negative : label_positive;
+            let deg = Math.floor(Math.abs(decimal));
+            let tmp = Math.abs(decimal) - deg;
+            let min = tmp * 60;
             return label + " " + deg + "&deg; " + min.toFixed(3) + "'";
         };
 
-        var ausgabe=document.getElementById("infogeo");
-        latitude = formatCoordinate(latitude,Lang.getString('North'),Lang.getString('South'));
-	longitude = '<br />' + formatCoordinate(longitude, Lang.getString('East'),Lang.getString('West'));
+        let ausgabe = document.getElementById("infogeo");
+        latitude = formatCoordinate(latitude,Lang.getString('North'), Lang.getString('South'));
+	    longitude = '<br />' + formatCoordinate(longitude, Lang.getString('East'), Lang.getString('West'));
         ausgabe.innerHTML = latitude + " " + longitude;
     };
-    
+
     /**
      * Starts the gauge/progress bar
      * and relies on .getIntermediateResult() therefore
@@ -289,15 +283,15 @@ var TestVisualization = (function() {
     TestVisualization.prototype.startTest = function() {
         //reset error
         close_errorPopup();
-        
+
         //first draw, then the timeout should kick in
         draw();
     };
 
-    var lastProgress = -1;
-    var lastStatus = -1;
+    let lastProgress = -1;
+    let lastStatus = -1;
     function draw() {
-        var getSignificantDigits = function(number) {
+        let getSignificantDigits = function(number) {
             if (number > 100) {
                 return -1;
             }
@@ -314,29 +308,29 @@ var TestVisualization = (function() {
                 return 3;
             }
         };
-        
-        var status, ping, down, up, up_log, down_log;
-        var progress, showup = "-", showdown = "-", showping = "-";
-        var result = _rmbtTest.getIntermediateResult();
-        if (result === null || (result.progress === lastProgress && lastProgress !== 1 && lastStatus === result.status.toString()) 
+
+        let status, ping, down, up, up_log, down_log;
+        let progress, showup = "-", showdown = "-", showping = "-";
+        let result = _rmbtTest.getIntermediateResult();
+        if (result === null || (result.progress === lastProgress && lastProgress !== 1 && lastStatus === result.status.toString())
                 && lastStatus !== TestState.QOS_TEST_RUNNING && lastStatus !== TestState.QOS_END && lastStatus !== TestState.SPEEDTEST_END) {
             _redraw_loop = setTimeout(draw, 250);
             return;
         }
         lastProgress = result.progress;
         lastStatus = result.status.toString();
-        
+
         if (result !== null) {
-                down = result.downBitPerSec;
-                up = result.upBitPerSec;
-                down_log = result.downBitPerSecLog;
-                up_log = result.upBitPerSecLog;
-                ping = result.pingNano;
-                status = result.status.toString();
-                progress = result.progress;
-                //console.log("down:"+down+" up:"+up+" ping:"+ping+" progress:"+progress+" status:"+status);
-            }
-        
+            down = result.downBitPerSec;
+            up = result.upBitPerSec;
+            down_log = result.downBitPerSecLog;
+            up_log = result.upBitPerSecLog;
+            ping = result.pingNano;
+            status = result.status.toString();
+            progress = result.progress;
+            //console.log("down:"+down+" up:"+up+" ping:"+ping+" progress:"+progress+" status:"+status);
+        }
+
         if (_serverName !== undefined && _serverName !== null && _serverName !== '') {
             _infoserver.innerHTML = _serverName;
         }
@@ -348,7 +342,7 @@ var TestVisualization = (function() {
         if (_providerName !== undefined && _providerName !== null && _providerName !== '') {
             _infoprovider.innerHTML = _providerName;
         }
-        
+
         //show-Strings
         if (ping > 0) {
             showping = (ping / 1000000);
@@ -363,104 +357,106 @@ var TestVisualization = (function() {
         if (up > 0) {
             showup = (up / 1000000);
             showup = showup.formatNumber(getSignificantDigits(showup)) + " " + Lang.getString("Mbps");
-        } 
-        
-        var drawCanvas = function() {
+        }
+
+        let drawCanvas = function() {
             console.log(status + ": " + progress);
-            var prog = progress_segment(status, progress);
+            let prog = progress_segment(status, progress);
             //console.log("Prog: "+prog);
             //if (status != 'END' && status != 'ERROR' && status != 'ABORTED') {
 
             //Cancel any movement animation if a new chart is requested
-            if (typeof _animation_loop !== undefined)
+            if (typeof _animation_loop !== "undefined") {
                 clearInterval(_animation_loop);
+            }
 
             //random degree from 0 to 360
             //new_degrees = Math.round(Math.random()*360);
             _new_degrees_status = Math.round(prog * 360) + 1;
 
-            
-            document.getElementById('showPing').innerHTML = showping;            
-            document.getElementById('showDown').innerHTML = showdown;            
+
+            document.getElementById('showPing').innerHTML = showping;
+            document.getElementById('showDown').innerHTML = showdown;
             document.getElementById('showUp').innerHTML = showup;
 
             if (status === "DOWN") {
                 if (down_log > 1)
                     down_log = 1;
                 _degrees_updwn = Math.round(down_log * 360);
-                var imgPath = _imageDirectory + "speedtest/download-icon.png";
+                let imgPath = _imageDirectory + "speedtest/download-icon.png";
                 if (_image.src !== imgPath) {
                     _image.src = imgPath;
                 }
             } else if (status === "UP") {
-                if (up_log > 1)
+                if (up_log > 1) {
                     up_log = 1;
+                }
                 _degrees_updwn = Math.round(up_log * 360);
-                var imgPath = _imageDirectory + "speedtest/upload-icon.png";
+                let imgPath = _imageDirectory + "speedtest/upload-icon.png";
                 if (_image.src !== imgPath) {
                     _image.src = imgPath;
                 }
             }
             //console.log("up_log: "+up_log);
             //console.log("degrees_updwn: "+degrees_updwn);
-            _difference = Math.max(1,_new_degrees_status - _degrees_status);
+            _difference = Math.max(1, _new_degrees_status - _degrees_status);
             //This will animate the gauge to new positions
             //The animation will take 1 second
             //time for each frame is 1sec / difference in degrees
             _animation_loop = setInterval(animate_to, 500 / _difference);
             //animation_loop = setInterval(animate_to, 10);
 
-            
+
         };
-        var drawNoCanvas = function() {
-            var show_prog = progress * 100;
-            if (show_prog < 100)
+        let drawNoCanvas = function() {
+            let show_prog = progress * 100;
+            if (show_prog < 100) {
                 show_prog = show_prog.toPrecision(2);
-            else
+            } else {
                 show_prog = 100;
+            }
             $('#progbar').css('width', Math.floor(210 + (show_prog * 2.1)) + 'px');
-            var show_prog_tmp = (show_prog / 2);
+            let show_prog_tmp = (show_prog / 2);
             if (status === TestState.UP) {
                 show_prog_tmp += 50;
             }
-            if (show_prog_tmp < 100)
+            if (show_prog_tmp < 100) {
                 show_prog_tmp = show_prog_tmp.toPrecision(2);
-            else
+            } else {
                 show_prog_tmp = 100;
+            }
             $('#progbar').html(show_prog_tmp + "%");
             $('#activity-indicator').html("(" + show_prog + "%)");
-            var ulbar_width = Math.floor(up_log * 420);
+            let ulbar_width = Math.floor(up_log * 420);
             $('#ulbar').css('width', ulbar_width + 'px');
             $('#ulbar').html(showup);
             $("#showUp").html(showup);
-            
-            var dlbar_width = Math.floor(down_log * 420);
+
+            let dlbar_width = Math.floor(down_log * 420);
             $('#dlbar').css('width', dlbar_width + 'px');
             $('#dlbar').html(showdown);
             $('#showDown').html(showdown);
         };
         set_status(status);
-        
+
         if (_noCanvas) {
             drawNoCanvas();
-        }
-        else {
+        } else {
             drawCanvas();
         }
-        
+
         if (status !== "END" && status !== "ERROR" && status !== "ABORTED") {
             _redraw_loop = setTimeout(draw, 250);
             //Draw a new chart
         } else if (status === "ERROR" || status === "ABORTED") {
 
         } else if (status === "END") {
-
             redirectToTestResult();
         }
         //  }
     }
-    
-    
+
+
     /**
      * function to show current status
      * @param {string} curStatus status that will be displayed
@@ -475,7 +471,7 @@ var TestVisualization = (function() {
         switch (curStatus) {
             case TestState.LOCATE:
                 _infostatus.innerHTML = Lang.getString('Locating');
-                var opts = {
+                let opts = {
                     lines: 7,
                     length: 0,
                     width: 3,
@@ -510,19 +506,19 @@ var TestVisualization = (function() {
                 if (_startTimeQos < 0) {
                     _startTimeQos = (new Date()).getTime();
                 }
-                var now = (new Date()).getTime();
-                var progress = Math.min(1,(now - _startTimeQos)/_qosTestDurationMs);
-                
+                let now = (new Date()).getTime();
+                let progress = Math.min(1,(now - _startTimeQos)/_qosTestDurationMs);
+
                 _infostatus.innerHTML = Lang.getString('QosTest') + " (" + Math.round(progress*100) + "&nbsp;%)";
                 break;
             case TestState.QOS_END:
             case TestState.SPEEDTEST_END:
                 //this could be the NDT test running
                 if(_rmbtTest.getNdtStatus() !== null && _rmbtTest.getNdtStatus().toString() === "RUNNING") {
-                    var progress = _rmbtTest.getNdtProgress();
+                    let progress = _rmbtTest.getNdtProgress();
                     _infostatus.innerHTML = Lang.getString('NDT') + " (" + Math.round(progress*100) + "&nbsp;%)";
                 }
-                
+
                 break;
             case TestState.END:
                 _infostatus.innerHTML = Lang.getString('Finished');
@@ -561,7 +557,7 @@ var TestVisualization = (function() {
     }
 
     function redirectToTestResult() {
-        var forwardUrl = "/" + selectedLanguage + "/Verlauf";
+        let forwardUrl = "/" + selectedLanguage + "/Verlauf";
         if (preferredTest === TestTypes.Java || getParam("Java")) {
             forwardUrl += "?Java=True"
         }
@@ -571,8 +567,8 @@ var TestVisualization = (function() {
             window.location.href = forwardUrl;
         }, 2000);
     }
-    
-    
+
+
     /**
      * function to make the chart move to new degrees
      * (one degree at a time)
@@ -581,9 +577,9 @@ var TestVisualization = (function() {
      */
     function animate_to() {
         //clear animation loop if degrees reaches to new_degrees
-        if (_degrees_status >= _new_degrees_status)
+        if (_degrees_status >= _new_degrees_status) {
             clearInterval(_animation_loop);
-
+        }
 
         if (_degrees_status < _new_degrees_status) {
             _degrees_status++;
