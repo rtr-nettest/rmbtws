@@ -175,8 +175,9 @@ RMBTTestResult.calculateOverallSpeedFromMultipleThreads = (threads, phaseResults
     //TotalTestResult.java:118 (Commit 7d5519ce6ad9121896866d4d8f30299c7c19910d)
     let numThreads = threads.length;
     let targetTime = Infinity;
+
     for (let i = 0; i < numThreads; i++) {
-        let nsecs = phaseResults(threads[i]);
+        const nsecs = phaseResults(threads[i]);
         if (nsecs.length > 0) {
             if (nsecs[nsecs.length - 1].duration < targetTime) {
                 targetTime = nsecs[nsecs.length - 1].duration;
@@ -187,29 +188,31 @@ RMBTTestResult.calculateOverallSpeedFromMultipleThreads = (threads, phaseResults
     let totalBytes = 0;
 
     for (let i = 0; i < numThreads; i++) {
-        let thread = threads[i];
-        if (thread !== null && phaseResults(thread).length > 0) {
-            let targetIdx = phaseResults(thread).length;
-            for (let j = 0; j < phaseResults(thread).length; j++) {
-                if (phaseResults(thread)[j].duration >= targetTime) {
+        const thread = threads[i];
+        const phasedThread = phaseResults(thread);
+        const phasedLength = phasedThread.length;
+
+        if (thread !== null && phasedLength > 0) {
+            let targetIdx = phasedLength;
+            for (let j = 0; j < phasedLength; j++) {
+                if (phasedThread[j].duration >= targetTime) {
                     targetIdx = j;
                     break;
                 }
             }
             let calcBytes;
-            if (targetIdx === phaseResults(thread).length) {
+            if (phasedThread[targetIdx].duration === targetTime) {
                 // nsec[max] == targetTime
-                calcBytes = phaseResults(thread)[phaseResults(thread).length - 1].bytes;
-            }
-            else {
-                let bytes1 = targetIdx === 0 ? 0 : phaseResults(thread)[targetIdx - 1].bytes;
-                let bytes2 = phaseResults(thread)[targetIdx].bytes;
-                let bytesDiff = bytes2 - bytes1;
-                let nsec1 = targetIdx === 0 ? 0 : phaseResults(thread)[targetIdx - 1].duration;
-                let nsec2 = phaseResults(thread)[targetIdx].duration;
-                let nsecDiff = nsec2 - nsec1;
-                let nsecCompensation = targetTime - nsec1;
-                let factor = nsecCompensation / nsecDiff;
+                calcBytes = phasedThread[phasedLength - 1].bytes;
+            } else {
+                const bytes1 = targetIdx === 0 ? 0 : phasedThread[targetIdx - 1].bytes;
+                const bytes2 = phasedThread[targetIdx].bytes;
+                const bytesDiff = bytes2 - bytes1;
+                const nsec1 = targetIdx === 0 ? 0 : phasedThread[targetIdx - 1].duration;
+                const nsec2 = phasedThread[targetIdx].duration;
+                const nsecDiff = nsec2 - nsec1;
+                const nsecCompensation = targetTime - nsec1;
+                const factor = nsecCompensation / nsecDiff;
                 let compensation = Math.round(bytesDiff * factor);
 
                 if (compensation < 0) {

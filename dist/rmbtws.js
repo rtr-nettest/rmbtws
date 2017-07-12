@@ -2231,6 +2231,7 @@ RMBTTestResult.calculateOverallSpeedFromMultipleThreads = function (threads, pha
     //TotalTestResult.java:118 (Commit 7d5519ce6ad9121896866d4d8f30299c7c19910d)
     var numThreads = threads.length;
     var targetTime = Infinity;
+
     for (var i = 0; i < numThreads; i++) {
         var nsecs = phaseResults(threads[i]);
         if (nsecs.length > 0) {
@@ -2244,24 +2245,27 @@ RMBTTestResult.calculateOverallSpeedFromMultipleThreads = function (threads, pha
 
     for (var _i = 0; _i < numThreads; _i++) {
         var thread = threads[_i];
-        if (thread !== null && phaseResults(thread).length > 0) {
-            var targetIdx = phaseResults(thread).length;
-            for (var j = 0; j < phaseResults(thread).length; j++) {
-                if (phaseResults(thread)[j].duration >= targetTime) {
+        var phasedThread = phaseResults(thread);
+        var phasedLength = phasedThread.length;
+
+        if (thread !== null && phasedLength > 0) {
+            var targetIdx = phasedLength;
+            for (var j = 0; j < phasedLength; j++) {
+                if (phasedThread[j].duration >= targetTime) {
                     targetIdx = j;
                     break;
                 }
             }
             var calcBytes = void 0;
-            if (targetIdx === phaseResults(thread).length) {
+            if (phasedThread[targetIdx].duration === targetTime) {
                 // nsec[max] == targetTime
-                calcBytes = phaseResults(thread)[phaseResults(thread).length - 1].bytes;
+                calcBytes = phasedThread[phasedLength - 1].bytes;
             } else {
-                var bytes1 = targetIdx === 0 ? 0 : phaseResults(thread)[targetIdx - 1].bytes;
-                var bytes2 = phaseResults(thread)[targetIdx].bytes;
+                var bytes1 = targetIdx === 0 ? 0 : phasedThread[targetIdx - 1].bytes;
+                var bytes2 = phasedThread[targetIdx].bytes;
                 var bytesDiff = bytes2 - bytes1;
-                var nsec1 = targetIdx === 0 ? 0 : phaseResults(thread)[targetIdx - 1].duration;
-                var nsec2 = phaseResults(thread)[targetIdx].duration;
+                var nsec1 = targetIdx === 0 ? 0 : phasedThread[targetIdx - 1].duration;
+                var nsec2 = phasedThread[targetIdx].duration;
                 var nsecDiff = nsec2 - nsec1;
                 var nsecCompensation = targetTime - nsec1;
                 var factor = nsecCompensation / nsecDiff;
