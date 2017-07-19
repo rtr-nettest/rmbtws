@@ -11,6 +11,19 @@ measurements, based on the WebSocket protocol
 * [Demo implementation of this client](https://www.netztest.at/en/Test)
 * [RTR-Netztest/open-rmbt](https://github.com/rtr-nettest/open-rmbt)
   
+  
+### Usage
+
+For building the compiled `dist`-files, just run `npm install` and generate the files with `gulp`.
+
+A demo file on how to use this client is provided in the "test"-Folder. It can be used when
+serving from a web server, e.g. the command-line `http-server` provided on the npm registry.
+
+Start the server with `http-server`, then point your browser 
+to `http://localhost:8080/test/Websockettest.html`. In this configuration, development 
+infrastructure from [RTR](https://www.netztest.at) is used. When using this infrastructure,
+you agree to the [Privacy Policy](https://www.rtr.at/en/tk/netztestprivacypolicyweb) and
+[Terms of Use](https://www.rtr.at/en/tk/rtrnetztesttermsofuse).
 
 ### Get in Touch
 
