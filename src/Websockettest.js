@@ -24,13 +24,13 @@
 const RMBTTest = (function() {
     const _server_override = "wss://developv4-rmbtws.netztest.at:19002";
 
-    let _logger = null;
+    let _logger;
 
     let _chunkSize;
-    let MAX_CHUNK_SIZE = 4194304;
+    let MAX_CHUNK_SIZE;
     let MIN_CHUNK_SIZE;
     let DEFAULT_CHUNK_SIZE;
-    let _changeChunkSizes = false;
+    let _changeChunkSizes;
 
     /**
      *  @type {RMBTTestConfig}
@@ -40,14 +40,14 @@ const RMBTTest = (function() {
     /**
      * @type {RMBTControlServerCommunication}
      */
-    let _rmbtControlServer = null;
-    let _rmbtTestResult = null;
-    let _errorCallback = null;
-    let _stateChangeCallback = null;
+    let _rmbtControlServer;
+    let _rmbtTestResult;
+    let _errorCallback;
+    let _stateChangeCallback;
 
     let _state;
     let _stateChangeMs;
-    let _statesInfo = {
+    const _statesInfo = {
         durationInitMs: 2500,
         durationPingMs: 500,
         durationUpMs: -1,
@@ -56,17 +56,17 @@ const RMBTTest = (function() {
 
     let _intermediateResult;
 
-    let _threads = [];
-    let _arrayBuffers = {};
-    let _endArrayBuffers = {};
+    let _threads;
+    let _arrayBuffers;
+    let _endArrayBuffers;
 
     let _cyclicBarrier;
     let _numThreadsAllowed;
-    let _numDownloadThreads = 0;
-    let _numUploadThreads = 0;
+    let _numDownloadThreads;
+    let _numUploadThreads;
 
-    let _bytesPerSecsPretest = [];
-    let _totalBytesPerSecsPretest = 0;
+    let _bytesPerSecsPretest;
+    let _totalBytesPerSecsPretest;
 
     //this is an observable/subject
     //http://addyosmani.com/resources/essentialjsdesignpatterns/book/#observerpatternjavascript
@@ -79,9 +79,33 @@ const RMBTTest = (function() {
      * @returns {}
      */
     function RMBTTest(rmbtTestConfig, rmbtControlServer) {
+        //init data structures
+        init();
+
         //init socket
         _rmbtTestConfig = rmbtTestConfig;// = new RMBTTestConfig();
         _rmbtControlServer = rmbtControlServer;
+    }
+
+    function init() {
+        _chunkSize = null;
+        MAX_CHUNK_SIZE = 4194304;
+        MIN_CHUNK_SIZE = 0;
+        DEFAULT_CHUNK_SIZE = 4096;
+        _changeChunkSizes = false;
+        _rmbtTestResult = null;
+        _errorCallback = null;
+        _stateChangeCallback = null;
+        _stateChangeMs = null;
+        _threads = [];
+        _arrayBuffers = {};
+        _endArrayBuffers = {};
+        _cyclicBarrier = null;
+        _numDownloadThreads = 0;
+        _numUploadThreads = 0;
+        _bytesPerSecsPretest = [];
+        _totalBytesPerSecsPretest = 0;
+
         _state = TestState.INIT;
         _logger = log.getLogger("rmbtws");
         _intermediateResult = new RMBTIntermediateResult()
