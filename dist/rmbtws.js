@@ -20,18 +20,23 @@
  *****************************************************************************!*/
 "use strict";
 
-//structure from: http://www.typescriptlang.org/Playground
+/**
+ * RMBTTest main object
+ * @param {RMBTTestConfig} rmbtTestConfig
+ * @param {RMBTControlServerCommunication} rmbtControlServer
+ * @returns {}
+ */
 
-var RMBTTest = function () {
+function RMBTTest(rmbtTestConfig, rmbtControlServer) {
     var _server_override = "wss://developv4-rmbtws.netztest.at:19002";
 
-    var _logger = void 0;
+    var _logger = log.getLogger("rmbtws");
 
-    var _chunkSize = void 0;
-    var MAX_CHUNK_SIZE = void 0;
-    var MIN_CHUNK_SIZE = void 0;
-    var DEFAULT_CHUNK_SIZE = void 0;
-    var _changeChunkSizes = void 0;
+    var _chunkSize = null;
+    var MAX_CHUNK_SIZE = 4194304;
+    var MIN_CHUNK_SIZE = 0;
+    var DEFAULT_CHUNK_SIZE = 4096;
+    var _changeChunkSizes = false;
 
     /**
      *  @type {RMBTTestConfig}
@@ -42,12 +47,12 @@ var RMBTTest = function () {
      * @type {RMBTControlServerCommunication}
      */
     var _rmbtControlServer = void 0;
-    var _rmbtTestResult = void 0;
-    var _errorCallback = void 0;
-    var _stateChangeCallback = void 0;
+    var _rmbtTestResult = null;
+    var _errorCallback = null;
+    var _stateChangeCallback = null;
 
-    var _state = void 0;
-    var _stateChangeMs = void 0;
+    var _state = TestState.INIT;
+    var _stateChangeMs = null;
     var _statesInfo = {
         durationInitMs: 2500,
         durationPingMs: 500,
@@ -55,61 +60,29 @@ var RMBTTest = function () {
         durationDownMs: -1
     };
 
-    var _intermediateResult = void 0;
+    var _intermediateResult = new RMBTIntermediateResult();
 
-    var _threads = void 0;
-    var _arrayBuffers = void 0;
-    var _endArrayBuffers = void 0;
+    var _threads = [];
+    var _arrayBuffers = {};
+    var _endArrayBuffers = {};
 
-    var _cyclicBarrier = void 0;
-    var _numThreadsAllowed = void 0;
-    var _numDownloadThreads = void 0;
-    var _numUploadThreads = void 0;
+    var _cyclicBarrier = null;
+    var _numThreadsAllowed = 0;
+    var _numDownloadThreads = 0;
+    var _numUploadThreads = 0;
 
-    var _bytesPerSecsPretest = void 0;
-    var _totalBytesPerSecsPretest = void 0;
+    var _bytesPerSecsPretest = [];
+    var _totalBytesPerSecsPretest = 0;
 
     //this is an observable/subject
     //http://addyosmani.com/resources/essentialjsdesignpatterns/book/#observerpatternjavascript
     //RMBTTest.prototype = new Subject();
 
-    /**
-     *
-     * @param {RMBTTestConfig} rmbtTestConfig
-     * @param {RMBTControlServerCommunication} rmbtControlServer
-     * @returns {}
-     */
-    function RMBTTest(rmbtTestConfig, rmbtControlServer) {
-        //init data structures
-        init();
 
+    function construct(rmbtTestConfig, rmbtControlServer) {
         //init socket
         _rmbtTestConfig = rmbtTestConfig; // = new RMBTTestConfig();
         _rmbtControlServer = rmbtControlServer;
-    }
-
-    function init() {
-        _chunkSize = null;
-        MAX_CHUNK_SIZE = 4194304;
-        MIN_CHUNK_SIZE = 0;
-        DEFAULT_CHUNK_SIZE = 4096;
-        _changeChunkSizes = false;
-        _rmbtTestResult = null;
-        _errorCallback = null;
-        _stateChangeCallback = null;
-        _stateChangeMs = null;
-        _threads = [];
-        _arrayBuffers = {};
-        _endArrayBuffers = {};
-        _cyclicBarrier = null;
-        _numDownloadThreads = 0;
-        _numUploadThreads = 0;
-        _bytesPerSecsPretest = [];
-        _totalBytesPerSecsPretest = 0;
-
-        _state = TestState.INIT;
-        _logger = log.getLogger("rmbtws");
-        _intermediateResult = new RMBTIntermediateResult();
     }
 
     /**
@@ -133,7 +106,7 @@ var RMBTTest = function () {
      * fails for any reason
      * @param {Function} fct
      */
-    RMBTTest.prototype.onError = function (fct) {
+    this.onError = function (fct) {
         _errorCallback = fct;
     };
 
@@ -141,7 +114,7 @@ var RMBTTest = function () {
      * Callback when the test changes execution state
      * @param {Function} callback
      */
-    RMBTTest.prototype.onStateChange = function (callback) {
+    this.onStateChange = function (callback) {
         _stateChangeCallback = callback;
     };
 
@@ -161,7 +134,7 @@ var RMBTTest = function () {
         }
     };
 
-    RMBTTest.prototype.startTest = function () {
+    this.startTest = function () {
         //see if websockets are supported
         if (window.WebSocket === undefined) {
             callErrorCallback(RMBTError.NOT_SUPPORTED);
@@ -241,7 +214,7 @@ var RMBTTest = function () {
      *
      * @returns {RMBTIntermediateResult}
      */
-    RMBTTest.prototype.getIntermediateResult = function () {
+    this.getIntermediateResult = function () {
         _intermediateResult.status = _state;
         var diffTime = nowNs() / 1e6 - _stateChangeMs;
 
@@ -1079,12 +1052,12 @@ var RMBTTest = function () {
      * Gets the current state of the test
      * @returns {String} enum [INIT, PING]
      */
-    RMBTTest.prototype.getState = function () {
+    this.getState = function () {
         return "INIT";
     };
 
-    return RMBTTest;
-}();
+    construct(rmbtTestConfig, rmbtControlServer);
+};
 "use strict";
 
 var curGeoPos = void 0;
@@ -1304,114 +1277,104 @@ if (typeof window.setCookie === 'undefined') {
 }
 "use strict";
 
-var RMBTControlServerCommunication = function () {
-    var _logger = void 0;
+var RMBTControlServerCommunication = function RMBTControlServerCommunication(rmbtTestConfig) {
+    var _rmbtTestConfig = rmbtTestConfig;
+    var _logger = log.getLogger("rmbtws");
 
-    /**
-     *
-     * @type {RMBTTestConfig}
-     */
-    var _rmbtTestConfig = void 0;
+    return {
+        /**
+         *
+         * @param {RMBTControlServerRegistrationResponseCallback} onsuccess called on completion
+         */
+        obtainControlServerRegistration: function obtainControlServerRegistration(onsuccess, onerror) {
+            var json_data = {
+                version: _rmbtTestConfig.version,
+                language: _rmbtTestConfig.language,
+                uuid: _rmbtTestConfig.uuid,
+                type: _rmbtTestConfig.type,
+                version_code: _rmbtTestConfig.version_code,
+                client: _rmbtTestConfig.client,
+                timezone: _rmbtTestConfig.timezone,
+                time: new Date().getTime()
+            };
 
-    function RMBTControlServerCommunication(rmbtTestConfig) {
-        _rmbtTestConfig = rmbtTestConfig;
-        _logger = log.getLogger("rmbtws");
-    }
+            //add additional parameters from the configuration, if any
+            Object.assign(json_data, _rmbtTestConfig.additionalRegistrationParameters);
 
-    /**
-     *
-     * @param {RMBTControlServerRegistrationResponseCallback} onsuccess called on completion
-     */
-    RMBTControlServerCommunication.prototype.obtainControlServerRegistration = function (onsuccess, onerror) {
-        var json_data = {
-            version: _rmbtTestConfig.version,
-            language: _rmbtTestConfig.language,
-            uuid: _rmbtTestConfig.uuid,
-            type: _rmbtTestConfig.type,
-            version_code: _rmbtTestConfig.version_code,
-            client: _rmbtTestConfig.client,
-            timezone: _rmbtTestConfig.timezone,
-            time: new Date().getTime()
-        };
+            if (typeof userServerSelection !== "undefined" && userServerSelection > 0 && typeof UserConf !== "undefined" && UserConf.preferredServer !== undefined && UserConf.preferredServer !== "default") {
+                json_data['prefer_server'] = UserConf.preferredServer;
+                json_data['user_server_selection'] = userServerSelection;
+            }
+            $.ajax({
+                url: _rmbtTestConfig.controlServerURL + _rmbtTestConfig.controlServerRegistrationResource,
+                type: "post",
+                dataType: "json",
+                contentType: "application/json",
+                data: JSON.stringify(json_data),
+                success: function success(data) {
+                    var config = new RMBTControlServerRegistrationResponse(data);
+                    onsuccess(config);
+                },
+                error: function error() {
+                    _logger.error("error getting testID");
+                    onerror();
+                }
+            });
+        },
 
-        //add additional parameters from the configuration, if any
-        Object.assign(json_data, _rmbtTestConfig.additionalRegistrationParameters);
+        /**
+         * get "data collector" metadata (like browser family) and update config
+         *
+         */
+        getDataCollectorInfo: function getDataCollectorInfo() {
+            $.ajax({
+                url: _rmbtTestConfig.controlServerURL + _rmbtTestConfig.controlServerDataCollectorResource,
+                type: "get",
+                dataType: "json",
+                contentType: "application/json",
+                success: function success(data) {
+                    _rmbtTestConfig.product = data.agent.substring(0, Math.min(150, data.agent.length));
+                    _rmbtTestConfig.model = data.product;
+                    //_rmbtTestConfig.platform = data.product;
+                    _rmbtTestConfig.os_version = data.version;
+                },
+                error: function error() {
+                    _logger.error("error getting data collection response");
+                }
+            });
+        },
 
-        if (typeof userServerSelection !== "undefined" && userServerSelection > 0 && typeof UserConf !== "undefined" && UserConf.preferredServer !== undefined && UserConf.preferredServer !== "default") {
-            json_data['prefer_server'] = UserConf.preferredServer;
-            json_data['user_server_selection'] = userServerSelection;
+        /**
+         *  Post test result
+         *
+         * @param {Object}  json_data Data to be sent to server
+         * @param {Function} callback
+         */
+        submitResults: function submitResults(json_data, onsuccess, onerror) {
+            //add additional parameters from the configuration, if any
+            Object.assign(json_data, _rmbtTestConfig.additionalSubmissionParameters);
+
+            var json = JSON.stringify(json_data);
+            _logger.debug("Submit size: " + json.length);
+            $.ajax({
+                url: _rmbtTestConfig.controlServerURL + _rmbtTestConfig.controlServerResultResource,
+                type: "post",
+                dataType: "json",
+                contentType: "application/json",
+                data: json,
+                success: function success(data) {
+                    _logger.debug("https://develop.netztest.at/en/Verlauf?" + json_data.test_uuid);
+                    //window.location.href = "https://develop.netztest.at/en/Verlauf?" + data.test_uuid;
+                    onsuccess(true);
+                },
+                error: function error() {
+                    _logger.error("error submitting results");
+                    onerror(false);
+                }
+            });
         }
-        $.ajax({
-            url: _rmbtTestConfig.controlServerURL + _rmbtTestConfig.controlServerRegistrationResource,
-            type: "post",
-            dataType: "json",
-            contentType: "application/json",
-            data: JSON.stringify(json_data),
-            success: function success(data) {
-                var config = new RMBTControlServerRegistrationResponse(data);
-                onsuccess(config);
-            },
-            error: function error() {
-                _logger.error("error getting testID");
-                onerror();
-            }
-        });
     };
-
-    /**
-     * get "data collector" metadata (like browser family) and update config
-     *
-     */
-    RMBTControlServerCommunication.prototype.getDataCollectorInfo = function () {
-        $.ajax({
-            url: _rmbtTestConfig.controlServerURL + _rmbtTestConfig.controlServerDataCollectorResource,
-            type: "get",
-            dataType: "json",
-            contentType: "application/json",
-            success: function success(data) {
-                _rmbtTestConfig.product = data.agent.substring(0, Math.min(150, data.agent.length));
-                _rmbtTestConfig.model = data.product;
-                //_rmbtTestConfig.platform = data.product;
-                _rmbtTestConfig.os_version = data.version;
-            },
-            error: function error() {
-                _logger.error("error getting data collection response");
-            }
-        });
-    };
-
-    /**
-     *  Post test result
-     *
-     * @param {Object}  json_data Data to be sent to server
-     * @param {Function} callback
-     */
-    RMBTControlServerCommunication.prototype.submitResults = function (json_data, onsuccess, onerror) {
-        //add additional parameters from the configuration, if any
-        Object.assign(json_data, _rmbtTestConfig.additionalSubmissionParameters);
-
-        var json = JSON.stringify(json_data);
-        _logger.debug("Submit size: " + json.length);
-        $.ajax({
-            url: _rmbtTestConfig.controlServerURL + _rmbtTestConfig.controlServerResultResource,
-            type: "post",
-            dataType: "json",
-            contentType: "application/json",
-            data: json,
-            success: function success(data) {
-                _logger.debug("https://develop.netztest.at/en/Verlauf?" + json_data.test_uuid);
-                //window.location.href = "https://develop.netztest.at/en/Verlauf?" + data.test_uuid;
-                onsuccess(true);
-            },
-            error: function error() {
-                _logger.error("error submitting results");
-                onerror(false);
-            }
-        });
-    };
-
-    return RMBTControlServerCommunication;
-}();
+};
 "use strict";
 
 var TestEnvironment = function () {
@@ -1921,38 +1884,19 @@ function nowNs() {
     return Math.round(window.performance.now() * 1e6); //from ms to ns
 }
 
-//Cyclic Barrier (Java: http://docs.oracle.com/javase/7/docs/api/java/util/concurrent/CyclicBarrier.html )
-var CyclicBarrier = function () {
+/**
+ * Creates a new cyclic barrier
+ * @param {number} parties the number of threads that must invoke await()
+ *      before the barrier is tripped
+ * @see http://docs.oracle.com/javase/7/docs/api/java/util/concurrent/CyclicBarrier.html
+ */
+var CyclicBarrier = function CyclicBarrier(parties) {
     "use strict";
 
-    var _parties = void 0;
+    var _parties = parties;
     var _callbacks = [];
 
-    /**
-     * Creates a new cyclic barrier
-     * @param {number} parties the number of threads that must invoke await()
-     *      before the barrier is tripped
-     */
-    function CyclicBarrier(parties) {
-        _parties = parties;
-    }
-
-    /**
-     * Waits until all parties have invoked await on this barrier
-     * The current context is disabled in any case.
-     *
-     * As soon as all threads have called 'await', all callbacks will
-     * be executed
-     * @param {Function} callback
-     */
-    CyclicBarrier.prototype.await = function (callback) {
-        _callbacks.push(callback);
-        if (_callbacks.length === _parties) {
-            release();
-        }
-    };
-
-    function release() {
+    var release = function release() {
         //first, copy and clear callbacks
         //to prohibit that a callback registers before all others are released
         var tmp = _callbacks.slice();
@@ -1962,10 +1906,28 @@ var CyclicBarrier = function () {
             //prevent side effects in last function that called "await"
             window.setTimeout(tmp[i], 1);
         }
-    }
+    };
 
-    return CyclicBarrier;
-}();
+    return {
+        /**
+         * Waits until all parties have invoked await on this barrier
+         * The current context is disabled in any case.
+         *
+         * As soon as all threads have called 'await', all callbacks will
+         * be executed
+         * @param {Function} callback
+         */
+        await: function _await(callback) {
+            _callbacks.push(callback);
+            if (_callbacks.length === _parties) {
+                window.setTimeout(function () {
+                    release();
+                }, 1);
+            }
+        }
+
+    };
+};
 
 /**
  * Finds the median number in the given array

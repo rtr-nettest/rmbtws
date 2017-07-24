@@ -38,37 +38,18 @@ function nowNs() {
 }
 
 
-//Cyclic Barrier (Java: http://docs.oracle.com/javase/7/docs/api/java/util/concurrent/CyclicBarrier.html )
-const CyclicBarrier = (function() {
+/**
+ * Creates a new cyclic barrier
+ * @param {number} parties the number of threads that must invoke await()
+ *      before the barrier is tripped
+ * @see http://docs.oracle.com/javase/7/docs/api/java/util/concurrent/CyclicBarrier.html
+ */
+function CyclicBarrier(parties) {
     "use strict";
-    let _parties;
+    const _parties = parties;
     let _callbacks = [];
 
-    /**
-     * Creates a new cyclic barrier
-     * @param {number} parties the number of threads that must invoke await()
-     *      before the barrier is tripped
-     */
-    function CyclicBarrier(parties) {
-        _parties = parties;
-    }
-
-    /**
-     * Waits until all parties have invoked await on this barrier
-     * The current context is disabled in any case.
-     *
-     * As soon as all threads have called 'await', all callbacks will
-     * be executed
-     * @param {Function} callback
-     */
-    CyclicBarrier.prototype.await = function(callback) {
-        _callbacks.push(callback);
-        if (_callbacks.length === _parties) {
-            release();
-        }
-    };
-
-    function release() {
+    const release = () => {
         //first, copy and clear callbacks
         //to prohibit that a callback registers before all others are released
         let tmp = _callbacks.slice();
@@ -78,10 +59,28 @@ const CyclicBarrier = (function() {
             //prevent side effects in last function that called "await"
             window.setTimeout(tmp[i], 1);
         }
-    }
+    };
 
-    return CyclicBarrier;
-})();
+    return {
+        /**
+         * Waits until all parties have invoked await on this barrier
+         * The current context is disabled in any case.
+         *
+         * As soon as all threads have called 'await', all callbacks will
+         * be executed
+         * @param {Function} callback
+         */
+        await: (callback) => {
+            _callbacks.push(callback);
+            if (_callbacks.length === _parties) {
+                window.setTimeout(() => {
+                    release();
+                },1);
+            }
+        }
+
+    }
+};
 
 
 /**
