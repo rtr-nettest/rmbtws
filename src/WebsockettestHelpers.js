@@ -57,7 +57,7 @@ function CyclicBarrier(parties) {
 
         for (let i = 0; i < _parties; i++) {
             //prevent side effects in last function that called "await"
-            window.setTimeout(tmp[i], 1);
+            tmp[i]();
         }
     };
 

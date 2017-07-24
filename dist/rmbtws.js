@@ -1890,7 +1890,7 @@ function nowNs() {
  *      before the barrier is tripped
  * @see http://docs.oracle.com/javase/7/docs/api/java/util/concurrent/CyclicBarrier.html
  */
-var CyclicBarrier = function CyclicBarrier(parties) {
+function CyclicBarrier(parties) {
     "use strict";
 
     var _parties = parties;
@@ -1904,7 +1904,7 @@ var CyclicBarrier = function CyclicBarrier(parties) {
 
         for (var i = 0; i < _parties; i++) {
             //prevent side effects in last function that called "await"
-            window.setTimeout(tmp[i], 1);
+            tmp[i]();
         }
     };
 
