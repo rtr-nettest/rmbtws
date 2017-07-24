@@ -54,11 +54,12 @@ function CyclicBarrier(parties) {
         //to prohibit that a callback registers before all others are released
         let tmp = _callbacks.slice();
         _callbacks = [];
-
-        for (let i = 0; i < _parties; i++) {
-            //prevent side effects in last function that called "await"
-            tmp[i]();
-        }
+        self.setTimeout(() => {
+            for (let i = 0; i < _parties; i++) {
+                //prevent side effects in last function that called "await"
+                tmp[i]();
+            }
+        }, 1);
     };
 
     return {
@@ -73,9 +74,7 @@ function CyclicBarrier(parties) {
         await: (callback) => {
             _callbacks.push(callback);
             if (_callbacks.length === _parties) {
-                window.setTimeout(() => {
-                    release();
-                },1);
+                release();
             }
         }
 
