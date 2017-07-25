@@ -184,9 +184,6 @@ var DemoTestVisualization = (function () {
     var lastStatus = -1;
 
     function draw() {
-
-
-        var result = _rmbtTest.getIntermediateResult();
         var status, ping, down, up, up_log, down_log;
         var progress, showup = "-", showdown = "-", showping = "-";
         var result = _rmbtTest.getIntermediateResult();
@@ -270,7 +267,7 @@ var DemoTestVisualization = (function () {
 
     /**
      * Starts the gauge/progress bar
-     * and relies on .getIntermediateResult() therefore
+     * and relies on .getIntermediateResult() therefor
      *  (function previously known as draw())
      */
     DemoTestVisualization.prototype.startTest = function () {
