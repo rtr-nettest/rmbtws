@@ -762,13 +762,13 @@ function RMBTTest(rmbtTestConfig, rmbtControlServer) {
         let lastChunk = null;
         let lastTime = null;
 
-        //read chunk only at some point in the future to save ressources
+        //read chunk only at some point in the future to save resources
         interval = window.setInterval(function() {
             if (lastChunk === null) {
                 return;
             }
 
-            //nothing new happened, do not simulate a accuracy that does not exist
+            //nothing new happened, do not simulate an accuracy that does not exist
             if (lastReportedChunks === readChunks) {
                 return;
             }
