@@ -3,13 +3,6 @@
 <head>
     <meta charset="UTF-8">
     <title>Title</title>
-    <script>
-        selectedLanguage = "de";
-        controlProxy = "https://develop.netztest.at";
-        wspath = "RMBTControlServer";
-
-    </script>
-
     <style>
         .loader {
             border: 2px solid #c3c3c3;
@@ -55,7 +48,7 @@
                 $("#result-uri").attr("href",uri);
                 $("#result-uri").text(uri);
             }), null);
-            var config = new RMBTTestConfig();
+            var config = new RMBTTestConfig("de", "https://develop.netztest.at", "RMBTControlServer");
             var ctrl = new RMBTControlServerCommunication(config);
 
             //demo uuid

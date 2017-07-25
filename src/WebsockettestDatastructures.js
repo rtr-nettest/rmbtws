@@ -1,43 +1,51 @@
 "use strict";
 
-function RMBTTestConfig() { }
-RMBTTestConfig.prototype.version = "0.3"; //minimal version compatible with the test
-RMBTTestConfig.prototype.language = selectedLanguage;
-RMBTTestConfig.prototype.uuid = "";
-RMBTTestConfig.prototype.type = "DESKTOP";
-RMBTTestConfig.prototype.version_code = "0.3"; //minimal version compatible with the test
-RMBTTestConfig.prototype.client_version = "0.3"; //filled out by version information from RMBTServer
-RMBTTestConfig.prototype.client_software_version = "0.7.0";
-RMBTTestConfig.prototype.os_version = 1;
-RMBTTestConfig.prototype.platform = "RMBTws";
-RMBTTestConfig.prototype.model = "Websocket";
-RMBTTestConfig.prototype.product = "Chrome";
-RMBTTestConfig.prototype.client = "RMBTws";
-RMBTTestConfig.prototype.timezone = "Europe/Vienna"; //@TODO
-RMBTTestConfig.prototype.controlServerURL = controlProxy + "/" + wspath;
-RMBTTestConfig.prototype.controlServerRegistrationResource = "/testRequest";
-RMBTTestConfig.prototype.controlServerResultResource = "/result";
-RMBTTestConfig.prototype.controlServerDataCollectorResource = "/requestDataCollector";
+let RMBTTestConfig = (function () {
+    RMBTTestConfig.prototype.version = "0.3"; //minimal version compatible with the test
+    RMBTTestConfig.prototype.language;
+    RMBTTestConfig.prototype.uuid = "";
+    RMBTTestConfig.prototype.type = "DESKTOP";
+    RMBTTestConfig.prototype.version_code = "0.3"; //minimal version compatible with the test
+    RMBTTestConfig.prototype.client_version = "0.3"; //filled out by version information from RMBTServer
+    RMBTTestConfig.prototype.client_software_version = "0.7.0";
+    RMBTTestConfig.prototype.os_version = 1;
+    RMBTTestConfig.prototype.platform = "RMBTws";
+    RMBTTestConfig.prototype.model = "Websocket";
+    RMBTTestConfig.prototype.product = "Chrome";
+    RMBTTestConfig.prototype.client = "RMBTws";
+    RMBTTestConfig.prototype.timezone = "Europe/Vienna"; //@TODO
+    RMBTTestConfig.prototype.controlServerURL;
+    RMBTTestConfig.prototype.controlServerRegistrationResource = "/testRequest";
+    RMBTTestConfig.prototype.controlServerResultResource = "/result";
+    RMBTTestConfig.prototype.controlServerDataCollectorResource = "/requestDataCollector";
 //?!? - from RMBTTestParameter.java
-RMBTTestConfig.prototype.pretestDurationMs = 2000;
-RMBTTestConfig.prototype.savedChunks = 4; //4*4 + 4*8 + 4*16 + ... + 4*MAX_CHUNK_SIZE -> O(8*MAX_CHUNK_SIZE)
-RMBTTestConfig.prototype.measurementPointsTimespan = 40; //1 measure point every 40 ms
-RMBTTestConfig.prototype.numPings = 10; //do 10 pings
+    RMBTTestConfig.prototype.pretestDurationMs = 2000;
+    RMBTTestConfig.prototype.savedChunks = 4; //4*4 + 4*8 + 4*16 + ... + 4*MAX_CHUNK_SIZE -> O(8*MAX_CHUNK_SIZE)
+    RMBTTestConfig.prototype.measurementPointsTimespan = 40; //1 measure point every 40 ms
+    RMBTTestConfig.prototype.numPings = 10; //do 10 pings
 //max used threads for this test phase (upper limit: RegistrationResponse)
-RMBTTestConfig.prototype.downloadThreadsLimitsMbit = {
-    0: 1,
-    1: 3,
-    100: 5
-};
-RMBTTestConfig.prototype.uploadThreadsLimitsMbit = {
-    0: 1,
-    30: 2,
-    80: 3,
-    150: 5
-};
-RMBTTestConfig.prototype.userServerSelection = ((typeof window.userServerSelection !== 'undefined') ? userServerSelection : 0); //for QoSTest
-RMBTTestConfig.prototype.additionalRegistrationParameters = {}; //will be transmitted in ControlServer registration, if any
-RMBTTestConfig.prototype.additionalSubmissionParameters = {}; //will be transmitted in ControlServer result submission, if any
+    RMBTTestConfig.prototype.downloadThreadsLimitsMbit = {
+        0: 1,
+        1: 3,
+        100: 5
+    };
+    RMBTTestConfig.prototype.uploadThreadsLimitsMbit = {
+        0: 1,
+        30: 2,
+        80: 3,
+        150: 5
+    };
+    RMBTTestConfig.prototype.userServerSelection = ((typeof window.userServerSelection !== 'undefined') ? userServerSelection : 0); //for QoSTest
+    RMBTTestConfig.prototype.additionalRegistrationParameters = {}; //will be transmitted in ControlServer registration, if any
+    RMBTTestConfig.prototype.additionalSubmissionParameters = {}; //will be transmitted in ControlServer result submission, if any
+
+    function RMBTTestConfig(language, controlProxy, wsPath) {
+        this.language = language;
+        this.controlServerURL = controlProxy + "/" + wsPath;
+    }
+
+    return RMBTTestConfig;
+}());
 
 
 let RMBTControlServerRegistrationResponse = (function() {
