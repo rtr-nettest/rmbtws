@@ -160,10 +160,9 @@ function RMBTTest(rmbtTestConfig, rmbtControlServer) {
 
             var continuation = function continuation() {
                 _logger.debug("got geolocation, obtaining token and websocket address");
-                setState(TestState.WAIT);
 
                 //wait if we have to
-                window.setTimeout(function () {
+                var continuation = function continuation() {
                     setState(TestState.INIT);
                     _rmbtTestResult.beginTime = Date.now();
                     //n threads
@@ -187,7 +186,17 @@ function RMBTTest(rmbtTestConfig, rmbtControlServer) {
 
                         _threads.push(thread);
                     }
-                }, response.test_wait * 1e3);
+                };
+
+                if (response.test_wait === 0) {
+                    continuation();
+                } else {
+                    _logger.info("test scheduled for start in " + response.test_wait + " second(s)");
+                    setState(TestState.WAIT);
+                    self.setTimeout(function () {
+                        continuation();
+                    }, response.test_wait * 1e3);
+                }
             };
 
             var wsGeoTracker = void 0;
@@ -1529,7 +1538,7 @@ RMBTTestConfig.prototype.uuid = "";
 RMBTTestConfig.prototype.type = "DESKTOP";
 RMBTTestConfig.prototype.version_code = "0.3"; //minimal version compatible with the test
 RMBTTestConfig.prototype.client_version = "0.3"; //filled out by version information from RMBTServer
-RMBTTestConfig.prototype.client_software_version = "0.7.0";
+RMBTTestConfig.prototype.client_software_version = "0.7.1";
 RMBTTestConfig.prototype.os_version = 1;
 RMBTTestConfig.prototype.platform = "RMBTws";
 RMBTTestConfig.prototype.model = "Websocket";

@@ -164,10 +164,9 @@ function RMBTTest(rmbtTestConfig, rmbtControlServer) {
 
             const continuation = function() {
                 _logger.debug("got geolocation, obtaining token and websocket address");
-                setState(TestState.WAIT);
 
                 //wait if we have to
-                window.setTimeout(function() {
+                const continuation = () => {
                     setState(TestState.INIT);
                     _rmbtTestResult.beginTime = Date.now();
                     //n threads
@@ -177,7 +176,7 @@ function RMBTTest(rmbtTestConfig, rmbtControlServer) {
                         _rmbtTestResult.addThread(thread.result);
 
                         //only one thread will call after upload is finished
-                        conductTest(response, thread, function() {
+                        conductTest(response, thread, function () {
                             _logger.info("All tests finished");
                             wsGeoTracker.stop();
                             _rmbtTestResult.geoLocations = wsGeoTracker.getResults();
@@ -195,7 +194,19 @@ function RMBTTest(rmbtTestConfig, rmbtControlServer) {
 
                         _threads.push(thread);
                     }
-                }, response.test_wait * 1e3);
+                };
+
+                if (response.test_wait === 0) {
+                    continuation();
+                }
+                else {
+                    _logger.info("test scheduled for start in " + response.test_wait + " second(s)");
+                    setState(TestState.WAIT);
+                    self.setTimeout(function () {
+                        continuation();
+                    }, response.test_wait * 1e3);
+                }
+
             };
 
             let wsGeoTracker;
