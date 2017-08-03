@@ -122,14 +122,14 @@ function RMBTTest(rmbtTestConfig, rmbtControlServer) {
      * @param {RMBTError} error
      */
     const callErrorCallback = function(error) {
-        _logger.debug("error occurred during websocket test");
+        _logger.debug("error occurred during websocket test:", error);
         if (error !== RMBTError.NOT_SUPPORTED) {
             setState(TestState.ERROR);
         }
         if (_errorCallback !== null) {
             let t = _errorCallback;
             _errorCallback = null;
-            t();
+            t(error);
         }
     };
 
