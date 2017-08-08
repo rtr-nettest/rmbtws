@@ -310,7 +310,10 @@ function RMBTTest(rmbtTestConfig, rmbtControlServer) {
                 IGNORE: function IGNORE() {
                     //ignore error :)
                 },
-                CALLGLOBALHANDLER: function CALLGLOBALHANDLER() {
+                CALLGLOBALHANDLER: function CALLGLOBALHANDLER(error) {
+                    if (error) {
+                        _logger.error("an error occurred", error);
+                    }
                     callErrorCallback(RMBTError.CONNECT_FAILED);
                 },
                 TRYRECONNECT: function TRYRECONNECT() {
@@ -427,6 +430,7 @@ function RMBTTest(rmbtTestConfig, rmbtControlServer) {
         try {
             thread.socket = new WebSocket(server);
         } catch (e) {
+            _logger.error("socket connect failed", e);
             callErrorCallback(RMBTError.SOCKET_INIT_FAILED);
             return;
         }
