@@ -123,14 +123,14 @@ function RMBTTest(rmbtTestConfig, rmbtControlServer) {
      * @param {RMBTError} error
      */
     var callErrorCallback = function callErrorCallback(error) {
-        _logger.debug("error occurred during websocket test");
+        _logger.debug("error occurred during websocket test:", error);
         if (error !== RMBTError.NOT_SUPPORTED) {
             setState(TestState.ERROR);
         }
         if (_errorCallback !== null) {
             var t = _errorCallback;
             _errorCallback = null;
-            t();
+            t(error);
         }
     };
 
@@ -310,7 +310,10 @@ function RMBTTest(rmbtTestConfig, rmbtControlServer) {
                 IGNORE: function IGNORE() {
                     //ignore error :)
                 },
-                CALLGLOBALHANDLER: function CALLGLOBALHANDLER() {
+                CALLGLOBALHANDLER: function CALLGLOBALHANDLER(e) {
+                    if (e) {
+                        _logger.error("connection closed", e);
+                    }
                     callErrorCallback(RMBTError.CONNECT_FAILED);
                 },
                 TRYRECONNECT: function TRYRECONNECT() {
@@ -1972,20 +1975,28 @@ Math.log10 = Math.log10 || function (x) {
 
 //"loglevel" module is used, but if not available, it will fallback to console.log
 self.log = self.log || {
-    debug: function debug(msg) {
-        console.log(msg);
+    debug: function debug() {
+        var _console;
+
+        (_console = console).log.apply(_console, arguments);
     },
     trace: function trace() {
         console.trace();
     },
-    info: function info(msg) {
-        console.info(msg);
+    info: function info() {
+        var _console2;
+
+        (_console2 = console).info.apply(_console2, arguments);
     },
-    warn: function warn(msg) {
-        console.warn(msg);
+    warn: function warn() {
+        var _console3;
+
+        (_console3 = console).warn.apply(_console3, arguments);
     },
-    error: function error(msg) {
-        console.error(msg);
+    error: function error() {
+        var _console4;
+
+        (_console4 = console).error.apply(_console4, arguments);
     },
     setLevel: function setLevel() {},
     getLogger: function getLogger() {

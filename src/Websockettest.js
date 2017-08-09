@@ -122,14 +122,14 @@ function RMBTTest(rmbtTestConfig, rmbtControlServer) {
      * @param {RMBTError} error
      */
     const callErrorCallback = function(error) {
-        _logger.debug("error occurred during websocket test");
+        _logger.debug("error occurred during websocket test:", error);
         if (error !== RMBTError.NOT_SUPPORTED) {
             setState(TestState.ERROR);
         }
         if (_errorCallback !== null) {
             let t = _errorCallback;
             _errorCallback = null;
-            t();
+            t(error);
         }
     };
 
@@ -322,7 +322,10 @@ function RMBTTest(rmbtTestConfig, rmbtControlServer) {
                 IGNORE : function() {
                     //ignore error :)
                 },
-                CALLGLOBALHANDLER : function() {
+                CALLGLOBALHANDLER : function(e) {
+                    if (e) {
+                        _logger.error("connection closed", e);
+                    }
                     callErrorCallback(RMBTError.CONNECT_FAILED);
                 },
                 TRYRECONNECT : function() {
