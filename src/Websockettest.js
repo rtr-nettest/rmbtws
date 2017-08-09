@@ -90,6 +90,11 @@ function RMBTTest(rmbtTestConfig, rmbtControlServer) {
      * @param {TestState} state
      */
     function setState(state) {
+        if (state == TestState.ERROR) {
+            if (TestEnvironment.getGeoTracker() !== null) {
+                TestEnvironment.getGeoTracker().stop()
+            }
+        }
         if (_state === undefined || _state !== state) {
             _state = state;
             _stateChangeMs = nowMs();
