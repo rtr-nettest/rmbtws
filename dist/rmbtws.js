@@ -1143,8 +1143,8 @@ function getLocation(geoAccuracy, geoTimeout, geoMaxAge, callback) {
 var GeoTracker = function () {
     "use strict";
 
-    var _errorTimeout = 2000; //2 seconds error timeout
-    var _maxAge = 6000; //up to one minute old - don't do geoposition again
+    var _errorTimeout = 2e3; //2 seconds error timeout
+    var _maxAge = 60e3; //up to one minute old - don't do geoposition again
 
     var _positions = void 0;
     var _clientCallback = void 0;
