@@ -73,6 +73,9 @@ function getLocation(geoAccuracy, geoTimeout, geoMaxAge, callback) {
 const GeoTracker = (function() {
     "use strict";
 
+    const _errorTimeout = 2000; //2 seconds error timeout
+    const _maxAge = 6000; //up to one minute old - don't do geoposition again
+
     let _positions;
     let _clientCallback;
     let _testVisualization = null;
@@ -107,8 +110,8 @@ const GeoTracker = (function() {
                 }
             }, errorFunction, {
                 enableHighAccuracy: false,
-                timeout: 2000, //2 seconds
-                maximumAge: 60000 //one minute
+                timeout: _errorTimeout, //2 seconds
+                maximumAge: _maxAge //one minute
             });
             //and refine this position later
             _watcher = navigator.geolocation.watchPosition(successFunction, errorFunction, {
@@ -123,7 +126,11 @@ const GeoTracker = (function() {
             t(false);
         }
 
-        //call at latest after 2 seconds
+        //Microsoft Edge does not adhere to the standard, and does not call the error
+        //function after the specified callback, so we have to call it manually
+        window.setTimeout(() => {
+            errorFunction();
+        }, _errorTimeout);
     };
 
     /**
