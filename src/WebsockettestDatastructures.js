@@ -291,7 +291,6 @@ RMBTTestResult.prototype.calculateAll = function() {
 
     //ping
     let pings = this.threads[0].pings;
-    let shortest = Infinity;
     for (let i = 0; i < pings.length; i++) {
         this.pings.push({
            value: pings[i].client,
@@ -299,11 +298,7 @@ RMBTTestResult.prototype.calculateAll = function() {
            time_ns: pings[i].timeNs
         });
 
-        if (pings[i].client < shortest) {
-            shortest = pings[i].client;
-        }
     }
-    this.ping_shortest = shortest;
 };
 
 

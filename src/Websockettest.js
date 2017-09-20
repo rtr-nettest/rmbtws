@@ -280,7 +280,7 @@ function RMBTTest(rmbtTestConfig, rmbtControlServer) {
 
         if (_rmbtTestResult !== null) {
             if (_intermediateResult.status === TestState.PING || _intermediateResult.status === TestState.DOWN) {
-                _intermediateResult.pingNano = _rmbtTestResult.ping_median;
+                _intermediateResult.pingNano = _rmbtTestResult.ping_server_median;
             }
 
             if (_intermediateResult.status === TestState.DOWN || _intermediateResult.status == TestState.INIT_UP) {
@@ -679,7 +679,6 @@ function RMBTTest(rmbtTestConfig, rmbtControlServer) {
     }
 
     function pingTest(thread) {
-        let shortestPing = Infinity;
         let prevListener = thread.socket.onmessage;
         let pingsRemaining = _rmbtTestConfig.numPings;
 
@@ -688,9 +687,6 @@ function RMBTTest(rmbtTestConfig, rmbtControlServer) {
 
             thread.result.pings.push(pingResult);
 
-            if (pingResult.client < shortestPing) {
-                shortestPing = pingResult.client;
-            }
             _logger.debug(thread.id + ": PING " + pingResult.client + " ns client; " + pingResult.server + " ns server");
 
             if (pingsRemaining > 0) {
@@ -706,14 +702,26 @@ function RMBTTest(rmbtTestConfig, rmbtControlServer) {
                 //"break
 
                 //median ping
-                let tArray = [];
+                let tArrayClient = [];
                 for (let i = 0; i < thread.result.pings.length; i++) {
-                    tArray.push(thread.result.pings[i].client);
+                    tArrayClient.push(thread.result.pings[i].client);
                 }
-                _rmbtTestResult.ping_median = Math.median(tArray);
+                _rmbtTestResult.ping_client_median = Math.median(tArrayClient);
+                _rmbtTestResult.ping_client_shortest = Math.min.apply(Math, tArrayClient);
 
-                _logger.debug(thread.id + ": shortest: " + Math.round(shortestPing / 1000) / 1000 + " ms");
-                _rmbtTestResult.ping_shortest = shortestPing;
+                let tArrayServer = [];
+                for (let i = 0; i < thread.result.pings.length; i++) {
+                    tArrayServer.push(thread.result.pings[i].server);
+                }
+
+                _rmbtTestResult.ping_server_median = Math.median(tArrayServer);
+                _rmbtTestResult.ping_server_shortest = Math.min.apply(Math, tArrayServer);
+
+                _logger.debug(thread.id + ": median client: " + Math.round(_rmbtTestResult.ping_client_median / 1e3) / 1e3 + " ms; " +
+                    "median server: " + Math.round(_rmbtTestResult.ping_server_median / 1e3) / 1e3 + " ms");
+                _logger.debug(thread.id + ": shortest client: " + Math.round(_rmbtTestResult.ping_client_shortest / 1e3) / 1e3 + " ms; " +
+                    "shortest server: " + Math.round(_rmbtTestResult.ping_server_shortest / 1e3) / 1e3 + " ms");
+
                 thread.socket.onmessage = prevListener;
             }
         };
@@ -1061,7 +1069,7 @@ function RMBTTest(rmbtTestConfig, rmbtControlServer) {
             test_nsec_upload: _rmbtTestResult.nsec_upload,
             test_num_threads: _numDownloadThreads,
             num_threads_ul: _numUploadThreads,
-            test_ping_shortest: _rmbtTestResult.ping_shortest,
+            test_ping_shortest: _rmbtTestResult.ping_server_shortest,
             test_speed_download: _rmbtTestResult.speed_download,
             test_speed_upload: _rmbtTestResult.speed_upload,
             test_token: registrationResponse.test_token,
