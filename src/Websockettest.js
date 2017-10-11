@@ -54,7 +54,7 @@ function RMBTTest(rmbtTestConfig, rmbtControlServer) {
     let _stateChangeMs=null;
     const _statesInfo = {
         durationInitMs: 2500,
-        durationPingMs: 1400,
+        durationPingMs: 10000, //set dynamically
         durationUpMs: -1,
         durationDownMs: -1
     };
@@ -683,19 +683,18 @@ function RMBTTest(rmbtTestConfig, rmbtControlServer) {
         let pingsRemaining = _rmbtTestConfig.numPings;
 
         const onsuccess = function(pingResult) {
-            //use first ping to do a better approximation of the remaining time
-            if (pingsRemaining == _rmbtTestConfig.numPings) {
+            thread.result.pings.push(pingResult);
+
+            //use first two pings to do a better approximation of the remaining time
+            if (pingsRemaining === (_rmbtTestConfig.numPings - 1)) {
                 //PING -> PONG -> OK -> TIME -> ACCEPT ... -> PING -> ...
-                _statesInfo.durationPingMs = Math.round(pingResult.client * 2 + pingResult.server * 2) / 1e6 * _rmbtTestConfig.numPings;
-                _statesInfo.durationPingMs = Math.max(_statesInfo.durationPingMs, 1000);
+                _statesInfo.durationPingMs = (thread.result.pings[1].timeNs - thread.result.pings[0].timeNs) / 1e6 * _rmbtTestConfig.numPings;
                 _logger.debug(thread.id + ": PING phase will take approx " + _statesInfo.durationPingMs + " ms");
             }
 
-            pingsRemaining--;
-
-            thread.result.pings.push(pingResult);
-
             _logger.debug(thread.id + ": PING " + pingResult.client + " ns client; " + pingResult.server + " ns server");
+
+            pingsRemaining--;
 
             if (pingsRemaining > 0) {
                 //wait for new 'ACCEPT'-message
