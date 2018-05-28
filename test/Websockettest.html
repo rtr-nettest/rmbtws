@@ -44,15 +44,15 @@
             log.getLogger("rmbtws").setLevel("debug");
 
             TestEnvironment.init(new DemoTestVisualization(function(success) {
-                var uri = "https://develop.netztest.at/en/Verlauf?" + success["testUUID"];
+                var uri = "https://dev.netztest.at/en/Verlauf?" + success["testUUID"];
                 $("#result-uri").attr("href",uri);
                 $("#result-uri").text(uri);
             }), null);
-            var config = new RMBTTestConfig("de", "https://develop.netztest.at", "RMBTControlServer");
+            var config = new RMBTTestConfig("de", "https://dev.netztest.at", "RMBTControlServer");
             var ctrl = new RMBTControlServerCommunication(config);
 
             //demo uuid
-            config.uuid = "d105ee81-59c4-4850-abf7-d38f82c27345";
+            config.uuid = "61244514-1fe8-483f-814a-1734fa4c4a3f";
 
             var websocketTest = new RMBTTest(config, ctrl);
 

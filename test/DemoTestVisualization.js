@@ -219,19 +219,19 @@ var DemoTestVisualization = (function () {
         //show-Strings
         if (ping > 0) {
             showping = (ping / 1000000);
-            showping = showping.toPrecision(2) + " ms";
+            showping = showping.toPrecision(3) + " ms";
             $("#infoping span").text(showping);
         }
 
         if (down > 0) {
             showdown = (down / 1000000);
-            showdown = showdown.toPrecision(2) + " Mbps";
+            showdown = showdown.toPrecision(3) + " Mbps";
             $("#infodown span").text(showdown);
         }
 
         if (up > 0) {
             showup = (up / 1000000);
-            showup = showup.toPrecision(2) + " Mbps";
+            showup = showup.toPrecision(3) + " Mbps";
             $("#infoup span").text(showup);
         }
 
