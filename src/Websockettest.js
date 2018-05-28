@@ -1082,7 +1082,7 @@ function RMBTTest(rmbtTestConfig, rmbtControlServer) {
             test_token: registrationResponse.test_token,
             test_uuid: registrationResponse.test_uuid,
             time: _rmbtTestResult.beginTime,
-            timezone: "Europe/Vienna",
+            timezone: _rmbtTestConfig.timezone,
             type: "DESKTOP",
             version_code: "1",
             speed_detail: _rmbtTestResult.speedItems,

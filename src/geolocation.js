@@ -49,20 +49,26 @@ function getLocation(geoAccuracy, geoTimeout, geoMaxAge, callback) {
     TestEnvironment.getGeoTracker().start(function(successful, error) {
         if (successful !== true) {
             //user did not allow geolocation or other reason
-            switch (error.code) {
-                case error.PERMISSION_DENIED:
+            if (error) {
+                switch (error.code) {
+                    case error.PERMISSION_DENIED:
                         ausgabe.innerHTML = Lang.getString('NoPermission');
                         break;
-                case error.TIMEOUT:
+                    case error.TIMEOUT:
                         //@TODO: Position is determined...
                         //alert(1);
                         break;
-                case error.POSITION_UNAVAILABLE:
+                    case error.POSITION_UNAVAILABLE:
                         ausgabe.innerHTML = Lang.getString('NotAvailable');
                         break;
-                case error.UNKNOWN_ERROR:
-                        ausgabe.innerHTML = Lang.getString('NotAvailable') + "(" + error.code +")";
+                    case error.UNKNOWN_ERROR:
+                        ausgabe.innerHTML = Lang.getString('NotAvailable') + "(" + error.code + ")";
                         break;
+                }
+            }
+            else {
+                //Internet Explorer 11 in some cases does not return an error code
+                ausgabe.innerHTML = Lang.getString('NotAvailable');
             }
         }
     }, TestEnvironment.getTestVisualization());

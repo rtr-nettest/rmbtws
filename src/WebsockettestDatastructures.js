@@ -13,7 +13,7 @@ let RMBTTestConfig = (function () {
     RMBTTestConfig.prototype.model = "Websocket";
     RMBTTestConfig.prototype.product = "Chrome";
     RMBTTestConfig.prototype.client = "RMBTws";
-    RMBTTestConfig.prototype.timezone = "Europe/Vienna"; //@TODO
+    RMBTTestConfig.prototype.timezone = "Europe/Vienna";
     RMBTTestConfig.prototype.controlServerURL;
     RMBTTestConfig.prototype.controlServerRegistrationResource = "/testRequest";
     RMBTTestConfig.prototype.controlServerResultResource = "/result";
@@ -42,6 +42,11 @@ let RMBTTestConfig = (function () {
     function RMBTTestConfig(language, controlProxy, wsPath) {
         this.language = language;
         this.controlServerURL = controlProxy + "/" + wsPath;
+
+        if (typeof Intl !== 'undefined' && Intl.DateTimeFormat().resolvedOptions().timeZone) {
+            //we are based in Vienna :-)
+            this.timezone = Intl.DateTimeFormat().resolvedOptions().timeZone.replace("Europe/Berlin","Europe/Vienna");
+        }
     }
 
     return RMBTTestConfig;

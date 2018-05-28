@@ -1065,7 +1065,7 @@ function RMBTTest(rmbtTestConfig, rmbtControlServer) {
             test_token: registrationResponse.test_token,
             test_uuid: registrationResponse.test_uuid,
             time: _rmbtTestResult.beginTime,
-            timezone: "Europe/Vienna",
+            timezone: _rmbtTestConfig.timezone,
             type: "DESKTOP",
             version_code: "1",
             speed_detail: _rmbtTestResult.speedItems,
@@ -1133,20 +1133,25 @@ function getLocation(geoAccuracy, geoTimeout, geoMaxAge, callback) {
     TestEnvironment.getGeoTracker().start(function (successful, error) {
         if (successful !== true) {
             //user did not allow geolocation or other reason
-            switch (error.code) {
-                case error.PERMISSION_DENIED:
-                    ausgabe.innerHTML = Lang.getString('NoPermission');
-                    break;
-                case error.TIMEOUT:
-                    //@TODO: Position is determined...
-                    //alert(1);
-                    break;
-                case error.POSITION_UNAVAILABLE:
-                    ausgabe.innerHTML = Lang.getString('NotAvailable');
-                    break;
-                case error.UNKNOWN_ERROR:
-                    ausgabe.innerHTML = Lang.getString('NotAvailable') + "(" + error.code + ")";
-                    break;
+            if (error) {
+                switch (error.code) {
+                    case error.PERMISSION_DENIED:
+                        ausgabe.innerHTML = Lang.getString('NoPermission');
+                        break;
+                    case error.TIMEOUT:
+                        //@TODO: Position is determined...
+                        //alert(1);
+                        break;
+                    case error.POSITION_UNAVAILABLE:
+                        ausgabe.innerHTML = Lang.getString('NotAvailable');
+                        break;
+                    case error.UNKNOWN_ERROR:
+                        ausgabe.innerHTML = Lang.getString('NotAvailable') + "(" + error.code + ")";
+                        break;
+                }
+            } else {
+                //Internet Explorer 11 in some cases does not return an error code
+                ausgabe.innerHTML = Lang.getString('NotAvailable');
             }
         }
     }, TestEnvironment.getTestVisualization());
@@ -1567,7 +1572,7 @@ var RMBTTestConfig = function () {
     RMBTTestConfig.prototype.model = "Websocket";
     RMBTTestConfig.prototype.product = "Chrome";
     RMBTTestConfig.prototype.client = "RMBTws";
-    RMBTTestConfig.prototype.timezone = "Europe/Vienna"; //@TODO
+    RMBTTestConfig.prototype.timezone = "Europe/Vienna";
     RMBTTestConfig.prototype.controlServerURL;
     RMBTTestConfig.prototype.controlServerRegistrationResource = "/testRequest";
     RMBTTestConfig.prototype.controlServerResultResource = "/result";
@@ -1596,6 +1601,11 @@ var RMBTTestConfig = function () {
     function RMBTTestConfig(language, controlProxy, wsPath) {
         this.language = language;
         this.controlServerURL = controlProxy + "/" + wsPath;
+
+        if (typeof Intl !== 'undefined' && Intl.DateTimeFormat().resolvedOptions().timeZone) {
+            //we are based in Vienna :-)
+            this.timezone = Intl.DateTimeFormat().resolvedOptions().timeZone.replace("Europe/Berlin", "Europe/Vienna");
+        }
     }
 
     return RMBTTestConfig;
