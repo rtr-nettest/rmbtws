@@ -1,7 +1,7 @@
 /*!******************************************************************************
  * @license
  * Copyright 2015-2017 Thomas Schreiber
- * Copyright 2017      Rundfunk und Telekom Regulierungs-GmbH (RTR-GmbH)
+ * Copyright 2017-2018 Rundfunk und Telekom Regulierungs-GmbH (RTR-GmbH)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
