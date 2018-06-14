@@ -42,6 +42,7 @@ const TestState = {
     INIT_DOWN: "INIT_DOWN",
     PING: "PING",
     DOWN: "DOWN",
+    CONNECT_UPLOAD: "CONNECT_UPLOAD",
     INIT_UP: "INIT_UP",
     UP: "UP",
     END: "END",

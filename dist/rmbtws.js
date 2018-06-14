@@ -362,12 +362,23 @@ function RMBTTest(rmbtTestConfig, rmbtControlServer) {
             if (thread.id < _numDownloadThreads) {
                 downloadTest(thread, registrationResponse.test_duration);
             } else {
+                thread.socket.onerror = errorFunctions.IGNORE;
+                thread.socket.onclose = errorFunctions.IGNORE;
                 thread.triggerNextState();
             }
         });
 
-        thread.onStateEnter(TestState.INIT_UP, function () {
+        thread.onStateEnter(TestState.CONNECT_UPLOAD, function () {
             setState(TestState.INIT_UP);
+            //terminate connection, reconnect
+            thread.socket.onerror = errorFunctions.IGNORE;
+            thread.socket.onclose = errorFunctions.IGNORE;
+            thread.socket.close();
+            connectToServer(thread, server, registrationResponse.test_token, errorFunctions.CALLGLOBALHANDLER);
+        });
+
+        thread.onStateEnter(TestState.INIT_UP, function () {
+            //setState(TestState.INIT_UP);
             _chunkSize = MIN_CHUNK_SIZE;
 
             shortUploadtest(thread, _rmbtTestConfig.pretestDurationMs);
@@ -1455,6 +1466,7 @@ var TestState = {
     INIT_DOWN: "INIT_DOWN",
     PING: "PING",
     DOWN: "DOWN",
+    CONNECT_UPLOAD: "CONNECT_UPLOAD",
     INIT_UP: "INIT_UP",
     UP: "UP",
     END: "END",
@@ -1697,7 +1709,7 @@ function RMBTTestThread(cyclicBarrier) {
          * Triggers the next state in the thread
          */
         triggerNextState: function triggerNextState() {
-            var states = [TestState.INIT, TestState.INIT_DOWN, TestState.PING, TestState.DOWN, TestState.INIT_UP, TestState.UP, TestState.END];
+            var states = [TestState.INIT, TestState.INIT_DOWN, TestState.PING, TestState.DOWN, TestState.CONNECT_UPLOAD, TestState.INIT_UP, TestState.UP, TestState.END];
             if (this.state !== TestState.END) {
                 var nextState = states[states.indexOf(this.state) + 1];
                 _logger.debug(this.id + ": triggered state " + nextState);

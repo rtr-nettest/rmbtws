@@ -374,12 +374,23 @@ function RMBTTest(rmbtTestConfig, rmbtControlServer) {
             if (thread.id < _numDownloadThreads) {
                 downloadTest(thread, registrationResponse.test_duration);
             } else {
+                thread.socket.onerror = errorFunctions.IGNORE;
+                thread.socket.onclose = errorFunctions.IGNORE;
                 thread.triggerNextState();
             }
         });
 
-        thread.onStateEnter(TestState.INIT_UP, function() {
+        thread.onStateEnter(TestState.CONNECT_UPLOAD, function () {
             setState(TestState.INIT_UP);
+            //terminate connection, reconnect
+            thread.socket.onerror = errorFunctions.IGNORE;
+            thread.socket.onclose = errorFunctions.IGNORE;
+            thread.socket.close();
+            connectToServer(thread,server,registrationResponse.test_token, errorFunctions.CALLGLOBALHANDLER);
+        });
+
+        thread.onStateEnter(TestState.INIT_UP, function() {
+            //setState(TestState.INIT_UP);
             _chunkSize = MIN_CHUNK_SIZE;
 
             shortUploadtest(thread, _rmbtTestConfig.pretestDurationMs);

@@ -141,7 +141,7 @@ function RMBTTestThread(cyclicBarrier) {
          */
         triggerNextState: function() {
             let states = [TestState.INIT, TestState.INIT_DOWN, TestState.PING,
-                TestState.DOWN, TestState.INIT_UP, TestState.UP, TestState.END];
+                TestState.DOWN, TestState.CONNECT_UPLOAD, TestState.INIT_UP, TestState.UP, TestState.END];
             if (this.state !== TestState.END) {
                 let nextState = states[states.indexOf(this.state) + 1];
                 _logger.debug(this.id + ": triggered state " + nextState);
