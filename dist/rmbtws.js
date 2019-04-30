@@ -1,7 +1,7 @@
 /*!******************************************************************************
  * @license
  * Copyright 2015-2017 Thomas Schreiber
- * Copyright 2017-2018 Rundfunk und Telekom Regulierungs-GmbH (RTR-GmbH)
+ * Copyright 2017-2019 Rundfunk und Telekom Regulierungs-GmbH (RTR-GmbH)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -1325,9 +1325,21 @@ if (typeof window.setCookie === 'undefined') {
 }
 "use strict";
 
-var RMBTControlServerCommunication = function RMBTControlServerCommunication(rmbtTestConfig) {
+/**
+ * Handles the communication with the ControlServer
+ * @param rmbtTestConfig RMBT Test Configuratio
+ * @param options additional options:
+ *  'register': Function to be called after registration: function(event)
+ *  'submit':  Function to be called after result submission: function(event)
+ * @returns Object
+ */
+var RMBTControlServerCommunication = function RMBTControlServerCommunication(rmbtTestConfig, options) {
     var _rmbtTestConfig = rmbtTestConfig;
     var _logger = log.getLogger("rmbtws");
+
+    options = options || {};
+    var _registrationCallback = options.register || null;
+    var _submissionCallback = options.submit || null;
 
     return {
         /**
@@ -1353,6 +1365,7 @@ var RMBTControlServerCommunication = function RMBTControlServerCommunication(rmb
                 json_data['prefer_server'] = UserConf.preferredServer;
                 json_data['user_server_selection'] = userServerSelection;
             }
+            var response = void 0;
             $.ajax({
                 url: _rmbtTestConfig.controlServerURL + _rmbtTestConfig.controlServerRegistrationResource,
                 type: "post",
@@ -1360,12 +1373,22 @@ var RMBTControlServerCommunication = function RMBTControlServerCommunication(rmb
                 contentType: "application/json",
                 data: JSON.stringify(json_data),
                 success: function success(data) {
+                    response = data;
                     var config = new RMBTControlServerRegistrationResponse(data);
                     onsuccess(config);
                 },
-                error: function error() {
+                error: function error(data) {
+                    response = data;
                     _logger.error("error getting testID");
                     onerror();
+                },
+                complete: function complete() {
+                    if (_registrationCallback != null && typeof _registrationCallback === 'function') {
+                        _registrationCallback({
+                            response: response,
+                            request: json_data
+                        });
+                    }
                 }
             });
         },
@@ -1386,7 +1409,7 @@ var RMBTControlServerCommunication = function RMBTControlServerCommunication(rmb
                     //_rmbtTestConfig.platform = data.product;
                     _rmbtTestConfig.os_version = data.version;
                 },
-                error: function error() {
+                error: function error(data) {
                     _logger.error("error getting data collection response");
                 }
             });
@@ -1404,6 +1427,7 @@ var RMBTControlServerCommunication = function RMBTControlServerCommunication(rmb
 
             var json = JSON.stringify(json_data);
             _logger.debug("Submit size: " + json.length);
+            var response = void 0;
             $.ajax({
                 url: _rmbtTestConfig.controlServerURL + _rmbtTestConfig.controlServerResultResource,
                 type: "post",
@@ -1411,13 +1435,23 @@ var RMBTControlServerCommunication = function RMBTControlServerCommunication(rmb
                 contentType: "application/json",
                 data: json,
                 success: function success(data) {
+                    response = data;
                     _logger.debug("https://develop.netztest.at/en/Verlauf?" + json_data.test_uuid);
                     //window.location.href = "https://develop.netztest.at/en/Verlauf?" + data.test_uuid;
                     onsuccess(true);
                 },
-                error: function error() {
+                error: function error(data) {
+                    response = data;
                     _logger.error("error submitting results");
                     onerror(false);
+                },
+                complete: function complete() {
+                    if (_submissionCallback !== null && typeof _submissionCallback === 'function') {
+                        _submissionCallback({
+                            response: response,
+                            request: json_data
+                        });
+                    }
                 }
             });
         }
@@ -1637,21 +1671,10 @@ var RMBTControlServerRegistrationResponse = function () {
     RMBTControlServerRegistrationResponse.prototype.result_url;
     RMBTControlServerRegistrationResponse.prototype.test_wait;
     RMBTControlServerRegistrationResponse.prototype.test_server_port;
-
+    //test
     function RMBTControlServerRegistrationResponse(data) {
-        this.client_remote_ip = data.client_remote_ip;
-        this.provider = data.provider;
-        this.test_server_encryption = data.test_server_encryption;
-        this.test_numthreads = data.test_numthreads;
-        this.test_server_name = data.test_server_name;
-        this.test_uuid = data.test_uuid;
-        this.test_id = data.test_id;
-        this.test_token = data.test_token;
-        this.test_server_address = data.test_server_address;
+        Object.assign(this, data);
         this.test_duration = parseInt(data.test_duration);
-        this.result_url = data.result_url;
-        this.test_wait = data.test_wait;
-        this.test_server_port = data.test_server_port;
     }
 
     return RMBTControlServerRegistrationResponse;

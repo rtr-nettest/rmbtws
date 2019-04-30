@@ -1,6 +1,18 @@
-const RMBTControlServerCommunication = (rmbtTestConfig) => {
+/**
+ * Handles the communication with the ControlServer
+ * @param rmbtTestConfig RMBT Test Configuratio
+ * @param options additional options:
+ *  'register': Function to be called after registration: function(event)
+ *  'submit':  Function to be called after result submission: function(event)
+ * @returns Object
+ */
+const RMBTControlServerCommunication = (rmbtTestConfig, options) => {
     const _rmbtTestConfig = rmbtTestConfig;
     const _logger = log.getLogger("rmbtws");
+
+    options = options || {};
+    let _registrationCallback = options.register || null;
+    let _submissionCallback = options.submit || null;
 
     return {
         /**
@@ -27,19 +39,30 @@ const RMBTControlServerCommunication = (rmbtTestConfig) => {
                 json_data['prefer_server'] = UserConf.preferredServer;
                 json_data['user_server_selection'] = userServerSelection;
             }
+            let response;
             $.ajax({
                 url: _rmbtTestConfig.controlServerURL + _rmbtTestConfig.controlServerRegistrationResource,
                 type: "post",
                 dataType: "json",
                 contentType: "application/json",
                 data: JSON.stringify(json_data),
-                success: function (data) {
+                success: (data) => {
+                    response = data;
                     let config = new RMBTControlServerRegistrationResponse(data);
                     onsuccess(config);
                 },
-                error: function () {
+                error: (data) => {
+                    response = data;
                     _logger.error("error getting testID");
                     onerror();
+                },
+                complete: () => {
+                    if (_registrationCallback != null && typeof _registrationCallback === 'function') {
+                        _registrationCallback({
+                            response: response,
+                            request: json_data
+                        });
+                    }
                 }
             });
         },
@@ -60,7 +83,7 @@ const RMBTControlServerCommunication = (rmbtTestConfig) => {
                     //_rmbtTestConfig.platform = data.product;
                     _rmbtTestConfig.os_version = data.version;
                 },
-                error: function () {
+                error: (data) => {
                     _logger.error("error getting data collection response");
                 }
             });
@@ -78,6 +101,7 @@ const RMBTControlServerCommunication = (rmbtTestConfig) => {
 
             let json = JSON.stringify(json_data);
             _logger.debug("Submit size: " + json.length);
+            let response;
             $.ajax({
                 url: _rmbtTestConfig.controlServerURL + _rmbtTestConfig.controlServerResultResource,
                 type: "post",
@@ -85,13 +109,23 @@ const RMBTControlServerCommunication = (rmbtTestConfig) => {
                 contentType: "application/json",
                 data: json,
                 success: (data) => {
+                    response = data;
                     _logger.debug("https://develop.netztest.at/en/Verlauf?" + json_data.test_uuid);
                     //window.location.href = "https://develop.netztest.at/en/Verlauf?" + data.test_uuid;
                     onsuccess(true);
                 },
-                error: () => {
+                error: (data) => {
+                    response = data;
                     _logger.error("error submitting results");
                     onerror(false);
+                },
+                complete: () => {
+                    if (_submissionCallback !== null && typeof _submissionCallback === 'function') {
+                        _submissionCallback({
+                            response: response,
+                            request: json_data
+                        });
+                    }
                 }
             });
         }

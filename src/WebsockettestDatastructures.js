@@ -67,21 +67,10 @@ let RMBTControlServerRegistrationResponse = (function() {
         RMBTControlServerRegistrationResponse.prototype.result_url;
         RMBTControlServerRegistrationResponse.prototype.test_wait;
         RMBTControlServerRegistrationResponse.prototype.test_server_port;
-
+//test
         function RMBTControlServerRegistrationResponse(data) {
-                this.client_remote_ip = data.client_remote_ip;
-                this.provider = data.provider;
-                this.test_server_encryption = data.test_server_encryption;
-                this.test_numthreads = data.test_numthreads;
-                this.test_server_name = data.test_server_name;
-                this.test_uuid = data.test_uuid;
-                this.test_id = data.test_id;
-                this.test_token = data.test_token;
-                this.test_server_address = data.test_server_address;
-                this.test_duration = parseInt(data.test_duration);
-                this.result_url = data.result_url;
-                this.test_wait = data.test_wait;
-                this.test_server_port = data.test_server_port;
+            Object.assign(this, data);
+            this.test_duration = parseInt(data.test_duration);
         }
 
         return RMBTControlServerRegistrationResponse;
