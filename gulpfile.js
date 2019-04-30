@@ -6,7 +6,7 @@ const rename = require('gulp-rename');
 const concat = require('gulp-concat');
 const order = require('gulp-order');
 
-gulp.task('compilejs', () => {
+gulp.task('compilejs', gulp.series((done) => {
     //create concatenated version
     gulp.src('./src/*.js')
         .pipe(babel())
@@ -30,16 +30,18 @@ gulp.task('compilejs', () => {
         .pipe(sourcemaps.write('./'))
         .pipe(gulp.dest('dist'));
 
-    //note: we can't do both at one due to problems with
+    //note: we can't do both at once due to problems with
     //preserveComments : 'license'; which does not work
     //with the concatenated file
-});
+    done();
+}));
 
-gulp.task('watchForChanges', () => {
-    gulp.watch('./src/**/*.js',['compilejs']);
-});
+gulp.task('watchForChanges', gulp.series((done) => {
+    gulp.watch('./src/**/*.js', gulp.series('compilejs'));
+    done();
+}));
 
-gulp.task('watch', ['compilejs', 'watchForChanges']);
-gulp.task('build', ['compilejs']);
+gulp.task('watch', gulp.series('compilejs', 'watchForChanges'));
+gulp.task('build', gulp.series('compilejs'));
 
-gulp.task('default', ['compilejs']);
+gulp.task('default', gulp.series('compilejs'));

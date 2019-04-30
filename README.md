@@ -32,7 +32,7 @@ you agree to the [Privacy Policy](https://www.rtr.at/en/tk/netztestprivacypolicy
 
 ### License
 
-Copyright 2015-2018 Rundfunk und Telekom Regulierungs-GmbH (RTR-GmbH). This source code is licensed under the Apache license found in
+Copyright 2015-2019 Rundfunk und Telekom Regulierungs-GmbH (RTR-GmbH). This source code is licensed under the Apache license found in
 the [LICENSE.txt](https://github.com/rtr-nettest/rmbtws/blob/master/LICENSE.txt) file.
 The documentation to the project is licensed under the [CC BY-AT 3.0](https://creativecommons.org/licenses/by/3.0/at/deed.de_AT)
 license.
