@@ -293,6 +293,12 @@ RMBTTestResult.prototype.calculateAll = function() {
         });
 
     }
+
+    //add time_ns to geoLocations
+    for (let i=0;i<this.geoLocations.length;i++) {
+        let geoLocation = this.geoLocations[i];
+        geoLocation['time_ns'] = (geoLocation.tstamp - this.beginTime) * 1e6;
+    }
 };
 
 

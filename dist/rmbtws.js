@@ -1893,6 +1893,12 @@ RMBTTestResult.prototype.calculateAll = function () {
             time_ns: pings[_i3].timeNs
         });
     }
+
+    //add time_ns to geoLocations
+    for (var _i4 = 0; _i4 < this.geoLocations.length; _i4++) {
+        var geoLocation = this.geoLocations[_i4];
+        geoLocation['time_ns'] = (geoLocation.tstamp - this.beginTime) * 1e6;
+    }
 };
 
 function RMBTThreadTestResult() {
