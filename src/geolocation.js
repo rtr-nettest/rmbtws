@@ -209,6 +209,28 @@ const GeoTracker = (function() {
      * @returns {Array} all results
      */
     GeoTracker.prototype.getResults = function() {
+        //filter duplicate results that can occur when using hardware GPS devices
+        //with certain Browsers
+        let previousItem = null;
+        _positions = _positions.filter((position) => {
+            if (previousItem == null) {
+                previousItem = position;
+                return true;
+            }
+            let equal = Object.keys(position).every((key) => {
+                return previousItem.hasOwnProperty(key) &&
+                    previousItem[key] === position[key]
+            });
+            if (equal) {
+                //remove this item
+                return false;
+            }
+            else {
+                previousItem = position;
+                return true;
+            }
+        });
+
         return _positions;
     };
 
