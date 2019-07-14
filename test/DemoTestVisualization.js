@@ -3,11 +3,6 @@
 var DemoTestVisualization = (function () {
     var _rmbtTest;
 
-    var _infogeo = null;
-    var _infoserver = null;
-    var _infoip = null;
-    var _infostatus = null;
-    var _infoprovider = null;
     var _serverName = null;
     var _remoteIp = null;
     var _providerName = null;
@@ -23,17 +18,11 @@ var DemoTestVisualization = (function () {
             _errorCallback = errorCallback;
         }
 
-        _infogeo = document.getElementById("infogeo");
-        _infoserver = document.getElementById("infoserver");
-        _infoip = document.getElementById("infoip");
-        _infostatus = document.getElementById("infostatus");
-        _infoprovider = document.getElementById("infoprovider");
-
         //reset
-        _infogeo.innerHTML = '-';
-        _infoserver.innerHTML = '-';
-        _infoip.innerHTML = '-';
-        _infoprovider.innerHTML = '-';
+        $("#infogeo").html('-');
+        $("#infoserver").html('-');
+        $("#infoip").html('-');
+        $("#infoprovider").html('-');
         $("#infoping span").text("-");
         $("#infodown span").text("-");
         $("#infoup span").text("-");
@@ -205,15 +194,15 @@ var DemoTestVisualization = (function () {
         }
 
         if (_serverName !== undefined && _serverName !== null && _serverName !== '') {
-            _infoserver.innerHTML = _serverName;
+            $("#infoserver").html(_serverName);
         }
 
         if (_remoteIp !== undefined && _remoteIp !== null && _remoteIp !== '') {
-            _infoip.innerHTML = _remoteIp;
+            $("#infoip").html(_remoteIp);
         }
 
         if (_providerName !== undefined && _providerName !== null && _providerName !== '') {
-            _infoprovider.innerHTML = _providerName;
+            $("#infoprovider").html(_providerName);
         }
 
         //show-Strings
