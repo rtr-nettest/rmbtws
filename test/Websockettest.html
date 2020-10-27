@@ -48,11 +48,11 @@
                 $("#result-uri").attr("href",uri);
                 $("#result-uri").text(uri);
             }), null);
-            var config = new RMBTTestConfig("de", "https://dev.netztest.at", "RMBTControlServer");
+            var config = new RMBTTestConfig("de", "https://sdev.netztest.at", "RMBTControlServer");
             var ctrl = new RMBTControlServerCommunication(config);
 
             //demo uuid
-            config.uuid = "61244514-1fe8-483f-814a-1734fa4c4a3f";
+            config.uuid = "e4282207-bec1-4243-8003-ba8efb4da1ea";
 
             var websocketTest = new RMBTTest(config, ctrl);
 

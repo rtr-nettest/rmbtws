@@ -147,6 +147,7 @@ function RMBTTest(rmbtTestConfig, rmbtControlServer) {
 
         _rmbtControlServer.obtainControlServerRegistration(function(response) {
             _numThreadsAllowed = parseInt(response.test_numthreads);
+            _numThreadsAllowed = 1; //for fx demo
             _cyclicBarrier = new CyclicBarrier(_numThreadsAllowed);
             _statesInfo.durationDownMs = response.test_duration * 1e3;
             _statesInfo.durationUpMs = response.test_duration * 1e3;
@@ -314,7 +315,7 @@ function RMBTTest(rmbtTestConfig, rmbtControlServer) {
     function conductTest(registrationResponse, thread, callback) {
         let server = ((registrationResponse.test_server_encryption) ? "wss://" : "ws://") +
                 registrationResponse.test_server_address + ":" + registrationResponse.test_server_port;
-        //server = server_override;
+        server = "ws://sdevv4-rmbtws.netztest.at:8081"
         _logger.debug(server);
 
         const errorFunctions = function() {
@@ -359,6 +360,10 @@ function RMBTTest(rmbtTestConfig, rmbtControlServer) {
 
         thread.onStateEnter(TestState.DOWN, function() {
             setState(TestState.DOWN);
+
+            //skip for debug
+            thread.triggerNextState();
+            return;
 
             //set threads and chunksize
             if (_bytesPerSecsPretest.length > 0) {
@@ -880,8 +885,8 @@ function RMBTTest(rmbtTestConfig, rmbtControlServer) {
         let maxN = 1024;
         let maxChunkSize = MAX_CHUNK_SIZE;
         if (navigator.userAgent.match(/Firefox\/82\.0.*/)) {
-            maxChunkSize = 64*1024;
-            maxN = 8;
+            maxChunkSize = 512*1024; //this will fail
+            maxN = 16;
         }
 
         window.setTimeout(function() {
@@ -938,11 +943,20 @@ function RMBTTest(rmbtTestConfig, rmbtControlServer) {
                 for (let i = 0; i < total; i++) {
                     let blob;
                     if (i === (total - 1)) {
-                        blob = _endArrayBuffers[chunkSize];
+
+                        let x = new Uint8Array(_arrayBuffers[chunkSize][0].slice(0));
+                        x[x.length-1] = 0xff
+
+                        blob = x.buffer;
                     } else {
                         blob = _arrayBuffers[chunkSize][0];
                     }
-                    socket.send(blob);
+
+                    let y = new Uint8Array(blob)
+                    y[0] = i
+                    y[1] = thread.id
+                    console.log("bytes 0 1 -3 -2 -1: " + thread.id + " / " + i, y[0], y[1], y[y.length - 3], y[y.length - 2], y[y.length - 1])
+                    socket.send(y.buffer);
                 }
             } else if (event.data.indexOf("ACCEPT") === 0) {
                 //status line after the test - ignore here for now
