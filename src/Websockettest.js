@@ -403,6 +403,9 @@ function RMBTTest(rmbtTestConfig, rmbtControlServer) {
 
         thread.onStateEnter(TestState.UP, function() {
             setState(TestState.UP);
+            //skip for debug
+            thread.triggerNextState();
+            return;
 
             //set threads and chunksize
             if (_bytesPerSecsPretest.length > 0) {
