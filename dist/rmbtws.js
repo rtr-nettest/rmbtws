@@ -390,6 +390,22 @@ function RMBTTest(rmbtTestConfig, rmbtControlServer) {
             //set threads and chunksize
             if (_bytesPerSecsPretest.length > 0) {
                 var chunkSizes = calculateChunkSizes(_bytesPerSecsPretest, _rmbtTestConfig.uploadThreadsLimitsMbit, true);
+
+                //Firefox 82 may underestimate bandwidth
+                if (navigator.userAgent.match(/Firefox\/82\.0.*/)) {
+                    //estimate based on DL speed - assume synchronous connection
+                    var results = RMBTTestResult.calculateOverallSpeedFromMultipleThreads(_rmbtTestResult.threads, function (thread) {
+                        return thread.down;
+                    });
+                    var resultDlBitPerSec = results.speed / 4; //
+                    var alternativeChunkSizes = calculateChunkSizes([resultDlBitPerSec / 8], _rmbtTestConfig.uploadThreadsLimitsMbit, true);
+
+                    if (alternativeChunkSizes.numThreads > chunkSizes.numThreads) {
+                        _logger.debug("overwriting for Firefox 82 to " + alternativeChunkSizes.numThreads + " threads");
+                        chunkSizes = alternativeChunkSizes;
+                    }
+                }
+
                 _numUploadThreads = chunkSizes.numThreads;
                 if (_changeChunkSizes) {
                     _chunkSize = chunkSizes.chunkSize;
@@ -843,6 +859,15 @@ function RMBTTest(rmbtTestConfig, rmbtControlServer) {
         var bytesSent = 0;
         var chunkSize = _chunkSize;
 
+        //Firefox 82 bugfix - it can't handle more than 8 chunks with max 64KB each iteration
+        //values found by trial and error...
+        var maxN = 1024;
+        var maxChunkSize = MAX_CHUNK_SIZE;
+        if (navigator.userAgent.match(/Firefox\/82\.0.*/)) {
+            maxChunkSize = 64 * 1024;
+            maxN = 8;
+        }
+
         window.setTimeout(function () {
             var endTime = nowMs();
             var duration = endTime - startTime;
@@ -865,12 +890,12 @@ function RMBTTest(rmbtTestConfig, rmbtControlServer) {
                     _bytesPerSecsPretest.push(n * chunkSize / (timeNs / 1e9));
                 } else {
                     //increase chunk size only if there are saved chunks for it!
-                    var newChunkSize = chunkSize * 2;
+                    var newChunkSize = Math.min(chunkSize * 2, maxChunkSize);
                     if (n < 8 || !_endArrayBuffers.hasOwnProperty(newChunkSize) || !_changeChunkSizes) {
-                        n = n * 2;
+                        n = Math.min(maxN, n * 2);
                         loop();
                     } else {
-                        chunkSize = Math.min(chunkSize * 2, MAX_CHUNK_SIZE);
+                        chunkSize = newChunkSize;
                         loop();
                     }
                 }
@@ -893,10 +918,21 @@ function RMBTTest(rmbtTestConfig, rmbtControlServer) {
         socket.onmessage = function (event) {
             if (event.data.indexOf("OK") === 0) {
                 //before we start the test
-                return;
+                //await server response
+                for (var i = 0; i < total; i++) {
+                    var blob = void 0;
+                    if (i === total - 1) {
+                        blob = _endArrayBuffers[chunkSize];
+                    } else {
+                        blob = _arrayBuffers[chunkSize][0];
+                    }
+                    socket.send(blob);
+                }
             } else if (event.data.indexOf("ACCEPT") === 0) {
                 //status line after the test - ignore here for now
                 return;
+            } else if (event.data.indexOf("ERR") === 0) {
+                console.log("err");
             } else {
                 onsuccess(event.data); //TIME xxxx
             }
@@ -904,15 +940,6 @@ function RMBTTest(rmbtTestConfig, rmbtControlServer) {
 
         _logger.debug(thread.id + ": uploading " + total + " chunks, " + chunkSize * total / 1000 + " KB");
         socket.send("PUTNORESULT" + (_changeChunkSizes ? " " + chunkSize : "") + "\n"); //Put no result
-        for (var i = 0; i < total; i++) {
-            var blob = void 0;
-            if (i === total - 1) {
-                blob = _endArrayBuffers[chunkSize];
-            } else {
-                blob = _arrayBuffers[chunkSize][0];
-            }
-            socket.send(blob);
-        }
     }
 
     /**
