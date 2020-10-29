@@ -575,8 +575,8 @@ function RMBTTest(rmbtTestConfig, rmbtControlServer) {
                 } else {
                     //if there is already a closer chunk selected, we don't need this
                     //anymore in this test and can dereference it to save heap memory
-                    delete _arrayBuffers[key];
-                    delete _endArrayBuffers[key];
+                    //delete _arrayBuffers[key]; //temporarily disable for Fx 82 fix
+                    //delete _endArrayBuffers[key];
                 }
             });
 
