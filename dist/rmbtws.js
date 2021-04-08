@@ -1385,31 +1385,19 @@ var RMBTControlServerCommunication = function RMBTControlServerCommunication(rmb
                 json_data['prefer_server'] = UserConf.preferredServer;
                 json_data['user_server_selection'] = userServerSelection;
             }
-            var response = void 0;
-            $.ajax({
-                url: _rmbtTestConfig.controlServerURL + _rmbtTestConfig.controlServerRegistrationResource,
-                type: "post",
-                dataType: "json",
-                contentType: "application/json",
-                data: JSON.stringify(json_data),
-                success: function success(data) {
-                    response = data;
-                    var config = new RMBTControlServerRegistrationResponse(data);
-                    onsuccess(config);
-                },
-                error: function error(data) {
-                    response = data;
-                    _logger.error("error getting testID");
-                    onerror();
-                },
-                complete: function complete() {
-                    if (_registrationCallback != null && typeof _registrationCallback === 'function') {
-                        _registrationCallback({
-                            response: response,
-                            request: json_data
-                        });
-                    }
-                }
+
+            fetch(_rmbtTestConfig.controlServerURL + _rmbtTestConfig.controlServerRegistrationResource, {
+                method: 'POST',
+                headers: headers,
+                body: JSON.stringify(json_data)
+            }).then(function (res) {
+                return res.json();
+            }).then(function (data) {
+                var config = new RMBTControlServerRegistrationResponse(data);
+                onsuccess(config);
+            }).catch(function () {
+                _logger.error("error getting testID");
+                onerror();
             });
         },
 
@@ -1418,20 +1406,17 @@ var RMBTControlServerCommunication = function RMBTControlServerCommunication(rmb
          *
          */
         getDataCollectorInfo: function getDataCollectorInfo() {
-            $.ajax({
-                url: _rmbtTestConfig.controlServerURL + _rmbtTestConfig.controlServerDataCollectorResource,
-                type: "get",
-                dataType: "json",
-                contentType: "application/json",
-                success: function success(data) {
-                    _rmbtTestConfig.product = data.agent.substring(0, Math.min(150, data.agent.length));
-                    _rmbtTestConfig.model = data.product;
-                    //_rmbtTestConfig.platform = data.product;
-                    _rmbtTestConfig.os_version = data.version;
-                },
-                error: function error(data) {
-                    _logger.error("error getting data collection response");
-                }
+            fetch(_rmbtTestConfig.controlServerURL + _rmbtTestConfig.controlServerDataCollectorResource, {
+                method: 'GET',
+                headers: headers
+            }).then(function (res) {
+                return res.json();
+            }).then(function (data) {
+                _rmbtTestConfig.product = data.agent.substring(0, Math.min(150, data.agent.length));
+                _rmbtTestConfig.model = data.product;
+                _rmbtTestConfig.os_version = data.version;
+            }).catch(function () {
+                _logger.error("error getting data collection response");
             });
         },
 
@@ -1447,32 +1432,18 @@ var RMBTControlServerCommunication = function RMBTControlServerCommunication(rmb
 
             var json = JSON.stringify(json_data);
             _logger.debug("Submit size: " + json.length);
-            var response = void 0;
-            $.ajax({
-                url: _rmbtTestConfig.controlServerURL + _rmbtTestConfig.controlServerResultResource,
-                type: "post",
-                dataType: "json",
-                contentType: "application/json",
-                data: json,
-                success: function success(data) {
-                    response = data;
-                    _logger.debug("https://develop.netztest.at/en/Verlauf?" + json_data.test_uuid);
-                    //window.location.href = "https://develop.netztest.at/en/Verlauf?" + data.test_uuid;
-                    onsuccess(true);
-                },
-                error: function error(data) {
-                    response = data;
-                    _logger.error("error submitting results");
-                    onerror(false);
-                },
-                complete: function complete() {
-                    if (_submissionCallback !== null && typeof _submissionCallback === 'function') {
-                        _submissionCallback({
-                            response: response,
-                            request: json_data
-                        });
-                    }
-                }
+            fetch(_rmbtTestConfig.controlServerURL + _rmbtTestConfig.controlServerResultResource, {
+                method: 'POST',
+                headers: headers,
+                body: json
+            }).then(function (res) {
+                return res.json();
+            }).then(function () {
+                _logger.debug(json_data.test_uuid);
+                onsuccess(true);
+            }).catch(function () {
+                _logger.error("error submitting results");
+                onerror(false);
             });
         }
     };
