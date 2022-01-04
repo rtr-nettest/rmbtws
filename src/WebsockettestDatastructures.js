@@ -23,6 +23,7 @@ let RMBTTestConfig = (function () {
     RMBTTestConfig.prototype.savedChunks = 4; //4*4 + 4*8 + 4*16 + ... + 4*MAX_CHUNK_SIZE -> O(8*MAX_CHUNK_SIZE)
     RMBTTestConfig.prototype.measurementPointsTimespan = 40; //1 measure point every 40 ms
     RMBTTestConfig.prototype.numPings = 10; //do 10 pings
+    RMBTTestConfig.prototype.doPingIntervalMilliseconds = -1; //if enabled, ping tests will be conducted until the time limit is reached (min numPings)
 //max used threads for this test phase (upper limit: RegistrationResponse)
     RMBTTestConfig.prototype.downloadThreadsLimitsMbit = {
         0: 1,
