@@ -692,6 +692,7 @@ export function RMBTTest(rmbtTestConfig, rmbtControlServer) {
     function pingTest(thread) {
         let prevListener = thread.socket.onmessage;
         let pingsRemaining = _rmbtTestConfig.numPings;
+        let startTime = performance.now();
 
         const onsuccess = function(pingResult) {
             thread.result.pings.push(pingResult);
@@ -706,6 +707,14 @@ export function RMBTTest(rmbtTestConfig, rmbtControlServer) {
             _logger.debug(thread.id + ": PING " + pingResult.client + " ns client; " + pingResult.server + " ns server");
 
             pingsRemaining--;
+
+            //at least one, if we want to repeat ping for a certain interval
+            if (_rmbtTestConfig.doPingIntervalMilliseconds > 0 && pingsRemaining === 0) {
+                let currentTime = performance.now();
+                if (currentTime - startTime < _rmbtTestConfig.doPingIntervalMilliseconds) {
+                    pingsRemaining = 1;
+                }
+            }
 
             if (pingsRemaining > 0) {
                 //wait for new 'ACCEPT'-message
