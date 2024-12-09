@@ -31,6 +31,9 @@ Object.defineProperty(exports, "__esModule", {
     value: true
 });
 exports.RMBTTest = RMBTTest;
+
+function _toConsumableArray(arr) { if (Array.isArray(arr)) { for (var i = 0, arr2 = Array(arr.length); i < arr.length; i++) { arr2[i] = arr[i]; } return arr2; } else { return Array.from(arr); } }
+
 function RMBTTest(rmbtTestConfig, rmbtControlServer) {
     var _server_override = "wss://developv4-rmbtws.netztest.at:19002";
 
@@ -275,6 +278,7 @@ function RMBTTest(rmbtTestConfig, rmbtControlServer) {
         if (_rmbtTestResult !== null) {
             if (_intermediateResult.status === TestState.PING || _intermediateResult.status === TestState.DOWN) {
                 _intermediateResult.pingNano = _rmbtTestResult.ping_server_median;
+                _intermediateResult.pings = _rmbtTestResult.pings;
             }
 
             if (_intermediateResult.status === TestState.DOWN || _intermediateResult.status == TestState.INIT_UP) {
@@ -688,7 +692,7 @@ function RMBTTest(rmbtTestConfig, rmbtControlServer) {
 
         var onsuccess = function onsuccess(pingResult) {
             thread.result.pings.push(pingResult);
-            _rmbtTestResult.ping_server_median = pingResult.server;
+            _rmbtTestResult.pings = [].concat(_toConsumableArray(thread.result.pings));
 
             //use first two pings to do a better approximation of the remaining time
             if (pingsRemaining === _rmbtTestConfig.numPings - 1) {
