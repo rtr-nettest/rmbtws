@@ -1,6 +1,6 @@
 "use strict";
 
-const TestEnvironment = (function () {
+export const TestEnvironment = (function () {
     let testVisualization = null;
     let geoTracker = null;
 

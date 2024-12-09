@@ -26,7 +26,7 @@
  * @param {RMBTControlServerCommunication} rmbtControlServer
  * @returns {}
  */
-function RMBTTest(rmbtTestConfig, rmbtControlServer) {
+export function RMBTTest(rmbtTestConfig, rmbtControlServer) {
     const _server_override = "wss://developv4-rmbtws.netztest.at:19002";
 
     let _logger = log.getLogger("rmbtws");

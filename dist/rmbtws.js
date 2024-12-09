@@ -27,6 +27,10 @@
  * @returns {}
  */
 
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+exports.RMBTTest = RMBTTest;
 function RMBTTest(rmbtTestConfig, rmbtControlServer) {
     var _server_override = "wss://developv4-rmbtws.netztest.at:19002";
 
@@ -1345,6 +1349,9 @@ if (typeof window.setCookie === 'undefined') {
 }
 "use strict";
 
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
 /**
  * Handles the communication with the ControlServer
  * @param rmbtTestConfig RMBT Test Configuratio
@@ -1353,13 +1360,14 @@ if (typeof window.setCookie === 'undefined') {
  *  'submit':  Function to be called after result submission: function(event)
  * @returns Object
  */
-var RMBTControlServerCommunication = function RMBTControlServerCommunication(rmbtTestConfig, options) {
+var RMBTControlServerCommunication = exports.RMBTControlServerCommunication = function RMBTControlServerCommunication(rmbtTestConfig, options) {
     var _rmbtTestConfig = rmbtTestConfig;
     var _logger = log.getLogger("rmbtws");
 
     options = options || {};
-    var _registrationCallback = options.register || null;
-    var _submissionCallback = options.submit || null;
+    var _options = options,
+        headers = _options.headers;
+
 
     return {
         /**
@@ -1450,7 +1458,10 @@ var RMBTControlServerCommunication = function RMBTControlServerCommunication(rmb
 };
 "use strict";
 
-var TestEnvironment = function () {
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+var TestEnvironment = exports.TestEnvironment = function () {
     var testVisualization = null;
     var geoTracker = null;
 
@@ -1596,7 +1607,10 @@ var TestVisualization = function () {
 }();
 "use strict";
 
-var RMBTTestConfig = function () {
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+var RMBTTestConfig = exports.RMBTTestConfig = function () {
     RMBTTestConfig.prototype.version = "0.3"; //minimal version compatible with the test
     RMBTTestConfig.prototype.language;
     RMBTTestConfig.prototype.uuid = "";

@@ -6,13 +6,12 @@
  *  'submit':  Function to be called after result submission: function(event)
  * @returns Object
  */
-const RMBTControlServerCommunication = (rmbtTestConfig, options) => {
+export const RMBTControlServerCommunication = (rmbtTestConfig, options) => {
     const _rmbtTestConfig = rmbtTestConfig;
     const _logger = log.getLogger("rmbtws");
 
     options = options || {};
-    let _registrationCallback = options.register || null;
-    let _submissionCallback = options.submit || null;
+    const  { headers } = options;
 
     return {
         /**
