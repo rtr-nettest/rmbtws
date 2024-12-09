@@ -275,7 +275,6 @@ function RMBTTest(rmbtTestConfig, rmbtControlServer) {
         if (_rmbtTestResult !== null) {
             if (_intermediateResult.status === TestState.PING || _intermediateResult.status === TestState.DOWN) {
                 _intermediateResult.pingNano = _rmbtTestResult.ping_server_median;
-                _intermediateResult.pings = _rmbtTestResult.pings;
             }
 
             if (_intermediateResult.status === TestState.DOWN || _intermediateResult.status == TestState.INIT_UP) {
@@ -689,7 +688,7 @@ function RMBTTest(rmbtTestConfig, rmbtControlServer) {
 
         var onsuccess = function onsuccess(pingResult) {
             thread.result.pings.push(pingResult);
-            _rmbtTestResult.pings.push(pingResult);
+            _rmbtTestResult.ping_server_median = pingResult.server;
 
             //use first two pings to do a better approximation of the remaining time
             if (pingsRemaining === _rmbtTestConfig.numPings - 1) {
@@ -1547,7 +1546,6 @@ RMBTIntermediateResult.prototype.progress = 0;
 RMBTIntermediateResult.prototype.downBitPerSecLog = -1;
 RMBTIntermediateResult.prototype.upBitPerSecLog = -1;
 RMBTIntermediateResult.prototype.remainingWait = -1;
-RMBTIntermediateResult.prototype.pings = [];
 "use strict";
 
 /**
