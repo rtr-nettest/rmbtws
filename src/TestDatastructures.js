@@ -76,4 +76,5 @@ RMBTIntermediateResult.prototype.progress = 0;
 RMBTIntermediateResult.prototype.downBitPerSecLog = -1;
 RMBTIntermediateResult.prototype.upBitPerSecLog = -1;
 RMBTIntermediateResult.prototype.remainingWait = -1;
+RMBTIntermediateResult.prototype.pings = [];
 
