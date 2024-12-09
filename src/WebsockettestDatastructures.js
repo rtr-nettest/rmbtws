@@ -7,7 +7,7 @@ let RMBTTestConfig = (function () {
     RMBTTestConfig.prototype.type = "DESKTOP";
     RMBTTestConfig.prototype.version_code = "0.3"; //minimal version compatible with the test
     RMBTTestConfig.prototype.client_version = "0.3"; //filled out by version information from RMBTServer
-    RMBTTestConfig.prototype.client_software_version = "0.9.0";
+    RMBTTestConfig.prototype.client_software_version = "0.9.1";
     RMBTTestConfig.prototype.os_version = 1;
     RMBTTestConfig.prototype.platform = "RMBTws";
     RMBTTestConfig.prototype.model = "Websocket";
@@ -23,6 +23,7 @@ let RMBTTestConfig = (function () {
     RMBTTestConfig.prototype.savedChunks = 4; //4*4 + 4*8 + 4*16 + ... + 4*MAX_CHUNK_SIZE -> O(8*MAX_CHUNK_SIZE)
     RMBTTestConfig.prototype.measurementPointsTimespan = 40; //1 measure point every 40 ms
     RMBTTestConfig.prototype.numPings = 10; //do 10 pings
+    RMBTTestConfig.prototype.doPingIntervalMilliseconds = -1; //if enabled, ping tests will be conducted until the time limit is reached (min numPings)
 //max used threads for this test phase (upper limit: RegistrationResponse)
     RMBTTestConfig.prototype.downloadThreadsLimitsMbit = {
         0: 1,
