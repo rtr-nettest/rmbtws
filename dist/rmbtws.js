@@ -1356,7 +1356,7 @@ if (typeof window.setCookie === 'undefined') {
         document.cookie = cookie_name + "=" + c_value + " path=/;";
     };
 }
-"use strict";
+'use strict';
 
 Object.defineProperty(exports, "__esModule", {
     value: true
@@ -1374,9 +1374,9 @@ var RMBTControlServerCommunication = exports.RMBTControlServerCommunication = fu
     var _logger = log.getLogger("rmbtws");
 
     options = options || {};
-    var _options = options,
-        headers = _options.headers;
-
+    var headers = options.headers || {
+        'Content-Type': 'application/json'
+    };
 
     return {
         /**
