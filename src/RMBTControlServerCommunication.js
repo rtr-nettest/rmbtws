@@ -41,6 +41,7 @@ export const RMBTControlServerCommunication = (rmbtTestConfig, options) => {
                 json_data['user_server_selection'] = userServerSelection;
             }
 
+            let response
             fetch(
                 _rmbtTestConfig.controlServerURL + _rmbtTestConfig.controlServerRegistrationResource,
                 {
@@ -50,11 +51,20 @@ export const RMBTControlServerCommunication = (rmbtTestConfig, options) => {
                 }
             ).then(res => res.json()
             ).then(data => {
+                response = data;
                 const config = new RMBTControlServerRegistrationResponse(data);
                 onsuccess(config);
-            }).catch(() => {
+            }).catch(reason => {
+                response = reason;
                 _logger.error("error getting testID");
                 onerror();
+            }).finally(() => {
+                if (_registrationCallback != null && typeof _registrationCallback === 'function') {
+                    _registrationCallback({
+                        response: response,
+                        request: json_data
+                    });
+                }
             });
         },
 
@@ -91,6 +101,8 @@ export const RMBTControlServerCommunication = (rmbtTestConfig, options) => {
 
             let json = JSON.stringify(json_data);
             _logger.debug("Submit size: " + json.length);
+
+            let response;
             fetch(
                 _rmbtTestConfig.controlServerURL + _rmbtTestConfig.controlServerResultResource,
                 {
@@ -99,12 +111,21 @@ export const RMBTControlServerCommunication = (rmbtTestConfig, options) => {
                     body: json
                 }
             ).then(res => res.json()
-            ).then(() => {
+            ).then((data) => {
+                response = data;
                 _logger.debug(json_data.test_uuid);
                 onsuccess(true);
-            }).catch(() => {
+            }).catch((reason) => {
+                response = reason;
                 _logger.error("error submitting results");
                 onerror(false);
+            }).finally(() => {
+                if (_submissionCallback !== null && typeof _submissionCallback === 'function') {
+                    _submissionCallback({
+                        response: response,
+                        request: json_data
+                    });
+                }
             });
         }
     }
