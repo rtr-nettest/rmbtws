@@ -162,7 +162,7 @@ function RMBTTest(rmbtTestConfig, rmbtControlServer) {
             //@TODO: Nicer
             //if there is testVisualization, make use of it!
             if (TestEnvironment.getTestVisualization() !== null) {
-                TestEnvironment.getTestVisualization().updateInfo(response.test_server_name, response.client_remote_ip, response.provider, response.test_uuid);
+                TestEnvironment.getTestVisualization().updateInfo(response.test_server_name, response.client_remote_ip, response.provider, response.test_uuid, response.open_test_uuid);
             }
 
             var continuation = function continuation() {
@@ -1603,7 +1603,7 @@ var TestVisualization = function () {
      * @param providerName
      * @param testUUID
      */
-    TestVisualization.prototype.updateInfo = function (serverName, remoteIp, providerName, testUUID) {};
+    TestVisualization.prototype.updateInfo = function (serverName, remoteIp, providerName, testUUID, openTestUUID) {};
 
     /**
      * Will be called from Websockettest as soon as the current status changes

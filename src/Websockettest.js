@@ -158,7 +158,8 @@ export function RMBTTest(rmbtTestConfig, rmbtControlServer) {
                         response.test_server_name,
                         response.client_remote_ip,
                         response.provider,
-                        response.test_uuid
+                        response.test_uuid,
+                        response.open_test_uuid,
                     );
             }
 
