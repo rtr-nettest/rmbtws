@@ -5,6 +5,9 @@ const babel = require('gulp-babel');
 const rename = require('gulp-rename');
 const concat = require('gulp-concat');
 const order = require('gulp-order');
+const browserify = require('browserify');
+const log = require('gulplog');
+const tap = require('gulp-tap');
 
 gulp.task('compilejs', gulp.series((done) => {
     //create concatenated version
@@ -29,6 +32,17 @@ gulp.task('compilejs', gulp.series((done) => {
         .pipe(concat('rmbtws.min.js'))
         .pipe(sourcemaps.write('./'))
         .pipe(gulp.dest('dist'));
+
+    gulp.src('./dist/*.js', {read: false})
+        .pipe(tap(function (file) {
+
+        log.info('bundling ' + file.path);
+
+        // replace file contents with browserify's bundle stream
+        file.contents = browserify(file.path, {debug: true}).bundle();
+
+        }))
+        .pipe(gulp.dest('dist/browser'));
 
     //note: we can't do both at once due to problems with
     //preserveComments : 'license'; which does not work
