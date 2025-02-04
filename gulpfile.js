@@ -14,6 +14,7 @@ gulp.task('compilejs', gulp.series((done) => {
             '**/Websockettest.js'
         ]))
         .pipe(concat('rmbtws.js'))
+        .pipe(header('if (globalThis.location) var exports = {};\n'))
         .pipe(gulp.dest('dist'));
 
     //create minified version
@@ -27,12 +28,9 @@ gulp.task('compilejs', gulp.series((done) => {
             preserveComments: 'license'
         }))
         .pipe(concat('rmbtws.min.js'))
+        .pipe(header('if (globalThis.location) var exports = {};\n'))
         .pipe(sourcemaps.write('./'))
         .pipe(gulp.dest('dist'));
-
-    gulp.src('./dist/*.js')
-        .pipe(header('var exports = {};\n'))
-        .pipe(gulp.dest('dist/browser'));
 
     //note: we can't do both at once due to problems with
     //preserveComments : 'license'; which does not work

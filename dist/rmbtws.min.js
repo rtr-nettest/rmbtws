@@ -1,3 +1,4 @@
+if (globalThis.location) var exports = {};
 /*!******************************************************************************
  * @license
  * Copyright 2015-2017 Thomas Schreiber
