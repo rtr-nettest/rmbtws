@@ -11,6 +11,8 @@ export const RMBTControlServerCommunication = (rmbtTestConfig, options) => {
     const _logger = log.getLogger("rmbtws");
 
     options = options || {};
+    let _registrationCallback = options.register || null;
+    let _submissionCallback = options.submit || null;
     const headers = options.headers || {
         'Content-Type': 'application/json'
     };
