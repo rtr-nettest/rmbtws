@@ -1380,6 +1380,8 @@ var RMBTControlServerCommunication = exports.RMBTControlServerCommunication = fu
     var _logger = log.getLogger("rmbtws");
 
     options = options || {};
+    var _registrationCallback = options.register || null;
+    var _submissionCallback = options.submit || null;
     var headers = options.headers || {
         'Content-Type': 'application/json'
     };
