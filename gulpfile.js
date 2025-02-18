@@ -2,9 +2,9 @@ const gulp = require('gulp');
 const sourcemaps = require('gulp-sourcemaps');
 const uglify = require('gulp-uglify');
 const babel = require('gulp-babel');
-const rename = require('gulp-rename');
 const concat = require('gulp-concat');
 const order = require('gulp-order');
+const header = require('gulp-header');
 
 gulp.task('compilejs', gulp.series((done) => {
     //create concatenated version
@@ -14,7 +14,7 @@ gulp.task('compilejs', gulp.series((done) => {
             '**/Websockettest.js'
         ]))
         .pipe(concat('rmbtws.js'))
-        .pipe(gulp.dest('dist'));
+        .pipe(gulp.dest('dist/esm'));
 
     //create minified version
     gulp.src('./src/*.js')
@@ -28,6 +28,10 @@ gulp.task('compilejs', gulp.series((done) => {
         }))
         .pipe(concat('rmbtws.min.js'))
         .pipe(sourcemaps.write('./'))
+        .pipe(gulp.dest('dist/esm'));
+
+    gulp.src('./dist/esm/*.js')
+        .pipe(header('var exports = {};\n'))
         .pipe(gulp.dest('dist'));
 
     //note: we can't do both at once due to problems with

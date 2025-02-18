@@ -34,10 +34,13 @@
         "gulp": "^4.0.1",
         "gulp-babel": "^7.0.1",
         "gulp-concat": "^2.6.1",
+        "gulp-header": "^2.0.9",
         "gulp-order": "^1.2.0",
         "gulp-rename": "^1.4.0",
         "gulp-sourcemaps": "^2.6.5",
-        "gulp-uglify": "^2.1.2"
+        "gulp-tap": "^2.0.0",
+        "gulp-uglify": "^2.1.2",
+        "gulplog": "^2.2.0"
     },
     "scripts": {
         "build": "gulp build"

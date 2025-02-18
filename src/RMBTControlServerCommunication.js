@@ -6,13 +6,16 @@
  *  'submit':  Function to be called after result submission: function(event)
  * @returns Object
  */
-const RMBTControlServerCommunication = (rmbtTestConfig, options) => {
+export const RMBTControlServerCommunication = (rmbtTestConfig, options) => {
     const _rmbtTestConfig = rmbtTestConfig;
     const _logger = log.getLogger("rmbtws");
 
     options = options || {};
     let _registrationCallback = options.register || null;
     let _submissionCallback = options.submit || null;
+    const headers = options.headers || {
+        'Content-Type': 'application/json'
+    };
 
     return {
         /**
@@ -39,30 +42,30 @@ const RMBTControlServerCommunication = (rmbtTestConfig, options) => {
                 json_data['prefer_server'] = UserConf.preferredServer;
                 json_data['user_server_selection'] = userServerSelection;
             }
-            let response;
-            $.ajax({
-                url: _rmbtTestConfig.controlServerURL + _rmbtTestConfig.controlServerRegistrationResource,
-                type: "post",
-                dataType: "json",
-                contentType: "application/json",
-                data: JSON.stringify(json_data),
-                success: (data) => {
-                    response = data;
-                    let config = new RMBTControlServerRegistrationResponse(data);
-                    onsuccess(config);
-                },
-                error: (data) => {
-                    response = data;
-                    _logger.error("error getting testID");
-                    onerror();
-                },
-                complete: () => {
-                    if (_registrationCallback != null && typeof _registrationCallback === 'function') {
-                        _registrationCallback({
-                            response: response,
-                            request: json_data
-                        });
-                    }
+
+            let response
+            fetch(
+                _rmbtTestConfig.controlServerURL + _rmbtTestConfig.controlServerRegistrationResource,
+                {
+                    method: 'POST',
+                    headers,
+                    body: JSON.stringify(json_data)
+                }
+            ).then(res => res.json()
+            ).then(data => {
+                response = data;
+                const config = new RMBTControlServerRegistrationResponse(data);
+                onsuccess(config);
+            }).catch(reason => {
+                response = reason;
+                _logger.error("error getting testID");
+                onerror();
+            }).finally(() => {
+                if (_registrationCallback != null && typeof _registrationCallback === 'function') {
+                    _registrationCallback({
+                        response: response,
+                        request: json_data
+                    });
                 }
             });
         },
@@ -72,20 +75,19 @@ const RMBTControlServerCommunication = (rmbtTestConfig, options) => {
          *
          */
         getDataCollectorInfo: () => {
-            $.ajax({
-                url: _rmbtTestConfig.controlServerURL + _rmbtTestConfig.controlServerDataCollectorResource,
-                type: "get",
-                dataType: "json",
-                contentType: "application/json",
-                success: (data) => {
-                    _rmbtTestConfig.product = data.agent.substring(0, Math.min(150, data.agent.length));
-                    _rmbtTestConfig.model = data.product;
-                    //_rmbtTestConfig.platform = data.product;
-                    _rmbtTestConfig.os_version = data.version;
-                },
-                error: (data) => {
-                    _logger.error("error getting data collection response");
+            fetch(
+                _rmbtTestConfig.controlServerURL + _rmbtTestConfig.controlServerDataCollectorResource,
+                {
+                    method: 'GET',
+                    headers
                 }
+            ).then(res => res.json()
+            ).then(data => {
+                _rmbtTestConfig.product = data.agent.substring(0, Math.min(150, data.agent.length));
+                _rmbtTestConfig.model = data.product;
+                _rmbtTestConfig.os_version = data.version;
+            }).catch(() => {
+                _logger.error("error getting data collection response");
             });
         },
 
@@ -101,31 +103,30 @@ const RMBTControlServerCommunication = (rmbtTestConfig, options) => {
 
             let json = JSON.stringify(json_data);
             _logger.debug("Submit size: " + json.length);
+
             let response;
-            $.ajax({
-                url: _rmbtTestConfig.controlServerURL + _rmbtTestConfig.controlServerResultResource,
-                type: "post",
-                dataType: "json",
-                contentType: "application/json",
-                data: json,
-                success: (data) => {
-                    response = data;
-                    _logger.debug("https://develop.netztest.at/en/Verlauf?" + json_data.test_uuid);
-                    //window.location.href = "https://develop.netztest.at/en/Verlauf?" + data.test_uuid;
-                    onsuccess(true);
-                },
-                error: (data) => {
-                    response = data;
-                    _logger.error("error submitting results");
-                    onerror(false);
-                },
-                complete: () => {
-                    if (_submissionCallback !== null && typeof _submissionCallback === 'function') {
-                        _submissionCallback({
-                            response: response,
-                            request: json_data
-                        });
-                    }
+            fetch(
+                _rmbtTestConfig.controlServerURL + _rmbtTestConfig.controlServerResultResource,
+                {
+                    method: 'POST',
+                    headers,
+                    body: json
+                }
+            ).then(res => res.json()
+            ).then((data) => {
+                response = data;
+                _logger.debug(json_data.test_uuid);
+                onsuccess(true);
+            }).catch((reason) => {
+                response = reason;
+                _logger.error("error submitting results");
+                onerror(false);
+            }).finally(() => {
+                if (_submissionCallback !== null && typeof _submissionCallback === 'function') {
+                    _submissionCallback({
+                        response: response,
+                        request: json_data
+                    });
                 }
             });
         }

@@ -1,6 +1,6 @@
 "use strict";
 
-let RMBTTestConfig = (function () {
+export let RMBTTestConfig = (function () {
     RMBTTestConfig.prototype.version = "0.3"; //minimal version compatible with the test
     RMBTTestConfig.prototype.language;
     RMBTTestConfig.prototype.uuid = "";

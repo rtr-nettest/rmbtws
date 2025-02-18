@@ -26,7 +26,7 @@
  * @param {RMBTControlServerCommunication} rmbtControlServer
  * @returns {}
  */
-function RMBTTest(rmbtTestConfig, rmbtControlServer) {
+export function RMBTTest(rmbtTestConfig, rmbtControlServer) {
     const _server_override = "wss://developv4-rmbtws.netztest.at:19002";
 
     let _logger = log.getLogger("rmbtws");
@@ -158,7 +158,8 @@ function RMBTTest(rmbtTestConfig, rmbtControlServer) {
                         response.test_server_name,
                         response.client_remote_ip,
                         response.provider,
-                        response.test_uuid
+                        response.test_uuid,
+                        response.open_test_uuid,
                     );
             }
 
@@ -281,6 +282,7 @@ function RMBTTest(rmbtTestConfig, rmbtControlServer) {
         if (_rmbtTestResult !== null) {
             if (_intermediateResult.status === TestState.PING || _intermediateResult.status === TestState.DOWN) {
                 _intermediateResult.pingNano = _rmbtTestResult.ping_server_median;
+                _intermediateResult.pings = _rmbtTestResult.pings;
             }
 
             if (_intermediateResult.status === TestState.DOWN || _intermediateResult.status == TestState.INIT_UP) {
@@ -696,6 +698,7 @@ function RMBTTest(rmbtTestConfig, rmbtControlServer) {
 
         const onsuccess = function(pingResult) {
             thread.result.pings.push(pingResult);
+            _rmbtTestResult.pings = [...thread.result.pings];
 
             //use first two pings to do a better approximation of the remaining time
             if (pingsRemaining === (_rmbtTestConfig.numPings - 1)) {
