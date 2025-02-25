@@ -14,7 +14,9 @@ gulp.task('compilejs', gulp.series((done) => {
             '**/Websockettest.js'
         ]))
         .pipe(concat('rmbtws.js'))
-        .pipe(gulp.dest('dist/esm'));
+        .pipe(gulp.dest('dist/esm'))
+        .pipe(header('var exports = {};\n'))
+        .pipe(gulp.dest('dist'));
 
     //create minified version
     gulp.src('./src/*.js')
@@ -28,9 +30,7 @@ gulp.task('compilejs', gulp.series((done) => {
         }))
         .pipe(concat('rmbtws.min.js'))
         .pipe(sourcemaps.write('./'))
-        .pipe(gulp.dest('dist/esm'));
-
-    gulp.src('./dist/esm/*.js')
+        .pipe(gulp.dest('dist/esm'))
         .pipe(header('var exports = {};\n'))
         .pipe(gulp.dest('dist'));
 
