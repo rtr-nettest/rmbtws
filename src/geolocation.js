@@ -25,7 +25,6 @@ function getCurLocation() {
  * @param {Function} callback
  */
 function getLocation(geoAccuracy, geoTimeout, geoMaxAge, callback) {
-    const ausgabe = document.getElementById("infogeo");
     geo_callback = callback;
 
     if (!navigator.geolocation) {
@@ -37,8 +36,6 @@ function getLocation(geoAccuracy, geoTimeout, geoMaxAge, callback) {
             if (tmpcoords && tmpcoords['lat'] > 0 && tmpcoords['long'] > 0) {
                 testVisualization.setLocation(tmpcoords['lat'], tmpcoords['long']);
             }
-        } else {
-            ausgabe.innerHTML = Lang.getString('NotSupported');
         }
 
         runCallback();
@@ -46,32 +43,7 @@ function getLocation(geoAccuracy, geoTimeout, geoMaxAge, callback) {
     }
     runCallback();
     //var TestEnvironment.getGeoTracker() = new GeoTracker();
-    TestEnvironment.getGeoTracker().start(function(successful, error) {
-        if (successful !== true) {
-            //user did not allow geolocation or other reason
-            if (error) {
-                switch (error.code) {
-                    case error.PERMISSION_DENIED:
-                        ausgabe.innerHTML = Lang.getString('NoPermission');
-                        break;
-                    case error.TIMEOUT:
-                        //@TODO: Position is determined...
-                        //alert(1);
-                        break;
-                    case error.POSITION_UNAVAILABLE:
-                        ausgabe.innerHTML = Lang.getString('NotAvailable');
-                        break;
-                    case error.UNKNOWN_ERROR:
-                        ausgabe.innerHTML = Lang.getString('NotAvailable') + "(" + error.code + ")";
-                        break;
-                }
-            }
-            else {
-                //Internet Explorer 11 in some cases does not return an error code
-                ausgabe.innerHTML = Lang.getString('NotAvailable');
-            }
-        }
-    }, TestEnvironment.getTestVisualization());
+    TestEnvironment.getGeoTracker().start(function() {}, TestEnvironment.getTestVisualization());
 }
 
 

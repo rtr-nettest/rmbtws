@@ -946,17 +946,7 @@ export function RMBTTest(rmbtTestConfig, rmbtControlServer) {
         let previousListener = thread.socket.onmessage;
 
         //if less than approx half a second is left in the buffer - resend!
-        const fixedUnderrunBytesVisible = (_totalBytesPerSecsPretest / 2) / _numUploadThreads;
-        //if less than approx 1.5 seconds is left in the buffer - resend! (since browser limit setTimeout-intervals
-        //  when pages are not in the foreground)
-        const fixedUnderrunBytesHidden = (_totalBytesPerSecsPretest * 1.5) / _numUploadThreads;
-        let fixedUnderrunBytes = (document.hidden) ? fixedUnderrunBytesHidden : fixedUnderrunBytesVisible;
-
-        const visibilityChangeEventListener = () => {
-            fixedUnderrunBytes = (document.hidden) ? fixedUnderrunBytesHidden : fixedUnderrunBytesVisible;
-            _logger.debug("document visibility changed to: " + document.hidden);
-        };
-        document.addEventListener("visibilitychange",visibilityChangeEventListener);
+        const fixedUnderrunBytes = (_totalBytesPerSecsPretest / 2) / _numUploadThreads;;
 
         //send data for approx one second at once
         //@TODO adapt with changing connection speeds
@@ -986,7 +976,6 @@ export function RMBTTest(rmbtTestConfig, rmbtControlServer) {
                     thread.socket.close();
                     thread.socket.onmessage = previousListener;
                     _logger.debug(thread.id + ": socket now closed: " + thread.socket.readyState);
-                    document.removeEventListener("visibilitychange",visibilityChangeEventListener);
                     thread.triggerNextState();
                 }
             }
@@ -1059,7 +1048,6 @@ export function RMBTTest(rmbtTestConfig, rmbtControlServer) {
                     receivedEndTime = true;
                     _logger.debug("Upload duration: " + matches[1]);
                     thread.socket.onmessage = previousListener;
-                    document.removeEventListener("visibilitychange",visibilityChangeEventListener);
                 }
             }
         };

@@ -937,17 +937,7 @@ function RMBTTest(rmbtTestConfig, rmbtControlServer) {
         var previousListener = thread.socket.onmessage;
 
         //if less than approx half a second is left in the buffer - resend!
-        var fixedUnderrunBytesVisible = _totalBytesPerSecsPretest / 2 / _numUploadThreads;
-        //if less than approx 1.5 seconds is left in the buffer - resend! (since browser limit setTimeout-intervals
-        //  when pages are not in the foreground)
-        var fixedUnderrunBytesHidden = _totalBytesPerSecsPretest * 1.5 / _numUploadThreads;
-        var fixedUnderrunBytes = document.hidden ? fixedUnderrunBytesHidden : fixedUnderrunBytesVisible;
-
-        var visibilityChangeEventListener = function visibilityChangeEventListener() {
-            fixedUnderrunBytes = document.hidden ? fixedUnderrunBytesHidden : fixedUnderrunBytesVisible;
-            _logger.debug("document visibility changed to: " + document.hidden);
-        };
-        document.addEventListener("visibilitychange", visibilityChangeEventListener);
+        var fixedUnderrunBytes = _totalBytesPerSecsPretest / 2 / _numUploadThreads;;
 
         //send data for approx one second at once
         //@TODO adapt with changing connection speeds
@@ -977,7 +967,6 @@ function RMBTTest(rmbtTestConfig, rmbtControlServer) {
                     thread.socket.close();
                     thread.socket.onmessage = previousListener;
                     _logger.debug(thread.id + ": socket now closed: " + thread.socket.readyState);
-                    document.removeEventListener("visibilitychange", visibilityChangeEventListener);
                     thread.triggerNextState();
                 }
             }
@@ -1049,7 +1038,6 @@ function RMBTTest(rmbtTestConfig, rmbtControlServer) {
                     receivedEndTime = true;
                     _logger.debug("Upload duration: " + matches[1]);
                     thread.socket.onmessage = previousListener;
-                    document.removeEventListener("visibilitychange", visibilityChangeEventListener);
                 }
             }
         };
@@ -1133,7 +1121,6 @@ function getCurLocation() {
  * @param {Function} callback
  */
 function getLocation(geoAccuracy, geoTimeout, geoMaxAge, callback) {
-    var ausgabe = document.getElementById("infogeo");
     geo_callback = callback;
 
     if (!navigator.geolocation) {
@@ -1145,8 +1132,6 @@ function getLocation(geoAccuracy, geoTimeout, geoMaxAge, callback) {
             if (tmpcoords && tmpcoords['lat'] > 0 && tmpcoords['long'] > 0) {
                 testVisualization.setLocation(tmpcoords['lat'], tmpcoords['long']);
             }
-        } else {
-            ausgabe.innerHTML = Lang.getString('NotSupported');
         }
 
         runCallback();
@@ -1154,31 +1139,7 @@ function getLocation(geoAccuracy, geoTimeout, geoMaxAge, callback) {
     }
     runCallback();
     //var TestEnvironment.getGeoTracker() = new GeoTracker();
-    TestEnvironment.getGeoTracker().start(function (successful, error) {
-        if (successful !== true) {
-            //user did not allow geolocation or other reason
-            if (error) {
-                switch (error.code) {
-                    case error.PERMISSION_DENIED:
-                        ausgabe.innerHTML = Lang.getString('NoPermission');
-                        break;
-                    case error.TIMEOUT:
-                        //@TODO: Position is determined...
-                        //alert(1);
-                        break;
-                    case error.POSITION_UNAVAILABLE:
-                        ausgabe.innerHTML = Lang.getString('NotAvailable');
-                        break;
-                    case error.UNKNOWN_ERROR:
-                        ausgabe.innerHTML = Lang.getString('NotAvailable') + "(" + error.code + ")";
-                        break;
-                }
-            } else {
-                //Internet Explorer 11 in some cases does not return an error code
-                ausgabe.innerHTML = Lang.getString('NotAvailable');
-            }
-        }
-    }, TestEnvironment.getTestVisualization());
+    TestEnvironment.getGeoTracker().start(function () {}, TestEnvironment.getTestVisualization());
 }
 
 //Geolocation tracking
@@ -2118,9 +2079,4 @@ if (typeof Object.assign != 'function') {
         }
         return to;
     };
-}
-
-//"hidden" polyfill (in this case: always visible)
-if (typeof document.hidden === "undefined") {
-    document.hidden = false;
 }

@@ -158,8 +158,3 @@ if (typeof Object.assign != 'function') {
         return to;
     };
 }
-
-//"hidden" polyfill (in this case: always visible)
-if (typeof document.hidden === "undefined") {
-    document.hidden = false;
-}
