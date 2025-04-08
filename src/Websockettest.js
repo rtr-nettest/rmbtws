@@ -134,12 +134,6 @@ export function RMBTTest(rmbtTestConfig, rmbtControlServer) {
     };
 
     this.startTest = function() {
-        //see if websockets are supported
-        if (window.WebSocket === undefined)  {
-            callErrorCallback(RMBTError.NOT_SUPPORTED);
-            return;
-        }
-
         setState(TestState.INIT);
         _rmbtTestResult = new RMBTTestResult();
         //connect to control server
@@ -804,7 +798,7 @@ export function RMBTTest(rmbtTestConfig, rmbtControlServer) {
         let lastTime = null;
 
         //read chunk only at some point in the future to save resources
-        interval = window.setInterval(function() {
+        interval = setInterval(function() {
             if (lastChunk === null) {
                 return;
             }
@@ -832,7 +826,7 @@ export function RMBTTest(rmbtTestConfig, rmbtControlServer) {
 
             if (lastByte[0] >= 0xFF) {
                 _logger.debug(thread.id + ": received end chunk");
-                window.clearInterval(interval);
+                clearInterval(interval);
 
                 //last chunk received - get time
                 thread.socket.onmessage = function (event) {
@@ -871,7 +865,7 @@ export function RMBTTest(rmbtTestConfig, rmbtControlServer) {
         let bytesSent = 0;
         let chunkSize = _chunkSize;
 
-        window.setTimeout(function() {
+        setTimeout(function() {
              let endTime = nowMs();
              let duration = endTime - startTime;
              _logger.debug("diff:" + (duration - durationMs) + " (" + (duration-durationMs)/durationMs + " %)");
@@ -980,7 +974,7 @@ export function RMBTTest(rmbtTestConfig, rmbtControlServer) {
                 _logger.debug(thread.id + ": is 7.2 sec in, got data for " + lastDurationInfo);
                 //if measurements are for < 7sec, give it time
                 if ((lastDurationInfo < duration * 1e9) && (timeoutExtensionsMs < 3000)) {
-                    window.setTimeout(timeoutFunction, 250);
+                    setTimeout(timeoutFunction, 250);
                     timeoutExtensionsMs += 250;
                 } else {
                     //kill it with force!
@@ -1021,10 +1015,10 @@ export function RMBTTest(rmbtTestConfig, rmbtControlServer) {
         };
 
         //set timeout function after 7,2s to check if everything went according to plan
-        window.setTimeout(timeoutFunction, (duration * 1e3) + 200);
+        setTimeout(timeoutFunction, (duration * 1e3) + 200);
 
         //send end blob after 7s, quit
-        window.setTimeout(() => {
+        setTimeout(() => {
             keepSendingData = false;
             thread.socket.onclose = () => {};
             thread.socket.send(_endArrayBuffers[_chunkSize]);

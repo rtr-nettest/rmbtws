@@ -143,12 +143,6 @@ function RMBTTest(rmbtTestConfig, rmbtControlServer) {
     };
 
     this.startTest = function () {
-        //see if websockets are supported
-        if (window.WebSocket === undefined) {
-            callErrorCallback(RMBTError.NOT_SUPPORTED);
-            return;
-        }
-
         setState(TestState.INIT);
         _rmbtTestResult = new RMBTTestResult();
         //connect to control server
@@ -795,7 +789,7 @@ function RMBTTest(rmbtTestConfig, rmbtControlServer) {
         var lastTime = null;
 
         //read chunk only at some point in the future to save resources
-        interval = window.setInterval(function () {
+        interval = setInterval(function () {
             if (lastChunk === null) {
                 return;
             }
@@ -823,7 +817,7 @@ function RMBTTest(rmbtTestConfig, rmbtControlServer) {
 
             if (lastByte[0] >= 0xFF) {
                 _logger.debug(thread.id + ": received end chunk");
-                window.clearInterval(interval);
+                clearInterval(interval);
 
                 //last chunk received - get time
                 thread.socket.onmessage = function (event) {
@@ -862,7 +856,7 @@ function RMBTTest(rmbtTestConfig, rmbtControlServer) {
         var bytesSent = 0;
         var chunkSize = _chunkSize;
 
-        window.setTimeout(function () {
+        setTimeout(function () {
             var endTime = nowMs();
             var duration = endTime - startTime;
             _logger.debug("diff:" + (duration - durationMs) + " (" + (duration - durationMs) / durationMs + " %)");
@@ -971,7 +965,7 @@ function RMBTTest(rmbtTestConfig, rmbtControlServer) {
                 _logger.debug(thread.id + ": is 7.2 sec in, got data for " + lastDurationInfo);
                 //if measurements are for < 7sec, give it time
                 if (lastDurationInfo < duration * 1e9 && timeoutExtensionsMs < 3000) {
-                    window.setTimeout(timeoutFunction, 250);
+                    setTimeout(timeoutFunction, 250);
                     timeoutExtensionsMs += 250;
                 } else {
                     //kill it with force!
@@ -1012,10 +1006,10 @@ function RMBTTest(rmbtTestConfig, rmbtControlServer) {
         };
 
         //set timeout function after 7,2s to check if everything went according to plan
-        window.setTimeout(timeoutFunction, duration * 1e3 + 200);
+        setTimeout(timeoutFunction, duration * 1e3 + 200);
 
         //send end blob after 7s, quit
-        window.setTimeout(function () {
+        setTimeout(function () {
             keepSendingData = false;
             thread.socket.onclose = function () {};
             thread.socket.send(_endArrayBuffers[_chunkSize]);
@@ -1121,7 +1115,7 @@ var geo_callback = void 0,
 
 function runCallback() {
     if (geo_callback != undefined && typeof geo_callback === 'function') {
-        window.setTimeout(function () {
+        setTimeout(function () {
             geo_callback();
         }, 1);
     }
@@ -1245,7 +1239,7 @@ var GeoTracker = function () {
 
         //Microsoft Edge does not adhere to the standard, and does not call the error
         //function after the specified callback, so we have to call it manually
-        window.setTimeout(function () {
+        setTimeout(function () {
             errorFunction();
         }, _errorTimeout);
     };
@@ -1345,23 +1339,6 @@ var GeoTracker = function () {
 
     return GeoTracker;
 }();
-
-/* getCookie polyfill */
-if (typeof window.setCookie === 'undefined') {
-    window.setCookie = function (cookie_name, cookie_value, cookie_exseconds) {
-        //var exdate = new Date();
-        //exdate.setDate(exdate.getDate() + cookie_exdays);
-
-        var futuredate = new Date();
-        var expdate = futuredate.getTime();
-        expdate += cookie_exseconds * 1000;
-        futuredate.setTime(expdate);
-
-        //var c_value=escape(cookie_value) + ((cookie_exdays==null) ? ";" : "; expires="+exdate.toUTCString() +";");
-        var c_value = encodeURIComponent(cookie_value) + (cookie_exseconds == null ? ";" : "; expires=" + futuredate.toUTCString() + ";");
-        document.cookie = cookie_name + "=" + c_value + " path=/;";
-    };
-}
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
@@ -1684,7 +1661,7 @@ var RMBTTestConfig = exports.RMBTTestConfig = function () {
         80: 3,
         150: 5
     };
-    RMBTTestConfig.prototype.userServerSelection = typeof window.userServerSelection !== 'undefined' ? userServerSelection : 0; //for QoSTest
+    RMBTTestConfig.prototype.userServerSelection = 0;
     RMBTTestConfig.prototype.additionalRegistrationParameters = {}; //will be transmitted in ControlServer registration, if any
     RMBTTestConfig.prototype.additionalSubmissionParameters = {}; //will be transmitted in ControlServer result submission, if any
 
@@ -1987,29 +1964,29 @@ var RMBTError = {
     }
 
     // prepare base perf object
-    if (typeof window.performance === 'undefined') {
-        window.performance = {};
+    if (typeof performance === 'undefined') {
+        performance = {};
     }
 
-    if (!window.performance.now || window.performance.now === undefined) {
+    if (!performance.now || performance.now === undefined) {
         var nowOffset = Date.now();
 
         if (performance.timing && performance.timing.navigationStart) {
             nowOffset = performance.timing.navigationStart;
         }
 
-        window.performance.now = function now() {
+        performance.now = function now() {
             return Date.now() - nowOffset;
         };
     }
 })();
 
 function nowMs() {
-    return window.performance.now();
+    return performance.now();
 }
 
 function nowNs() {
-    return Math.round(window.performance.now() * 1e6); //from ms to ns
+    return Math.round(performance.now() * 1e6); //from ms to ns
 }
 
 /**

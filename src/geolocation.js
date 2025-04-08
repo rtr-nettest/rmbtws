@@ -6,7 +6,7 @@ let geo_callback, loc_timeout;
 
 function runCallback() {
 	if (geo_callback != undefined && typeof geo_callback === 'function') {
-		window.setTimeout(function() {
+		setTimeout(function() {
             geo_callback();
         }, 1);
 	}
@@ -134,7 +134,7 @@ const GeoTracker = (function() {
 
         //Microsoft Edge does not adhere to the standard, and does not call the error
         //function after the specified callback, so we have to call it manually
-        window.setTimeout(() => {
+        setTimeout(() => {
             errorFunction();
         }, _errorTimeout);
     };
@@ -236,21 +236,3 @@ const GeoTracker = (function() {
 
     return GeoTracker;
 })();
-
-
-/* getCookie polyfill */
-if (typeof window.setCookie === 'undefined') {
-    window.setCookie = (cookie_name, cookie_value, cookie_exseconds) => {
-        //var exdate = new Date();
-        //exdate.setDate(exdate.getDate() + cookie_exdays);
-
-        let futuredate = new Date();
-        let expdate = futuredate.getTime();
-        expdate += cookie_exseconds * 1000;
-        futuredate.setTime(expdate);
-
-        //var c_value=escape(cookie_value) + ((cookie_exdays==null) ? ";" : "; expires="+exdate.toUTCString() +";");
-        let c_value = encodeURIComponent(cookie_value) + ((cookie_exseconds==null) ? ";" : "; expires=" + futuredate.toUTCString() + ";");
-        document.cookie = cookie_name + "=" + c_value + " path=/;";
-    }
-}

@@ -10,11 +10,11 @@
     }
 
     // prepare base perf object
-    if (typeof window.performance === 'undefined') {
-        window.performance = {};
+    if (typeof performance === 'undefined') {
+        performance = {};
     }
 
-    if (!window.performance.now || window.performance.now === undefined) {
+    if (!performance.now || performance.now === undefined) {
         let nowOffset = Date.now();
 
         if (performance.timing && performance.timing.navigationStart) {
@@ -22,7 +22,7 @@
         }
 
 
-        window.performance.now = function now() {
+        performance.now = function now() {
             return Date.now() - nowOffset;
         }
     }
@@ -30,11 +30,11 @@
 
 
 function nowMs() {
-    return window.performance.now();
+    return performance.now();
 }
 
 function nowNs() {
-    return Math.round(window.performance.now() * 1e6); //from ms to ns
+    return Math.round(performance.now() * 1e6); //from ms to ns
 }
 
 
