@@ -112,16 +112,17 @@ Math.log10 = Math.log10 || function (x) {
 //"loglevel" module is used, but if not available, it will fallback to console.log
 self.log = self.log || {
         debug: (...msg) => {
-            console.log(...msg);
+            // TODO: add a robust check for dev env then uncomment
+            // console.log(...msg);
         },
         trace: () => {
-            console.trace();
+            // console.trace();
         },
         info: (...msg) => {
-            console.info(...msg);
+            // console.info(...msg);
         },
         warn: (...msg) => {
-            console.warn(...msg);
+            // console.warn(...msg);
         },
         error: (...msg) => {
             console.error(...msg);

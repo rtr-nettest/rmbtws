@@ -2022,27 +2022,22 @@ Math.log10 = Math.log10 || function (x) {
 //"loglevel" module is used, but if not available, it will fallback to console.log
 self.log = self.log || {
     debug: function debug() {
-        var _console;
-
-        (_console = console).log.apply(_console, arguments);
+        // TODO: add a robust check for dev env then uncomment
+        // console.log(...msg);
     },
     trace: function trace() {
-        console.trace();
+        // console.trace();
     },
     info: function info() {
-        var _console2;
-
-        (_console2 = console).info.apply(_console2, arguments);
+        // console.info(...msg);
     },
     warn: function warn() {
-        var _console3;
-
-        (_console3 = console).warn.apply(_console3, arguments);
+        // console.warn(...msg);
     },
     error: function error() {
-        var _console4;
+        var _console;
 
-        (_console4 = console).error.apply(_console4, arguments);
+        (_console = console).error.apply(_console, arguments);
     },
     setLevel: function setLevel() {},
     getLogger: function getLogger() {
