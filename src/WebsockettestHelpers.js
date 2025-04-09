@@ -109,29 +109,36 @@ Math.log10 = Math.log10 || function (x) {
         return Math.log(x) / Math.LN10;
     };
 
-//"loglevel" module is used, but if not available, it will fallback to console.log
-self.log = self.log || {
-        debug: (...msg) => {
-            // TODO: add a robust check for dev env then uncomment
-            // console.log(...msg);
-        },
-        trace: () => {
-            // console.trace();
-        },
-        info: (...msg) => {
-            // console.info(...msg);
-        },
-        warn: (...msg) => {
-            // console.warn(...msg);
-        },
-        error: (...msg) => {
-            console.error(...msg);
-        },
-        setLevel: () => {},
-        getLogger: () => {
-            return log;
-        }
-    };
+class Log {
+    debug(...msg) {
+        console.log(...msg);
+    }
+    trace() {
+        console.trace();
+    }
+    info(...msg) {
+        console.info(...msg);
+    }
+    warn(...msg) {
+        console.warn(...msg);
+    }
+    error(...msg) {
+        console.error(...msg);
+    }
+    disable() {
+        this.debug = function() {};
+        this.trace = function() {};
+        this.info = function() {};
+        this.warn = function() {};
+        this.error = function() {};
+    }
+    setLevel() {}
+    getLogger() {
+        return this;
+    }
+}
+
+self.log = self.log || new Log();
 
 
 //Polyfill
