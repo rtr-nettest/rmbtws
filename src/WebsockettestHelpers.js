@@ -130,7 +130,6 @@ class Log {
         this.trace = function() {};
         this.info = function() {};
         this.warn = function() {};
-        this.error = function() {};
     }
     setLevel() {}
     getLogger() {

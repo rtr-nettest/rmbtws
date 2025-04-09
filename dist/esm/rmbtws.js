@@ -2068,7 +2068,6 @@ var Log = function () {
             this.trace = function () {};
             this.info = function () {};
             this.warn = function () {};
-            this.error = function () {};
         }
     }, {
         key: "setLevel",
