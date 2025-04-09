@@ -1,48 +1,52 @@
 {
-    "private": false,
-    "name": "rmbtws",
-    "version": "0.9.0",
-    "description": "A JavaScript implementation of a WebSocket-client for the RMBT protocol",
-    "homepage": "https://www.netztest.at/",
-    "repository": "rtr-nettest/rmbtws",
-    "author": "RTR-Netztest-Team <netztest@rtr.at> (https://www.rtr.at)",
-    "contributors": [
-        "Thomas Schreiber <thomas.schreiber@rtr.at>",
-        "Rundfunk und Telekom Regulierungs-GmbH (RTR-GmbH) <netztest@rtr.at>"
+  "private": false,
+  "name": "rmbtws",
+  "version": "0.9.0",
+  "description": "A JavaScript implementation of a WebSocket-client for the RMBT protocol",
+  "homepage": "https://www.netztest.at/",
+  "repository": "rtr-nettest/rmbtws",
+  "author": "RTR-Netztest-Team <netztest@rtr.at> (https://www.rtr.at)",
+  "contributors": [
+    "Thomas Schreiber <thomas.schreiber@rtr.at>",
+    "Rundfunk und Telekom Regulierungs-GmbH (RTR-GmbH) <netztest@rtr.at>"
+  ],
+  "license": "Apache-2.0",
+  "keywords": [
+    "rmbt",
+    "netztest",
+    "netttest",
+    "speedtest",
+    "rtr",
+    "rtr-netztest",
+    "rtr-nettest"
+  ],
+  "main": "dist/rmbtws.min.js",
+  "babel": {
+    "presets": [
+      "es2015"
     ],
-    "license": "Apache-2.0",
-    "keywords": [
-        "rmbt",
-        "netztest",
-        "netttest",
-        "speedtest",
-        "rtr",
-        "rtr-netztest",
-        "rtr-nettest"
-    ],
-    "main": "dist/rmbtws.min.js",
-    "babel": {
-        "presets": [
-            "es2015"
-        ],
-        "plugins": []
-    },
-    "dependencies": {
-        "babel-cli": "^6.26.0",
-        "babel-preset-es2015": "^6.24.1",
-        "babel-runtime": "^6.26.0",
-        "gulp": "^4.0.1",
-        "gulp-babel": "^7.0.1",
-        "gulp-concat": "^2.6.1",
-        "gulp-header": "^2.0.9",
-        "gulp-order": "^1.2.0",
-        "gulp-rename": "^1.4.0",
-        "gulp-sourcemaps": "^2.6.5",
-        "gulp-tap": "^2.0.0",
-        "gulp-uglify": "^2.1.2",
-        "gulplog": "^2.2.0"
-    },
-    "scripts": {
-        "build": "gulp build"
-    }
+    "plugins": []
+  },
+  "dependencies": {
+    "babel-cli": "^6.26.0",
+    "babel-preset-es2015": "^6.24.1",
+    "babel-runtime": "^6.26.0",
+    "gulp": "^4.0.1",
+    "gulp-babel": "^7.0.1",
+    "gulp-concat": "^2.6.1",
+    "gulp-header": "^2.0.9",
+    "gulp-order": "^1.2.0",
+    "gulp-rename": "^1.4.0",
+    "gulp-sourcemaps": "^2.6.5",
+    "gulp-tap": "^2.0.0",
+    "gulp-uglify": "^2.1.2",
+    "gulplog": "^2.2.0"
+  },
+  "scripts": {
+    "build": "gulp build",
+    "prepare": "husky"
+  },
+  "devDependencies": {
+    "husky": "^9.1.7"
+  }
 }

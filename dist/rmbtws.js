@@ -1917,6 +1917,14 @@ var RMBTError = {
 //polyfill for microsecond-time
 //https://gist.github.com/paulirish/5438650
 
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+
+var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
 (function () {
     if (!Date.now) {
         Date.now = function () {
@@ -2020,31 +2028,67 @@ Math.log10 = Math.log10 || function (x) {
     return Math.log(x) / Math.LN10;
 };
 
-//"loglevel" module is used, but if not available, it will fallback to console.log
-self.log = self.log || {
-    debug: function debug() {
-        // TODO: add a robust check for dev env then uncomment
-        // console.log(...msg);
-    },
-    trace: function trace() {
-        // console.trace();
-    },
-    info: function info() {
-        // console.info(...msg);
-    },
-    warn: function warn() {
-        // console.warn(...msg);
-    },
-    error: function error() {
-        var _console;
-
-        (_console = console).error.apply(_console, arguments);
-    },
-    setLevel: function setLevel() {},
-    getLogger: function getLogger() {
-        return log;
+var Log = function () {
+    function Log() {
+        _classCallCheck(this, Log);
     }
-};
+
+    _createClass(Log, [{
+        key: "debug",
+        value: function debug() {
+            var _console;
+
+            (_console = console).log.apply(_console, arguments);
+        }
+    }, {
+        key: "trace",
+        value: function trace() {
+            console.trace();
+        }
+    }, {
+        key: "info",
+        value: function info() {
+            var _console2;
+
+            (_console2 = console).info.apply(_console2, arguments);
+        }
+    }, {
+        key: "warn",
+        value: function warn() {
+            var _console3;
+
+            (_console3 = console).warn.apply(_console3, arguments);
+        }
+    }, {
+        key: "error",
+        value: function error() {
+            var _console4;
+
+            (_console4 = console).error.apply(_console4, arguments);
+        }
+    }, {
+        key: "disable",
+        value: function disable() {
+            this.debug = function () {};
+            this.trace = function () {};
+            this.info = function () {};
+            this.warn = function () {};
+        }
+    }, {
+        key: "setLevel",
+        value: function setLevel() {}
+    }, {
+        key: "getLogger",
+        value: function getLogger() {
+            return this;
+        }
+    }]);
+
+    return Log;
+}();
+
+self.log = self.log || new Log();
+var log = exports.log = self.log;
 
 //Polyfill
 if (typeof Object.assign != 'function') {
