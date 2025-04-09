@@ -138,6 +138,7 @@ class Log {
 }
 
 self.log = self.log || new Log();
+export const log = self.log;
 
 
 //Polyfill
