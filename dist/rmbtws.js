@@ -177,7 +177,11 @@ function RMBTTest(rmbtTestConfig, rmbtControlServer) {
                         conductTest(response, thread, function () {
                             _logger.info("All tests finished");
                             wsGeoTracker.stop();
-                            _rmbtTestResult.geoLocations = wsGeoTracker.getResults();
+                            if (TestEnvironment.getTestVisualization().getGeoResults) {
+                                _rmbtTestResult.geoLocations = TestEnvironment.getTestVisualization().getGeoResults();
+                            } else {
+                                _rmbtTestResult.geoLocations = wsGeoTracker.getResults();
+                            }
                             _rmbtTestResult.calculateAll();
                             _rmbtControlServer.submitResults(prepareResult(response), function () {
                                 setState(TestState.END);
@@ -1097,6 +1101,9 @@ function RMBTTest(rmbtTestConfig, rmbtControlServer) {
 };
 "use strict";
 
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
 var curGeoPos = void 0;
 var geo_callback = void 0,
     loc_timeout = void 0;
@@ -1143,7 +1150,7 @@ function getLocation(geoAccuracy, geoTimeout, geoMaxAge, callback) {
 }
 
 //Geolocation tracking
-var GeoTracker = function () {
+var GeoTracker = exports.GeoTracker = function () {
     "use strict";
 
     var _errorTimeout = 2e3; //2 seconds error timeout
