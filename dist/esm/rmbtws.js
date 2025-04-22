@@ -950,13 +950,13 @@ function RMBTTest(rmbtTestConfig, rmbtControlServer) {
         //if less than approx 1.5 seconds is left in the buffer - resend! (since browser limit setTimeout-intervals
         //  when pages are not in the foreground)
         var fixedUnderrunBytesHidden = _totalBytesPerSecsPretest * 1.5 / _numUploadThreads;
-        var fixedUnderrunBytes = globalThis.document.hidden ? fixedUnderrunBytesHidden : fixedUnderrunBytesVisible;
+        var fixedUnderrunBytes = globalThis.document && globalThis.document.hidden ? fixedUnderrunBytesHidden : fixedUnderrunBytesVisible;
 
         var visibilityChangeEventListener = function visibilityChangeEventListener() {
-            fixedUnderrunBytes = globalThis.document.hidden ? fixedUnderrunBytesHidden : fixedUnderrunBytesVisible;
-            _logger.debug("document visibility changed to: " + globalThis.document.hidden);
+            fixedUnderrunBytes = globalThis.document && globalThis.document.hidden ? fixedUnderrunBytesHidden : fixedUnderrunBytesVisible;
+            globalThis.document && _logger.debug("document visibility changed to: " + globalThis.document.hidden);
         };
-        globalThis.document.addEventListener("visibilitychange", visibilityChangeEventListener);
+        globalThis.document && globalThis.document.addEventListener("visibilitychange", visibilityChangeEventListener);
 
         //send data for approx one second at once
         //@TODO adapt with changing connection speeds
