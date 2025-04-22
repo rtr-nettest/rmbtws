@@ -142,6 +142,12 @@ function RMBTTest(rmbtTestConfig, rmbtControlServer) {
     };
 
     this.startTest = function () {
+        //see if websockets are supported
+        if (globalThis.WebSocket === undefined) {
+            callErrorCallback(RMBTError.NOT_SUPPORTED);
+            return;
+        }
+
         setState(TestState.INIT);
         _rmbtTestResult = new RMBTTestResult();
         //connect to control server
@@ -940,7 +946,17 @@ function RMBTTest(rmbtTestConfig, rmbtControlServer) {
         var previousListener = thread.socket.onmessage;
 
         //if less than approx half a second is left in the buffer - resend!
-        var fixedUnderrunBytes = _totalBytesPerSecsPretest / 2 / _numUploadThreads;;
+        var fixedUnderrunBytesVisible = _totalBytesPerSecsPretest / 2 / _numUploadThreads;
+        //if less than approx 1.5 seconds is left in the buffer - resend! (since browser limit setTimeout-intervals
+        //  when pages are not in the foreground)
+        var fixedUnderrunBytesHidden = _totalBytesPerSecsPretest * 1.5 / _numUploadThreads;
+        var fixedUnderrunBytes = globalThis.document.hidden ? fixedUnderrunBytesHidden : fixedUnderrunBytesVisible;
+
+        var visibilityChangeEventListener = function visibilityChangeEventListener() {
+            fixedUnderrunBytes = globalThis.document.hidden ? fixedUnderrunBytesHidden : fixedUnderrunBytesVisible;
+            _logger.debug("document visibility changed to: " + globalThis.document.hidden);
+        };
+        globalThis.document.addEventListener("visibilitychange", visibilityChangeEventListener);
 
         //send data for approx one second at once
         //@TODO adapt with changing connection speeds
@@ -1127,6 +1143,7 @@ function getCurLocation() {
  * @param {Function} callback
  */
 function getLocation(geoAccuracy, geoTimeout, geoMaxAge, callback) {
+    var ausgabe = globalThis.document && globalThis.document.getElementById("infogeo");
     geo_callback = callback;
 
     if (!navigator.geolocation) {
@@ -1138,6 +1155,8 @@ function getLocation(geoAccuracy, geoTimeout, geoMaxAge, callback) {
             if (tmpcoords && tmpcoords['lat'] > 0 && tmpcoords['long'] > 0) {
                 testVisualization.setLocation(tmpcoords['lat'], tmpcoords['long']);
             }
+        } else if (ausgabe) {
+            ausgabe.innerHTML = Lang.getString('NotSupported');
         }
 
         runCallback();
@@ -1145,7 +1164,31 @@ function getLocation(geoAccuracy, geoTimeout, geoMaxAge, callback) {
     }
     runCallback();
     //var TestEnvironment.getGeoTracker() = new GeoTracker();
-    TestEnvironment.getGeoTracker().start(function () {}, TestEnvironment.getTestVisualization());
+    TestEnvironment.getGeoTracker().start(function (successful, error) {
+        if (successful !== true && ausgabe) {
+            //user did not allow geolocation or other reason
+            if (error) {
+                switch (error.code) {
+                    case error.PERMISSION_DENIED:
+                        ausgabe.innerHTML = Lang.getString('NoPermission');
+                        break;
+                    case error.TIMEOUT:
+                        //@TODO: Position is determined...
+                        //alert(1);
+                        break;
+                    case error.POSITION_UNAVAILABLE:
+                        ausgabe.innerHTML = Lang.getString('NotAvailable');
+                        break;
+                    case error.UNKNOWN_ERROR:
+                        ausgabe.innerHTML = Lang.getString('NotAvailable') + "(" + error.code + ")";
+                        break;
+                }
+            } else {
+                //Internet Explorer 11 in some cases does not return an error code
+                ausgabe.innerHTML = Lang.getString('NotAvailable');
+            }
+        }
+    }, TestEnvironment.getTestVisualization());
 }
 
 //Geolocation tracking
@@ -1628,7 +1671,7 @@ var RMBTTestConfig = exports.RMBTTestConfig = function () {
         80: 3,
         150: 5
     };
-    RMBTTestConfig.prototype.userServerSelection = 0;
+    RMBTTestConfig.prototype.userServerSelection = typeof globalThis.userServerSelection !== 'undefined' ? userServerSelection : 0; //for QoSTest
     RMBTTestConfig.prototype.additionalRegistrationParameters = {}; //will be transmitted in ControlServer registration, if any
     RMBTTestConfig.prototype.additionalSubmissionParameters = {}; //will be transmitted in ControlServer result submission, if any
 
