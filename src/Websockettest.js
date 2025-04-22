@@ -174,7 +174,11 @@ export function RMBTTest(rmbtTestConfig, rmbtControlServer) {
                         conductTest(response, thread, function () {
                             _logger.info("All tests finished");
                             wsGeoTracker.stop();
-                            _rmbtTestResult.geoLocations = wsGeoTracker.getResults();
+                            if (TestEnvironment.getTestVisualization().getGeoResults) {
+                                _rmbtTestResult.geoLocations = TestEnvironment.getTestVisualization().getGeoResults();
+                            } else {
+                                _rmbtTestResult.geoLocations = wsGeoTracker.getResults();
+                            }
                             _rmbtTestResult.calculateAll();
                             _rmbtControlServer.submitResults(
                                 prepareResult(response),

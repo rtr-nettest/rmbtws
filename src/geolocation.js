@@ -48,7 +48,7 @@ function getLocation(geoAccuracy, geoTimeout, geoMaxAge, callback) {
 
 
 //Geolocation tracking
-const GeoTracker = (function() {
+export const GeoTracker = (function() {
     "use strict";
 
     const _errorTimeout = 2e3; //2 seconds error timeout
