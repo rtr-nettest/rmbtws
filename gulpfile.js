@@ -4,7 +4,19 @@ const uglify = require('gulp-uglify');
 const babel = require('gulp-babel');
 const concat = require('gulp-concat');
 const order = require('gulp-order');
-const header = require('gulp-header');
+const through2 = require('through2');
+
+
+const prependText = (text) => {
+    // Instead of using gulp plugin, we can create an inline plugin
+    return through2.obj(function (file, _, cb) {
+        if (file.isBuffer()) {
+            file.contents = Buffer.concat([Buffer.from(text), file.contents]);
+        }
+        cb(null, file);
+    });
+};
+
 
 const compilejs = () => {
     //create concatenated version
@@ -40,7 +52,7 @@ const compilejs = () => {
         .pipe(concat('rmbtws.min.js'))
         .pipe(sourcemaps.write('./'))
         .pipe(gulp.dest('dist/esm'))
-        .pipe(header('var exports = {};\n'))
+        .pipe(prependText('var exports = {};\n'))
         .pipe(gulp.dest('dist'));
 
     //note: we can't do both at once due to problems with
