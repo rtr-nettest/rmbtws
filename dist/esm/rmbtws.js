@@ -909,6 +909,7 @@ function RMBTTest(rmbtTestConfig, rmbtControlServer) {
           thread.socket.close();
           thread.socket.onmessage = previousListener;
           _logger.debug(thread.id + ": socket now closed: " + thread.socket.readyState);
+          globalThis.document && document.removeEventListener("visibilitychange", visibilityChangeEventListener);
           thread.triggerNextState();
         }
       }
@@ -978,6 +979,7 @@ function RMBTTest(rmbtTestConfig, rmbtControlServer) {
           receivedEndTime = true;
           _logger.debug("Upload duration: " + matches[1]);
           thread.socket.onmessage = previousListener;
+          globalThis.document && document.removeEventListener("visibilitychange", visibilityChangeEventListener);
         }
       }
     };
@@ -1256,6 +1258,23 @@ var GeoTracker = exports.GeoTracker = function () {
   };
   return GeoTracker;
 }();
+
+/* getCookie polyfill */
+if (typeof globalThis.setCookie === 'undefined' && globalThis.document) {
+  globalThis.setCookie = function (cookie_name, cookie_value, cookie_exseconds) {
+    //var exdate = new Date();
+    //exdate.setDate(exdate.getDate() + cookie_exdays);
+
+    var futuredate = new Date();
+    var expdate = futuredate.getTime();
+    expdate += cookie_exseconds * 1000;
+    futuredate.setTime(expdate);
+
+    //var c_value=escape(cookie_value) + ((cookie_exdays==null) ? ";" : "; expires="+exdate.toUTCString() +";");
+    var c_value = encodeURIComponent(cookie_value) + (cookie_exseconds == null ? ";" : "; expires=" + futuredate.toUTCString() + ";");
+    document.cookie = cookie_name + "=" + c_value + " path=/;";
+  };
+}
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -2021,4 +2040,9 @@ if (typeof Object.assign != 'function') {
     }
     return to;
   };
+}
+
+//"hidden" polyfill (in this case: always visible)
+if (globalThis.document && typeof document.hidden === "undefined") {
+  document.hidden = false;
 }
