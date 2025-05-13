@@ -4,48 +4,70 @@ const uglify = require('gulp-uglify');
 const babel = require('gulp-babel');
 const concat = require('gulp-concat');
 const order = require('gulp-order');
-const header = require('gulp-header');
+const through2 = require('through2');
 
-gulp.task('compilejs', gulp.series((done) => {
+
+const prependText = (text) => {
+    // Instead of using gulp plugin, we can create an inline plugin
+    return through2.obj(function (file, _, cb) {
+        if (file.isBuffer()) {
+            file.contents = Buffer.concat([Buffer.from(text), file.contents]);
+        }
+        cb(null, file);
+    });
+};
+
+
+const compilejs = () => {
     //create concatenated version
-    gulp.src('./src/*.js')
-        .pipe(babel())
+    const esmBuild = gulp.src('./src/*.js')
+        .pipe(babel({
+            presets: ['@babel/preset-env']
+        }))
         .pipe(order([
             '**/Websockettest.js'
         ]))
         .pipe(concat('rmbtws.js'))
-        .pipe(gulp.dest('dist/esm'))
-        .pipe(header('var exports = {};\n'))
+        .pipe(gulp.dest('dist/esm'));
+
+    // Browser Version erstellen
+    const browserBuild = esmBuild
+        .pipe(prependText('var exports = {};\n'))
         .pipe(gulp.dest('dist'));
 
-    //create minified version
-    gulp.src('./src/*.js')
+    // Minifizierte Version erstellen
+    const minifiedBuild = gulp.src('./src/*.js')
         .pipe(sourcemaps.init())
-        .pipe(babel())
+        .pipe(babel({
+            presets: ['@babel/preset-env']
+        }))
         .pipe(order([
             '**/Websockettest.js'
         ]))
         .pipe(uglify({
-            preserveComments: 'license'
+            output: {
+                comments: 'some'
+            }
         }))
         .pipe(concat('rmbtws.min.js'))
         .pipe(sourcemaps.write('./'))
         .pipe(gulp.dest('dist/esm'))
-        .pipe(header('var exports = {};\n'))
+        .pipe(prependText('var exports = {};\n'))
         .pipe(gulp.dest('dist'));
 
     //note: we can't do both at once due to problems with
     //preserveComments : 'license'; which does not work
     //with the concatenated file
-    done();
-}));
+    return Promise.all([esmBuild, browserBuild, minifiedBuild]);
+};
 
-gulp.task('watchForChanges', gulp.series((done) => {
-    gulp.watch('./src/**/*.js', gulp.series('compilejs'));
-    done();
-}));
+// Watch-Task
+const watchForChanges = () => {
+    return gulp.watch('./src/**/*.js', compilejs);
+};
 
-gulp.task('watch', gulp.series('compilejs', 'watchForChanges'));
-gulp.task('build', gulp.series('compilejs'));
-
-gulp.task('default', gulp.series('compilejs'));
+// Task definitions
+exports.compilejs = compilejs;
+exports.watch = gulp.series(compilejs, watchForChanges);
+exports.build = compilejs;
+exports.default = compilejs;
