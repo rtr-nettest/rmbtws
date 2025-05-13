@@ -166,3 +166,8 @@ if (typeof Object.assign != 'function') {
         return to;
     };
 }
+
+//"hidden" polyfill (in this case: always visible)
+if (globalThis.document && typeof document.hidden === "undefined") {
+    document.hidden = false;
+}

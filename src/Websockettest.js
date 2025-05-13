@@ -996,6 +996,7 @@ export function RMBTTest(rmbtTestConfig, rmbtControlServer) {
                     thread.socket.close();
                     thread.socket.onmessage = previousListener;
                     _logger.debug(thread.id + ": socket now closed: " + thread.socket.readyState);
+                    globalThis.document && document.removeEventListener("visibilitychange",visibilityChangeEventListener);
                     thread.triggerNextState();
                 }
             }
@@ -1068,6 +1069,7 @@ export function RMBTTest(rmbtTestConfig, rmbtControlServer) {
                     receivedEndTime = true;
                     _logger.debug("Upload duration: " + matches[1]);
                     thread.socket.onmessage = previousListener;
+                    globalThis.document && document.removeEventListener("visibilitychange",visibilityChangeEventListener);
                 }
             }
         };

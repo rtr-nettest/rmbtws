@@ -236,3 +236,22 @@ export const GeoTracker = (function() {
 
     return GeoTracker;
 })();
+
+/* getCookie polyfill */
+if (typeof globalThis.setCookie === 'undefined' && globalThis.document) {
+    globalThis.setCookie = (cookie_name, cookie_value, cookie_exseconds) => {
+
+        //var exdate = new Date();
+        //exdate.setDate(exdate.getDate() + cookie_exdays);
+
+        let futuredate = new Date();
+        let expdate = futuredate.getTime();
+        expdate += cookie_exseconds * 1000;
+        futuredate.setTime(expdate);
+
+        //var c_value=escape(cookie_value) + ((cookie_exdays==null) ? ";" : "; expires="+exdate.toUTCString() +";");
+        let c_value = encodeURIComponent(cookie_value) + ((cookie_exseconds==null) ? ";" : "; expires=" + futuredate.toUTCString() + ";");
+        document.cookie = cookie_name + "=" + c_value + " path=/;";
+        
+    }
+}
