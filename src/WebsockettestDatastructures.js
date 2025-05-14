@@ -286,14 +286,15 @@ RMBTTestResult.prototype.calculateAll = function() {
 
     //ping
     let pings = this.threads[0].pings;
+    let pingsResult = [];
     for (let i = 0; i < pings.length; i++) {
-        this.pings.push({
+        pingsResult.push({
            value: pings[i].client,
            value_server: pings[i].server,
            time_ns: pings[i].timeNs
         });
-
     }
+    this.pings = pingsResult;
 
     //add time_ns to geoLocations
     for (let i=0;i<this.geoLocations.length;i++) {

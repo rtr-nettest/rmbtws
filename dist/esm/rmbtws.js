@@ -1804,13 +1804,15 @@ RMBTTestResult.prototype.calculateAll = function () {
 
   //ping
   var pings = this.threads[0].pings;
+  var pingsResult = [];
   for (var _i3 = 0; _i3 < pings.length; _i3++) {
-    this.pings.push({
+    pingsResult.push({
       value: pings[_i3].client,
       value_server: pings[_i3].server,
       time_ns: pings[_i3].timeNs
     });
   }
+  this.pings = pingsResult;
 
   //add time_ns to geoLocations
   for (var _i4 = 0; _i4 < this.geoLocations.length; _i4++) {
