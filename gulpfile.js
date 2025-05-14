@@ -32,7 +32,7 @@ const compilejs = () => {
 
     // Browser Version erstellen
     const browserBuild = esmBuild
-        .pipe(header('var exports = {};\n'))
+        .pipe(prependText('var exports = {};\n'))
         .pipe(gulp.dest('dist'));
 
     // Minifizierte Version erstellen
