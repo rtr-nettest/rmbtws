@@ -1548,7 +1548,7 @@ var RMBTTestConfig = exports.RMBTTestConfig = function () {
   RMBTTestConfig.prototype.type = "DESKTOP";
   RMBTTestConfig.prototype.version_code = "0.3"; //minimal version compatible with the test
   RMBTTestConfig.prototype.client_version = "0.3"; //filled out by version information from RMBTServer
-  RMBTTestConfig.prototype.client_software_version = "0.9.2";
+  RMBTTestConfig.prototype.client_software_version = "0.9.3";
   RMBTTestConfig.prototype.os_version = 1;
   RMBTTestConfig.prototype.platform = "RMBTws";
   RMBTTestConfig.prototype.model = "Websocket";
