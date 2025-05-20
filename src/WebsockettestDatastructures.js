@@ -7,7 +7,7 @@ export let RMBTTestConfig = (function () {
     RMBTTestConfig.prototype.type = "DESKTOP";
     RMBTTestConfig.prototype.version_code = "0.3"; //minimal version compatible with the test
     RMBTTestConfig.prototype.client_version = "0.3"; //filled out by version information from RMBTServer
-    RMBTTestConfig.prototype.client_software_version = "0.9.2";
+    RMBTTestConfig.prototype.client_software_version = "0.9.3";
     RMBTTestConfig.prototype.os_version = 1;
     RMBTTestConfig.prototype.platform = "RMBTws";
     RMBTTestConfig.prototype.model = "Websocket";
@@ -286,14 +286,15 @@ RMBTTestResult.prototype.calculateAll = function() {
 
     //ping
     let pings = this.threads[0].pings;
+    let pingsResult = [];
     for (let i = 0; i < pings.length; i++) {
-        this.pings.push({
+        pingsResult.push({
            value: pings[i].client,
            value_server: pings[i].server,
            time_ns: pings[i].timeNs
         });
-
     }
+    this.pings = pingsResult;
 
     //add time_ns to geoLocations
     for (let i=0;i<this.geoLocations.length;i++) {
