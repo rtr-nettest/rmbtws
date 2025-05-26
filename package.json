@@ -7,18 +7,18 @@
   "repository": "rtr-nettest/rmbtws",
   "author": "RTR-Netztest-Team <netztest@rtr.at> (https://www.rtr.at)",
   "contributors": [
-    "Thomas Schreiber <thomas.schreiber@rtr.at>",
-    "Rundfunk und Telekom Regulierungs-GmbH (RTR-GmbH) <netztest@rtr.at>"
+      "Thomas Schreiber <thomas.schreiber@rtr.at>",
+      "Rundfunk und Telekom Regulierungs-GmbH (RTR-GmbH) <netztest@rtr.at>"
   ],
   "license": "Apache-2.0",
   "keywords": [
-    "rmbt",
-    "netztest",
-    "netttest",
-    "speedtest",
-    "rtr",
-    "rtr-netztest",
-    "rtr-nettest"
+      "rmbt",
+      "netztest",
+      "netttest",
+      "speedtest",
+      "rtr",
+      "rtr-netztest",
+      "rtr-nettest"
   ],
   "main": "dist/rmbtws.min.js",
   "babel": {
@@ -41,12 +41,8 @@
       "@babel/preset-env": "^7.23.7",
       "@babel/runtime": "^7.23.7"
   },
-  "devDependencies": {
-    "husky": "^9.1.7"
-  },
   "scripts": {
       "build": "gulp build",
-      "watch": "gulp watch",
-      "prepare": "husky"
+      "watch": "gulp watch"
   }
 }
