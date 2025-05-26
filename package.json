@@ -1,48 +1,48 @@
 {
-  "private": false,
-  "name": "rmbtws",
-  "version": "0.9.3",
-  "description": "A JavaScript implementation of a WebSocket-client for the RMBT protocol",
-  "homepage": "https://www.netztest.at/",
-  "repository": "rtr-nettest/rmbtws",
-  "author": "RTR-Netztest-Team <netztest@rtr.at> (https://www.rtr.at)",
-  "contributors": [
-      "Thomas Schreiber <thomas.schreiber@rtr.at>",
-      "Rundfunk und Telekom Regulierungs-GmbH (RTR-GmbH) <netztest@rtr.at>"
-  ],
-  "license": "Apache-2.0",
-  "keywords": [
-      "rmbt",
-      "netztest",
-      "netttest",
-      "speedtest",
-      "rtr",
-      "rtr-netztest",
-      "rtr-nettest"
-  ],
-  "main": "dist/rmbtws.min.js",
-  "babel": {
-      "presets": [
-          "@babel/preset-env"
-      ],
-      "plugins": []
-  },
-  "dependencies": {
-      "gulp": "^5.0.0",
-      "gulp-babel": "^8.0.0",
-      "gulp-rename": "^2.0.0",
-      "gulp-concat": "^2.6.1",
-      "gulp-order": "^1.2.0",
-      "gulp-sourcemaps": "^2.6.5",
-      "gulp-tap": "^2.0.0",
-      "gulp-uglify": "^3.0.2",
-      "gulplog": "^2.2.0",
-      "@babel/core": "^7.23.7",
-      "@babel/preset-env": "^7.23.7",
-      "@babel/runtime": "^7.23.7"
-  },
-  "scripts": {
-      "build": "gulp build",
-      "watch": "gulp watch"
-  }
+    "private": false,
+    "name": "rmbtws",
+    "version": "0.9.3",
+    "description": "A JavaScript implementation of a WebSocket-client for the RMBT protocol",
+    "homepage": "https://www.netztest.at/",
+    "repository": "rtr-nettest/rmbtws",
+    "author": "RTR-Netztest-Team <netztest@rtr.at> (https://www.rtr.at)",
+    "contributors": [
+        "Thomas Schreiber <thomas.schreiber@rtr.at>",
+        "Rundfunk und Telekom Regulierungs-GmbH (RTR-GmbH) <netztest@rtr.at>"
+    ],
+    "license": "Apache-2.0",
+    "keywords": [
+        "rmbt",
+        "netztest",
+        "netttest",
+        "speedtest",
+        "rtr",
+        "rtr-netztest",
+        "rtr-nettest"
+    ],
+    "main": "dist/rmbtws.min.js",
+    "babel": {
+        "presets": [
+            "@babel/preset-env"
+        ],
+        "plugins": []
+    },
+    "dependencies": {
+        "gulp": "^5.0.0",
+        "gulp-babel": "^8.0.0",
+        "gulp-rename": "^2.0.0",
+        "gulp-concat": "^2.6.1",
+        "gulp-order": "^1.2.0",
+        "gulp-sourcemaps": "^2.6.5",
+        "gulp-tap": "^2.0.0",
+        "gulp-uglify": "^3.0.2",
+        "gulplog": "^2.2.0",
+        "@babel/core": "^7.23.7",
+        "@babel/preset-env": "^7.23.7",
+        "@babel/runtime": "^7.23.7"
+    },
+    "scripts": {
+        "build": "gulp build",
+        "watch": "gulp watch"
+    }
 }
