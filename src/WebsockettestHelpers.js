@@ -10,11 +10,11 @@
     }
 
     // prepare base perf object
-    if (typeof window.performance === 'undefined') {
-        window.performance = {};
+    if (typeof performance === 'undefined') {
+        performance = {};
     }
 
-    if (!window.performance.now || window.performance.now === undefined) {
+    if (!performance.now || performance.now === undefined) {
         let nowOffset = Date.now();
 
         if (performance.timing && performance.timing.navigationStart) {
@@ -22,7 +22,7 @@
         }
 
 
-        window.performance.now = function now() {
+        performance.now = function now() {
             return Date.now() - nowOffset;
         }
     }
@@ -30,11 +30,11 @@
 
 
 function nowMs() {
-    return window.performance.now();
+    return performance.now();
 }
 
 function nowNs() {
-    return Math.round(window.performance.now() * 1e6); //from ms to ns
+    return Math.round(performance.now() * 1e6); //from ms to ns
 }
 
 
@@ -109,28 +109,36 @@ Math.log10 = Math.log10 || function (x) {
         return Math.log(x) / Math.LN10;
     };
 
-//"loglevel" module is used, but if not available, it will fallback to console.log
-self.log = self.log || {
-        debug: (...msg) => {
-            console.log(...msg);
-        },
-        trace: () => {
-            console.trace();
-        },
-        info: (...msg) => {
-            console.info(...msg);
-        },
-        warn: (...msg) => {
-            console.warn(...msg);
-        },
-        error: (...msg) => {
-            console.error(...msg);
-        },
-        setLevel: () => {},
-        getLogger: () => {
-            return log;
-        }
-    };
+class Log {
+    debug(...msg) {
+        console.log(...msg);
+    }
+    trace() {
+        console.trace();
+    }
+    info(...msg) {
+        console.info(...msg);
+    }
+    warn(...msg) {
+        console.warn(...msg);
+    }
+    error(...msg) {
+        console.error(...msg);
+    }
+    disable() {
+        this.debug = function() {};
+        this.trace = function() {};
+        this.info = function() {};
+        this.warn = function() {};
+    }
+    setLevel() {}
+    getLogger() {
+        return this;
+    }
+}
+
+self.log = self.log || new Log();
+export const log = self.log;
 
 
 //Polyfill
@@ -160,6 +168,6 @@ if (typeof Object.assign != 'function') {
 }
 
 //"hidden" polyfill (in this case: always visible)
-if (typeof document.hidden === "undefined") {
+if (globalThis.document && typeof document.hidden === "undefined") {
     document.hidden = false;
 }

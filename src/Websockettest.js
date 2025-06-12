@@ -135,7 +135,7 @@ export function RMBTTest(rmbtTestConfig, rmbtControlServer) {
 
     this.startTest = function() {
         //see if websockets are supported
-        if (window.WebSocket === undefined)  {
+        if (globalThis.WebSocket === undefined)  {
             callErrorCallback(RMBTError.NOT_SUPPORTED);
             return;
         }
@@ -180,7 +180,11 @@ export function RMBTTest(rmbtTestConfig, rmbtControlServer) {
                         conductTest(response, thread, function () {
                             _logger.info("All tests finished");
                             wsGeoTracker.stop();
-                            _rmbtTestResult.geoLocations = wsGeoTracker.getResults();
+                            if (TestEnvironment.getTestVisualization().getGeoResults) {
+                                _rmbtTestResult.geoLocations = TestEnvironment.getTestVisualization().getGeoResults();
+                            } else {
+                                _rmbtTestResult.geoLocations = wsGeoTracker.getResults();
+                            }
                             _rmbtTestResult.calculateAll();
                             _rmbtControlServer.submitResults(
                                 prepareResult(response),
@@ -804,7 +808,7 @@ export function RMBTTest(rmbtTestConfig, rmbtControlServer) {
         let lastTime = null;
 
         //read chunk only at some point in the future to save resources
-        interval = window.setInterval(function() {
+        interval = setInterval(function() {
             if (lastChunk === null) {
                 return;
             }
@@ -832,7 +836,7 @@ export function RMBTTest(rmbtTestConfig, rmbtControlServer) {
 
             if (lastByte[0] >= 0xFF) {
                 _logger.debug(thread.id + ": received end chunk");
-                window.clearInterval(interval);
+                clearInterval(interval);
 
                 //last chunk received - get time
                 thread.socket.onmessage = function (event) {
@@ -871,7 +875,7 @@ export function RMBTTest(rmbtTestConfig, rmbtControlServer) {
         let bytesSent = 0;
         let chunkSize = _chunkSize;
 
-        window.setTimeout(function() {
+        setTimeout(function() {
              let endTime = nowMs();
              let duration = endTime - startTime;
              _logger.debug("diff:" + (duration - durationMs) + " (" + (duration-durationMs)/durationMs + " %)");
@@ -956,13 +960,13 @@ export function RMBTTest(rmbtTestConfig, rmbtControlServer) {
         //if less than approx 1.5 seconds is left in the buffer - resend! (since browser limit setTimeout-intervals
         //  when pages are not in the foreground)
         const fixedUnderrunBytesHidden = (_totalBytesPerSecsPretest * 1.5) / _numUploadThreads;
-        let fixedUnderrunBytes = (document.hidden) ? fixedUnderrunBytesHidden : fixedUnderrunBytesVisible;
+        let fixedUnderrunBytes = (globalThis.document && globalThis.document.hidden) ? fixedUnderrunBytesHidden : fixedUnderrunBytesVisible;
 
         const visibilityChangeEventListener = () => {
-            fixedUnderrunBytes = (document.hidden) ? fixedUnderrunBytesHidden : fixedUnderrunBytesVisible;
-            _logger.debug("document visibility changed to: " + document.hidden);
+            fixedUnderrunBytes = (globalThis.document && globalThis.document.hidden) ? fixedUnderrunBytesHidden : fixedUnderrunBytesVisible;
+            globalThis.document && _logger.debug("document visibility changed to: " + globalThis.document.hidden);
         };
-        document.addEventListener("visibilitychange",visibilityChangeEventListener);
+        globalThis.document && globalThis.document.addEventListener("visibilitychange",visibilityChangeEventListener);
 
         //send data for approx one second at once
         //@TODO adapt with changing connection speeds
@@ -980,7 +984,7 @@ export function RMBTTest(rmbtTestConfig, rmbtControlServer) {
                 _logger.debug(thread.id + ": is 7.2 sec in, got data for " + lastDurationInfo);
                 //if measurements are for < 7sec, give it time
                 if ((lastDurationInfo < duration * 1e9) && (timeoutExtensionsMs < 3000)) {
-                    window.setTimeout(timeoutFunction, 250);
+                    setTimeout(timeoutFunction, 250);
                     timeoutExtensionsMs += 250;
                 } else {
                     //kill it with force!
@@ -992,7 +996,7 @@ export function RMBTTest(rmbtTestConfig, rmbtControlServer) {
                     thread.socket.close();
                     thread.socket.onmessage = previousListener;
                     _logger.debug(thread.id + ": socket now closed: " + thread.socket.readyState);
-                    document.removeEventListener("visibilitychange",visibilityChangeEventListener);
+                    globalThis.document && document.removeEventListener("visibilitychange",visibilityChangeEventListener);
                     thread.triggerNextState();
                 }
             }
@@ -1021,10 +1025,10 @@ export function RMBTTest(rmbtTestConfig, rmbtControlServer) {
         };
 
         //set timeout function after 7,2s to check if everything went according to plan
-        window.setTimeout(timeoutFunction, (duration * 1e3) + 200);
+        setTimeout(timeoutFunction, (duration * 1e3) + 200);
 
         //send end blob after 7s, quit
-        window.setTimeout(() => {
+        setTimeout(() => {
             keepSendingData = false;
             thread.socket.onclose = () => {};
             thread.socket.send(_endArrayBuffers[_chunkSize]);
@@ -1065,7 +1069,7 @@ export function RMBTTest(rmbtTestConfig, rmbtControlServer) {
                     receivedEndTime = true;
                     _logger.debug("Upload duration: " + matches[1]);
                     thread.socket.onmessage = previousListener;
-                    document.removeEventListener("visibilitychange",visibilityChangeEventListener);
+                    globalThis.document && document.removeEventListener("visibilitychange",visibilityChangeEventListener);
                 }
             }
         };

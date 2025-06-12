@@ -138,7 +138,7 @@ function RMBTTest(rmbtTestConfig, rmbtControlServer) {
   };
   this.startTest = function () {
     //see if websockets are supported
-    if (window.WebSocket === undefined) {
+    if (globalThis.WebSocket === undefined) {
       callErrorCallback(RMBTError.NOT_SUPPORTED);
       return;
     }
@@ -174,7 +174,11 @@ function RMBTTest(rmbtTestConfig, rmbtControlServer) {
             conductTest(response, thread, function () {
               _logger.info("All tests finished");
               wsGeoTracker.stop();
-              _rmbtTestResult.geoLocations = wsGeoTracker.getResults();
+              if (TestEnvironment.getTestVisualization().getGeoResults) {
+                _rmbtTestResult.geoLocations = TestEnvironment.getTestVisualization().getGeoResults();
+              } else {
+                _rmbtTestResult.geoLocations = wsGeoTracker.getResults();
+              }
               _rmbtTestResult.calculateAll();
               _rmbtControlServer.submitResults(prepareResult(response), function () {
                 setState(TestState.END);
@@ -735,7 +739,7 @@ function RMBTTest(rmbtTestConfig, rmbtControlServer) {
     var lastTime = null;
 
     //read chunk only at some point in the future to save resources
-    interval = window.setInterval(function () {
+    interval = setInterval(function () {
       if (lastChunk === null) {
         return;
       }
@@ -760,7 +764,7 @@ function RMBTTest(rmbtTestConfig, rmbtControlServer) {
       lastRead = now;
       if (lastByte[0] >= 0xFF) {
         _logger.debug(thread.id + ": received end chunk");
-        window.clearInterval(interval);
+        clearInterval(interval);
 
         //last chunk received - get time
         thread.socket.onmessage = function (event) {
@@ -794,7 +798,7 @@ function RMBTTest(rmbtTestConfig, rmbtControlServer) {
     var n = 1;
     var bytesSent = 0;
     var chunkSize = _chunkSize;
-    window.setTimeout(function () {
+    setTimeout(function () {
       var endTime = nowMs();
       var duration = endTime - startTime;
       _logger.debug("diff:" + (duration - durationMs) + " (" + (duration - durationMs) / durationMs + " %)");
@@ -874,12 +878,12 @@ function RMBTTest(rmbtTestConfig, rmbtControlServer) {
     //if less than approx 1.5 seconds is left in the buffer - resend! (since browser limit setTimeout-intervals
     //  when pages are not in the foreground)
     var fixedUnderrunBytesHidden = _totalBytesPerSecsPretest * 1.5 / _numUploadThreads;
-    var fixedUnderrunBytes = document.hidden ? fixedUnderrunBytesHidden : fixedUnderrunBytesVisible;
+    var fixedUnderrunBytes = globalThis.document && globalThis.document.hidden ? fixedUnderrunBytesHidden : fixedUnderrunBytesVisible;
     var visibilityChangeEventListener = function visibilityChangeEventListener() {
-      fixedUnderrunBytes = document.hidden ? fixedUnderrunBytesHidden : fixedUnderrunBytesVisible;
-      _logger.debug("document visibility changed to: " + document.hidden);
+      fixedUnderrunBytes = globalThis.document && globalThis.document.hidden ? fixedUnderrunBytesHidden : fixedUnderrunBytesVisible;
+      globalThis.document && _logger.debug("document visibility changed to: " + globalThis.document.hidden);
     };
-    document.addEventListener("visibilitychange", visibilityChangeEventListener);
+    globalThis.document && globalThis.document.addEventListener("visibilitychange", visibilityChangeEventListener);
 
     //send data for approx one second at once
     //@TODO adapt with changing connection speeds
@@ -894,7 +898,7 @@ function RMBTTest(rmbtTestConfig, rmbtControlServer) {
         _logger.debug(thread.id + ": is 7.2 sec in, got data for " + lastDurationInfo);
         //if measurements are for < 7sec, give it time
         if (lastDurationInfo < duration * 1e9 && timeoutExtensionsMs < 3000) {
-          window.setTimeout(_timeoutFunction, 250);
+          setTimeout(_timeoutFunction, 250);
           timeoutExtensionsMs += 250;
         } else {
           //kill it with force!
@@ -906,7 +910,7 @@ function RMBTTest(rmbtTestConfig, rmbtControlServer) {
           thread.socket.close();
           thread.socket.onmessage = previousListener;
           _logger.debug(thread.id + ": socket now closed: " + thread.socket.readyState);
-          document.removeEventListener("visibilitychange", visibilityChangeEventListener);
+          globalThis.document && document.removeEventListener("visibilitychange", visibilityChangeEventListener);
           thread.triggerNextState();
         }
       }
@@ -934,10 +938,10 @@ function RMBTTest(rmbtTestConfig, rmbtControlServer) {
     };
 
     //set timeout function after 7,2s to check if everything went according to plan
-    window.setTimeout(_timeoutFunction, duration * 1e3 + 200);
+    setTimeout(_timeoutFunction, duration * 1e3 + 200);
 
     //send end blob after 7s, quit
-    window.setTimeout(function () {
+    setTimeout(function () {
       keepSendingData = false;
       thread.socket.onclose = function () {};
       thread.socket.send(_endArrayBuffers[_chunkSize]);
@@ -976,7 +980,7 @@ function RMBTTest(rmbtTestConfig, rmbtControlServer) {
           receivedEndTime = true;
           _logger.debug("Upload duration: " + matches[1]);
           thread.socket.onmessage = previousListener;
-          document.removeEventListener("visibilitychange", visibilityChangeEventListener);
+          globalThis.document && document.removeEventListener("visibilitychange", visibilityChangeEventListener);
         }
       }
     };
@@ -1035,11 +1039,15 @@ function RMBTTest(rmbtTestConfig, rmbtControlServer) {
 ;
 "use strict";
 
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.GeoTracker = void 0;
 var curGeoPos;
 var geo_callback, loc_timeout;
 function runCallback() {
   if (geo_callback != undefined && typeof geo_callback === 'function') {
-    window.setTimeout(function () {
+    setTimeout(function () {
       geo_callback();
     }, 1);
   }
@@ -1056,7 +1064,7 @@ function getCurLocation() {
  * @param {Function} callback
  */
 function getLocation(geoAccuracy, geoTimeout, geoMaxAge, callback) {
-  var ausgabe = document.getElementById("infogeo");
+  var ausgabe = globalThis.document && globalThis.document.getElementById("infogeo");
   geo_callback = callback;
   if (!navigator.geolocation) {
     //maybe there is a position in a cookie
@@ -1067,7 +1075,7 @@ function getLocation(geoAccuracy, geoTimeout, geoMaxAge, callback) {
       if (tmpcoords && tmpcoords['lat'] > 0 && tmpcoords['long'] > 0) {
         testVisualization.setLocation(tmpcoords['lat'], tmpcoords['long']);
       }
-    } else {
+    } else if (ausgabe) {
       ausgabe.innerHTML = Lang.getString('NotSupported');
     }
     runCallback();
@@ -1076,7 +1084,7 @@ function getLocation(geoAccuracy, geoTimeout, geoMaxAge, callback) {
   runCallback();
   //var TestEnvironment.getGeoTracker() = new GeoTracker();
   TestEnvironment.getGeoTracker().start(function (successful, error) {
-    if (successful !== true) {
+    if (successful !== true && ausgabe) {
       //user did not allow geolocation or other reason
       if (error) {
         switch (error.code) {
@@ -1103,7 +1111,7 @@ function getLocation(geoAccuracy, geoTimeout, geoMaxAge, callback) {
 }
 
 //Geolocation tracking
-var GeoTracker = function () {
+var GeoTracker = exports.GeoTracker = function () {
   "use strict";
 
   var _errorTimeout = 2e3; //2 seconds error timeout
@@ -1157,7 +1165,7 @@ var GeoTracker = function () {
 
     //Microsoft Edge does not adhere to the standard, and does not call the error
     //function after the specified callback, so we have to call it manually
-    window.setTimeout(function () {
+    setTimeout(function () {
       errorFunction();
     }, _errorTimeout);
   };
@@ -1253,8 +1261,8 @@ var GeoTracker = function () {
 }();
 
 /* getCookie polyfill */
-if (typeof window.setCookie === 'undefined') {
-  window.setCookie = function (cookie_name, cookie_value, cookie_exseconds) {
+if (typeof globalThis.setCookie === 'undefined' && globalThis.document) {
+  globalThis.setCookie = function (cookie_name, cookie_value, cookie_exseconds) {
     //var exdate = new Date();
     //exdate.setDate(exdate.getDate() + cookie_exdays);
 
@@ -1578,7 +1586,7 @@ var RMBTTestConfig = exports.RMBTTestConfig = function () {
     80: 3,
     150: 5
   };
-  RMBTTestConfig.prototype.userServerSelection = typeof window.userServerSelection !== 'undefined' ? userServerSelection : 0; //for QoSTest
+  RMBTTestConfig.prototype.userServerSelection = typeof globalThis.userServerSelection !== 'undefined' ? userServerSelection : 0; //for QoSTest
   RMBTTestConfig.prototype.additionalRegistrationParameters = {}; //will be transmitted in ControlServer registration, if any
   RMBTTestConfig.prototype.additionalSubmissionParameters = {}; //will be transmitted in ControlServer result submission, if any
 
@@ -1853,6 +1861,16 @@ var RMBTError = {
 
 //polyfill for microsecond-time
 //https://gist.github.com/paulirish/5438650
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.log = void 0;
+function _typeof(o) { "@babel/helpers - typeof"; return _typeof = "function" == typeof Symbol && "symbol" == typeof Symbol.iterator ? function (o) { return typeof o; } : function (o) { return o && "function" == typeof Symbol && o.constructor === Symbol && o !== Symbol.prototype ? "symbol" : typeof o; }, _typeof(o); }
+function _classCallCheck(a, n) { if (!(a instanceof n)) throw new TypeError("Cannot call a class as a function"); }
+function _defineProperties(e, r) { for (var t = 0; t < r.length; t++) { var o = r[t]; o.enumerable = o.enumerable || !1, o.configurable = !0, "value" in o && (o.writable = !0), Object.defineProperty(e, _toPropertyKey(o.key), o); } }
+function _createClass(e, r, t) { return r && _defineProperties(e.prototype, r), t && _defineProperties(e, t), Object.defineProperty(e, "prototype", { writable: !1 }), e; }
+function _toPropertyKey(t) { var i = _toPrimitive(t, "string"); return "symbol" == _typeof(i) ? i : i + ""; }
+function _toPrimitive(t, r) { if ("object" != _typeof(t) || !t) return t; var e = t[Symbol.toPrimitive]; if (void 0 !== e) { var i = e.call(t, r || "default"); if ("object" != _typeof(i)) return i; throw new TypeError("@@toPrimitive must return a primitive value."); } return ("string" === r ? String : Number)(t); }
 (function () {
   if (!Date.now) {
     Date.now = function () {
@@ -1861,24 +1879,24 @@ var RMBTError = {
   }
 
   // prepare base perf object
-  if (typeof window.performance === 'undefined') {
-    window.performance = {};
+  if (typeof performance === 'undefined') {
+    performance = {};
   }
-  if (!window.performance.now || window.performance.now === undefined) {
+  if (!performance.now || performance.now === undefined) {
     var nowOffset = Date.now();
     if (performance.timing && performance.timing.navigationStart) {
       nowOffset = performance.timing.navigationStart;
     }
-    window.performance.now = function now() {
+    performance.now = function now() {
       return Date.now() - nowOffset;
     };
   }
 })();
 function nowMs() {
-  return window.performance.now();
+  return performance.now();
 }
 function nowNs() {
-  return Math.round(window.performance.now() * 1e6); //from ms to ns
+  return Math.round(performance.now() * 1e6); //from ms to ns
 }
 
 /**
@@ -1946,33 +1964,59 @@ Math.median = function (values) {
 Math.log10 = Math.log10 || function (x) {
   return Math.log(x) / Math.LN10;
 };
-
-//"loglevel" module is used, but if not available, it will fallback to console.log
-self.log = self.log || {
-  debug: function debug() {
-    var _console;
-    (_console = console).log.apply(_console, arguments);
-  },
-  trace: function trace() {
-    console.trace();
-  },
-  info: function info() {
-    var _console2;
-    (_console2 = console).info.apply(_console2, arguments);
-  },
-  warn: function warn() {
-    var _console3;
-    (_console3 = console).warn.apply(_console3, arguments);
-  },
-  error: function error() {
-    var _console4;
-    (_console4 = console).error.apply(_console4, arguments);
-  },
-  setLevel: function setLevel() {},
-  getLogger: function getLogger() {
-    return log;
+var Log = /*#__PURE__*/function () {
+  function Log() {
+    _classCallCheck(this, Log);
   }
-};
+  return _createClass(Log, [{
+    key: "debug",
+    value: function debug() {
+      var _console;
+      (_console = console).log.apply(_console, arguments);
+    }
+  }, {
+    key: "trace",
+    value: function trace() {
+      console.trace();
+    }
+  }, {
+    key: "info",
+    value: function info() {
+      var _console2;
+      (_console2 = console).info.apply(_console2, arguments);
+    }
+  }, {
+    key: "warn",
+    value: function warn() {
+      var _console3;
+      (_console3 = console).warn.apply(_console3, arguments);
+    }
+  }, {
+    key: "error",
+    value: function error() {
+      var _console4;
+      (_console4 = console).error.apply(_console4, arguments);
+    }
+  }, {
+    key: "disable",
+    value: function disable() {
+      this.debug = function () {};
+      this.trace = function () {};
+      this.info = function () {};
+      this.warn = function () {};
+    }
+  }, {
+    key: "setLevel",
+    value: function setLevel() {}
+  }, {
+    key: "getLogger",
+    value: function getLogger() {
+      return this;
+    }
+  }]);
+}();
+self.log = self.log || new Log();
+var log = exports.log = self.log;
 
 //Polyfill
 if (typeof Object.assign != 'function') {
@@ -2002,6 +2046,6 @@ if (typeof Object.assign != 'function') {
 }
 
 //"hidden" polyfill (in this case: always visible)
-if (typeof document.hidden === "undefined") {
+if (globalThis.document && typeof document.hidden === "undefined") {
   document.hidden = false;
 }

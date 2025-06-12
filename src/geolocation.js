@@ -6,7 +6,7 @@ let geo_callback, loc_timeout;
 
 function runCallback() {
 	if (geo_callback != undefined && typeof geo_callback === 'function') {
-		window.setTimeout(function() {
+		setTimeout(function() {
             geo_callback();
         }, 1);
 	}
@@ -25,7 +25,7 @@ function getCurLocation() {
  * @param {Function} callback
  */
 function getLocation(geoAccuracy, geoTimeout, geoMaxAge, callback) {
-    const ausgabe = document.getElementById("infogeo");
+    const ausgabe = globalThis.document && globalThis.document.getElementById("infogeo");
     geo_callback = callback;
 
     if (!navigator.geolocation) {
@@ -37,7 +37,7 @@ function getLocation(geoAccuracy, geoTimeout, geoMaxAge, callback) {
             if (tmpcoords && tmpcoords['lat'] > 0 && tmpcoords['long'] > 0) {
                 testVisualization.setLocation(tmpcoords['lat'], tmpcoords['long']);
             }
-        } else {
+        } else if (ausgabe) {
             ausgabe.innerHTML = Lang.getString('NotSupported');
         }
 
@@ -47,7 +47,7 @@ function getLocation(geoAccuracy, geoTimeout, geoMaxAge, callback) {
     runCallback();
     //var TestEnvironment.getGeoTracker() = new GeoTracker();
     TestEnvironment.getGeoTracker().start(function(successful, error) {
-        if (successful !== true) {
+        if (successful !== true && ausgabe) {
             //user did not allow geolocation or other reason
             if (error) {
                 switch (error.code) {
@@ -76,7 +76,7 @@ function getLocation(geoAccuracy, geoTimeout, geoMaxAge, callback) {
 
 
 //Geolocation tracking
-const GeoTracker = (function() {
+export const GeoTracker = (function() {
     "use strict";
 
     const _errorTimeout = 2e3; //2 seconds error timeout
@@ -134,7 +134,7 @@ const GeoTracker = (function() {
 
         //Microsoft Edge does not adhere to the standard, and does not call the error
         //function after the specified callback, so we have to call it manually
-        window.setTimeout(() => {
+        setTimeout(() => {
             errorFunction();
         }, _errorTimeout);
     };
@@ -237,10 +237,10 @@ const GeoTracker = (function() {
     return GeoTracker;
 })();
 
-
 /* getCookie polyfill */
-if (typeof window.setCookie === 'undefined') {
-    window.setCookie = (cookie_name, cookie_value, cookie_exseconds) => {
+if (typeof globalThis.setCookie === 'undefined' && globalThis.document) {
+    globalThis.setCookie = (cookie_name, cookie_value, cookie_exseconds) => {
+
         //var exdate = new Date();
         //exdate.setDate(exdate.getDate() + cookie_exdays);
 
@@ -252,5 +252,6 @@ if (typeof window.setCookie === 'undefined') {
         //var c_value=escape(cookie_value) + ((cookie_exdays==null) ? ";" : "; expires="+exdate.toUTCString() +";");
         let c_value = encodeURIComponent(cookie_value) + ((cookie_exseconds==null) ? ";" : "; expires=" + futuredate.toUTCString() + ";");
         document.cookie = cookie_name + "=" + c_value + " path=/;";
+        
     }
 }
