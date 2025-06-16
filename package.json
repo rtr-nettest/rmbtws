@@ -1,7 +1,7 @@
 {
     "private": false,
     "name": "rmbtws",
-    "version": "0.9.3",
+    "version": "0.9.4",
     "description": "A JavaScript implementation of a WebSocket-client for the RMBT protocol",
     "homepage": "https://www.netztest.at/",
     "repository": "rtr-nettest/rmbtws",
