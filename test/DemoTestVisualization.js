@@ -212,16 +212,21 @@ var DemoTestVisualization = (function () {
             $("#infoping span").text(showping);
         }
 
-        if (down > 0) {
+        if (down >= 0) {
+            $("#testspeedprogress").show();
             showdown = (down / 1000000);
             showdown = showdown.toPrecision(3) + " Mbps";
             $("#infodown span").text(showdown);
+            $("#testspeed").css("width", (result.downBitPerSecLog / 4 * 100) + "%");
+            $("#testspeed").text(showdown);
         }
 
-        if (up > 0) {
+        if (up >= 0) {
             showup = (up / 1000000);
             showup = showup.toPrecision(3) + " Mbps";
             $("#infoup span").text(showup);
+            $("#testspeed").css("width", (result.upBitPerSecLog / 4 * 100) + "%");
+            $("#testspeed").text(showup);
         }
 
         function drawLoop() {
@@ -238,12 +243,14 @@ var DemoTestVisualization = (function () {
             _redraw_loop = setTimeout(draw, 250);
             //Draw a new chart
         } else if (status === "ERROR" || status === "ABORTED") {
+            $("#testspeedprogress").hide();
             if (_successCallback !== null) {
                 var t = _errorCallback;
                 _errorCallback = null;
                 t(result);
             }
         } else if (status === "END") {
+            $("#testspeedprogress").hide();
             // call callback that the test is finished
             if (_successCallback !== null) {
                 var t = _successCallback;
