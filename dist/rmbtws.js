@@ -225,7 +225,7 @@ function RMBTTest(rmbtTestConfig, rmbtControlServer) {
    */
   this.getIntermediateResult = function () {
     _intermediateResult.status = _state;
-    var diffTime = nowNs() / 1e6 - _stateChangeMs;
+    var diffTimeMs = nowNs() / 1e6 - _stateChangeMs;
     switch (_intermediateResult.status) {
       case TestState.WAIT:
         _intermediateResult.progress = 0;
@@ -234,17 +234,17 @@ function RMBTTest(rmbtTestConfig, rmbtControlServer) {
       case TestState.INIT:
       case TestState.INIT_DOWN:
       case TestState.INIT_UP:
-        _intermediateResult.progress = diffTime / _statesInfo.durationInitMs;
+        _intermediateResult.progress = diffTimeMs / _statesInfo.durationInitMs;
         break;
       case TestState.PING:
-        _intermediateResult.progress = diffTime / _statesInfo.durationPingMs;
+        _intermediateResult.progress = diffTimeMs / _statesInfo.durationPingMs;
         break;
       case TestState.DOWN:
-        _intermediateResult.progress = diffTime / _statesInfo.durationDownMs;
+        _intermediateResult.progress = diffTimeMs / _statesInfo.durationDownMs;
         //downBitPerSec.set(Math.round(getAvgSpeed()));
         break;
       case TestState.UP:
-        _intermediateResult.progress = diffTime / _statesInfo.durationUpMs;
+        _intermediateResult.progress = diffTimeMs / _statesInfo.durationUpMs;
         //upBitPerSec.set(Math.round(getAvgSpeed()));
         break;
       case TestState.END:
@@ -264,19 +264,33 @@ function RMBTTest(rmbtTestConfig, rmbtControlServer) {
         _intermediateResult.pingNano = _rmbtTestResult.ping_server_median;
         _intermediateResult.pings = _rmbtTestResult.pings;
       }
-      if (_intermediateResult.status === TestState.DOWN || _intermediateResult.status == TestState.INIT_UP) {
-        var results = RMBTTestResult.calculateOverallSpeedFromMultipleThreads(_rmbtTestResult.threads, function (thread) {
+      if (_intermediateResult.status === TestState.DOWN) {
+        var results = RMBTTestResult.calculateAverageIntermediateSpeed(_rmbtTestResult.threads, function (thread) {
+          return thread.down;
+        }, diffTimeMs);
+        _intermediateResult.downBitPerSec = results.speed;
+        _intermediateResult.downBitPerSecLog = Math.max(0, (Math.log10(_intermediateResult.downBitPerSec / 1e6) + 2) / 4);
+      }
+      if (_intermediateResult.status === TestState.INIT_UP) {
+        var _results = RMBTTestResult.calculateOverallSpeedFromMultipleThreads(_rmbtTestResult.threads, function (thread) {
           return thread.down;
         });
-        _intermediateResult.downBitPerSec = results.speed;
-        _intermediateResult.downBitPerSecLog = (Math.log10(_intermediateResult.downBitPerSec / 1e6) + 2) / 4;
+        _intermediateResult.downBitPerSec = _results.speed;
+        _intermediateResult.downBitPerSecLog = Math.max(0, (Math.log10(_intermediateResult.downBitPerSec / 1e6) + 2) / 4);
       }
-      if (_intermediateResult.status === TestState.UP || _intermediateResult.status == TestState.INIT_UP) {
-        var _results = RMBTTestResult.calculateOverallSpeedFromMultipleThreads(_rmbtTestResult.threads, function (thread) {
+      if (_intermediateResult.status === TestState.UP || _intermediateResult.status === TestState.INIT_UP) {
+        var _results2 = RMBTTestResult.calculateAverageIntermediateSpeed(_rmbtTestResult.threads, function (thread) {
+          return thread.up;
+        }, diffTimeMs);
+        _intermediateResult.upBitPerSec = _results2.speed;
+        _intermediateResult.upBitPerSecLog = Math.max(0, (Math.log10(_intermediateResult.upBitPerSec / 1e6) + 2) / 4);
+      }
+      if (_intermediateResult.status === TestState.END) {
+        var _results3 = RMBTTestResult.calculateOverallSpeedFromMultipleThreads(_rmbtTestResult.threads, function (thread) {
           return thread.up;
         });
-        _intermediateResult.upBitPerSec = _results.speed;
-        _intermediateResult.upBitPerSecLog = (Math.log10(_intermediateResult.upBitPerSec / 1e6) + 2) / 4;
+        _intermediateResult.upBitPerSec = _results3.speed;
+        _intermediateResult.upBitPerSecLog = Math.max(0, (Math.log10(_intermediateResult.upBitPerSec / 1e6) + 2) / 4);
       }
     }
     return _intermediateResult;
@@ -1760,6 +1774,58 @@ RMBTTestResult.calculateOverallSpeedFromMultipleThreads = function (threads, pha
     bytes: totalBytes,
     nsec: targetTime,
     speed: totalBytes * 8 / (targetTime / 1e9)
+  };
+};
+RMBTTestResult.calculateAverageIntermediateSpeed = function (threads, phaseResults, currentDurationTimeMs) {
+  var _logger = log.getLogger("rmbtws");
+  var calculationWindowMs = 1400; //sliding window, in which we calculate the average
+  calculationWindowMs = Math.min(calculationWindowMs, currentDurationTimeMs); //can be shorter at begin of the test
+  var maxAgeOfLatestMs = 500; //max age of latest result, in ms
+
+  var numThreads = threads.length;
+  var totalBytes = 0;
+  var maxDiffNs = 0;
+  var targetTimeNs = Infinity;
+
+  //in all threads, get the latest result, as well as the earliest result that is just before the calculation window
+  for (var i = 0; i < numThreads; i++) {
+    var thread = threads[i];
+    var phasedThread = phaseResults(thread); //get down or up
+    var phasedLength = phasedThread.length;
+    if (thread !== null && phasedLength > 0) {
+      //use last result
+      var targetIndexLatest = phasedLength - 1;
+
+      //find earliest result that matches [now - calculationwindow]
+      var targetIndexEarliest = 0;
+      for (var j = 0; j < phasedLength; j++) {
+        targetIndexEarliest = j;
+        if (phasedThread[j].duration >= (currentDurationTimeMs - calculationWindowMs) * 1e6) {
+          break;
+        }
+      }
+      var diffTimeThread = phasedThread[targetIndexLatest].duration - phasedThread[targetIndexEarliest].duration;
+      var diffTimeBytes = phasedThread[targetIndexLatest].bytes - phasedThread[targetIndexEarliest].bytes;
+      if (diffTimeThread > maxDiffNs) {
+        maxDiffNs = diffTimeThread;
+      }
+      totalBytes += diffTimeBytes;
+      if (phasedThread[targetIndexLatest].duration < targetTimeNs) {
+        targetTimeNs = phasedThread[targetIndexLatest].duration;
+      }
+    }
+  }
+
+  //if the latest result over all threads is older than maxAgeOfLatestMs, we use the whole calculation window (i.e. outage)
+  //otherwise, we will use maxDiff, as to not underestimate the speed (i.e. in a 2sec window, we usually have measurements for 1.8sec)
+  if (targetTimeNs > (currentDurationTimeMs - maxAgeOfLatestMs) * 1e6) {
+    calculationWindowMs = maxDiffNs / 1e6;
+  }
+  _logger.debug("maxDiff: ".concat(maxDiffNs, ", totalBytes: ").concat(totalBytes, ", targetTimeNs: ").concat(targetTimeNs, ", calculationWindowMs: ").concat(calculationWindowMs, ", speed ").concat(totalBytes * 8 / calculationWindowMs / 1e3, " "));
+  return {
+    bytes: totalBytes,
+    nsec: targetTimeNs,
+    speed: totalBytes * 8 / (calculationWindowMs / 1e3) //bit per second
   };
 };
 RMBTTestResult.prototype.calculateAll = function () {

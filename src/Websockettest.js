@@ -240,7 +240,7 @@ export function RMBTTest(rmbtTestConfig, rmbtControlServer) {
      */
     this.getIntermediateResult = function() {
         _intermediateResult.status = _state;
-        let diffTime = (nowNs() / 1e6) - _stateChangeMs;
+        let diffTimeMs = (nowNs() / 1e6) - _stateChangeMs;
 
         switch (_intermediateResult.status) {
             case TestState.WAIT:
@@ -251,20 +251,20 @@ export function RMBTTest(rmbtTestConfig, rmbtControlServer) {
             case TestState.INIT:
             case TestState.INIT_DOWN:
             case TestState.INIT_UP:
-                _intermediateResult.progress = diffTime / _statesInfo.durationInitMs;
+                _intermediateResult.progress = diffTimeMs / _statesInfo.durationInitMs;
                 break;
 
             case TestState.PING:
-                _intermediateResult.progress = diffTime / _statesInfo.durationPingMs;
+                _intermediateResult.progress = diffTimeMs / _statesInfo.durationPingMs;
                 break;
 
             case TestState.DOWN:
-                _intermediateResult.progress = diffTime / _statesInfo.durationDownMs;
+                _intermediateResult.progress = diffTimeMs / _statesInfo.durationDownMs;
                 //downBitPerSec.set(Math.round(getAvgSpeed()));
                 break;
 
             case TestState.UP:
-                _intermediateResult.progress = diffTime / _statesInfo.durationUpMs;
+                _intermediateResult.progress = diffTimeMs / _statesInfo.durationUpMs;
                 //upBitPerSec.set(Math.round(getAvgSpeed()));
                 break;
 
@@ -289,22 +289,37 @@ export function RMBTTest(rmbtTestConfig, rmbtControlServer) {
                 _intermediateResult.pings = _rmbtTestResult.pings;
             }
 
-            if (_intermediateResult.status === TestState.DOWN || _intermediateResult.status == TestState.INIT_UP) {
+            if (_intermediateResult.status === TestState.DOWN) {
+                let results = RMBTTestResult.calculateAverageIntermediateSpeed(_rmbtTestResult.threads, function (thread) {
+                    return thread.down;
+                }, diffTimeMs);
+
+                _intermediateResult.downBitPerSec = results.speed;
+                _intermediateResult.downBitPerSecLog = Math.max(0,(Math.log10(_intermediateResult.downBitPerSec / 1e6) + 2) / 4);
+            }
+            if (_intermediateResult.status === TestState.INIT_UP) {
                 let results = RMBTTestResult.calculateOverallSpeedFromMultipleThreads(_rmbtTestResult.threads, function (thread) {
                     return thread.down;
                 });
-
                 _intermediateResult.downBitPerSec = results.speed;
-                _intermediateResult.downBitPerSecLog = (Math.log10(_intermediateResult.downBitPerSec / 1e6) + 2) / 4;
+                _intermediateResult.downBitPerSecLog = Math.max(0,(Math.log10(_intermediateResult.downBitPerSec / 1e6) + 2) / 4);
             }
 
-            if (_intermediateResult.status === TestState.UP || _intermediateResult.status == TestState.INIT_UP) {
+            if (_intermediateResult.status === TestState.UP || _intermediateResult.status === TestState.INIT_UP) {
+                let results = RMBTTestResult.calculateAverageIntermediateSpeed(_rmbtTestResult.threads, function (thread) {
+                    return thread.up;
+                }, diffTimeMs);
+
+                _intermediateResult.upBitPerSec = results.speed;
+                _intermediateResult.upBitPerSecLog = Math.max(0,(Math.log10(_intermediateResult.upBitPerSec / 1e6) + 2) / 4);
+            }
+            if (_intermediateResult.status === TestState.END) {
                 let results = RMBTTestResult.calculateOverallSpeedFromMultipleThreads(_rmbtTestResult.threads, function (thread) {
                     return thread.up;
                 });
 
                 _intermediateResult.upBitPerSec = results.speed;
-                _intermediateResult.upBitPerSecLog = (Math.log10(_intermediateResult.upBitPerSec / 1e6) + 2) / 4;
+                _intermediateResult.upBitPerSecLog = Math.max(0,(Math.log10(_intermediateResult.upBitPerSec / 1e6) + 2) / 4);
             }
         }
         return _intermediateResult;

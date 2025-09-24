@@ -234,6 +234,66 @@ RMBTTestResult.calculateOverallSpeedFromMultipleThreads = (threads, phaseResults
     };
 };
 
+RMBTTestResult.calculateAverageIntermediateSpeed = (threads, phaseResults, currentDurationTimeMs) => {
+    let _logger = log.getLogger("rmbtws");
+
+    let calculationWindowMs = 1400; //sliding window, in which we calculate the average
+    calculationWindowMs = Math.min(calculationWindowMs, currentDurationTimeMs); //can be shorter at begin of the test
+    const maxAgeOfLatestMs = 500; //max age of latest result, in ms
+
+
+    let numThreads = threads.length;
+    let totalBytes = 0;
+    let maxDiffNs = 0;
+    let targetTimeNs = Infinity;
+
+    //in all threads, get the latest result, as well as the earliest result that is just before the calculation window
+    for (let i = 0; i < numThreads; i++) {
+        const thread = threads[i];
+        const phasedThread = phaseResults(thread); //get down or up
+        const phasedLength = phasedThread.length;
+
+        if (thread !== null && phasedLength > 0) {
+            //use last result
+            let targetIndexLatest = phasedLength - 1;
+
+            //find earliest result that matches [now - calculationwindow]
+            let targetIndexEarliest = 0;
+            for (let j = 0; j < phasedLength; j++) {
+                targetIndexEarliest = j;
+                if (phasedThread[j].duration >= (currentDurationTimeMs - calculationWindowMs) * 1e6) {
+                    break;
+                }
+            }
+
+            let diffTimeThread = phasedThread[targetIndexLatest].duration - phasedThread[targetIndexEarliest].duration;
+            let diffTimeBytes = phasedThread[targetIndexLatest].bytes - phasedThread[targetIndexEarliest].bytes;
+            if (diffTimeThread > maxDiffNs) {
+                maxDiffNs = diffTimeThread;
+            }
+            totalBytes += diffTimeBytes;
+
+            if (phasedThread[targetIndexLatest].duration < targetTimeNs) {
+                targetTimeNs = phasedThread[targetIndexLatest].duration;
+            }
+        }
+    }
+
+    //if the latest result over all threads is older than maxAgeOfLatestMs, we use the whole calculation window (i.e. outage)
+    //otherwise, we will use maxDiff, as to not underestimate the speed (i.e. in a 2sec window, we usually have measurements for 1.8sec)
+    if (targetTimeNs > (currentDurationTimeMs - maxAgeOfLatestMs) * 1e6) {
+        calculationWindowMs = maxDiffNs / 1e6;
+    }
+
+    _logger.debug(`maxDiff: ${maxDiffNs}, totalBytes: ${totalBytes}, targetTimeNs: ${targetTimeNs}, calculationWindowMs: ${calculationWindowMs}, speed ${(totalBytes * 8) / (calculationWindowMs) / 1e3} `);
+
+    return {
+        bytes: totalBytes,
+        nsec: targetTimeNs,
+        speed: (totalBytes * 8) / (calculationWindowMs / 1e3) //bit per second
+    };
+};
+
 RMBTTestResult.prototype.calculateAll = function() {
     //speed items down
     for (let i = 0; i < this.threads.length; i++) {
