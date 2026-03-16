@@ -44,5 +44,10 @@
     "scripts": {
         "build": "gulp build",
         "watch": "gulp watch"
+    },
+    "overrides": {
+        "gulp-order": {
+            "minimatch": "^3.0.0"
+        }
     }
 }
