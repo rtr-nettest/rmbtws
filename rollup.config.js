@@ -1,4 +1,4 @@
-import { terser } from "rollup-plugin-terser";
+import terser from "@rollup/plugin-terser";
 import babel from "@rollup/plugin-babel";
 
 const outPlugins = [
@@ -28,7 +28,7 @@ const trimBeforeLicense = () => {
 };
 
 export default {
-    input: "src/index.js",
+    input: "index.js",
     output: [
         {
             file: "dist/rmbtws.js",

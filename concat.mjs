@@ -23,11 +23,7 @@ function main() {
         concatenatedContent += `${content}\n\n`;
     }
 
-    fs.writeFileSync(
-        path.resolve("src", "index.js"),
-        concatenatedContent,
-        "utf-8",
-    );
+    fs.writeFileSync(path.resolve("index.js"), concatenatedContent, "utf-8");
 }
 
 main();
