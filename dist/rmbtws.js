@@ -1,4 +1,3 @@
-var exports = {};
 /*!******************************************************************************
  * @license
  * Copyright 2015-2017 Thomas Schreiber
@@ -20,23 +19,6 @@ var exports = {};
  * https://github.com/rtr-nettest/rmbtws
  *****************************************************************************!*/
 "use strict";
-
-/**
- * RMBTTest main object
- * @param {RMBTTestConfig} rmbtTestConfig
- * @param {RMBTControlServerCommunication} rmbtControlServer
- * @returns {}
- */
-Object.defineProperty(exports, "__esModule", {
-  value: true
-});
-exports.RMBTTest = RMBTTest;
-function _toConsumableArray(r) { return _arrayWithoutHoles(r) || _iterableToArray(r) || _unsupportedIterableToArray(r) || _nonIterableSpread(); }
-function _nonIterableSpread() { throw new TypeError("Invalid attempt to spread non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method."); }
-function _unsupportedIterableToArray(r, a) { if (r) { if ("string" == typeof r) return _arrayLikeToArray(r, a); var t = {}.toString.call(r).slice(8, -1); return "Object" === t && r.constructor && (t = r.constructor.name), "Map" === t || "Set" === t ? Array.from(r) : "Arguments" === t || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(t) ? _arrayLikeToArray(r, a) : void 0; } }
-function _iterableToArray(r) { if ("undefined" != typeof Symbol && null != r[Symbol.iterator] || null != r["@@iterator"]) return Array.from(r); }
-function _arrayWithoutHoles(r) { if (Array.isArray(r)) return _arrayLikeToArray(r); }
-function _arrayLikeToArray(r, a) { (null == a || a > r.length) && (a = r.length); for (var e = 0, n = Array(a); e < a; e++) n[e] = r[e]; return n; }
 function RMBTTest(rmbtTestConfig, rmbtControlServer) {
   var _server_override = "wss://developv4-rmbtws.netztest.at:19002";
   var _logger = log.getLogger("rmbtws");
@@ -1038,11 +1020,6 @@ function RMBTTest(rmbtTestConfig, rmbtControlServer) {
 }
 ;
 "use strict";
-
-Object.defineProperty(exports, "__esModule", {
-  value: true
-});
-exports.GeoTracker = void 0;
 var curGeoPos;
 var geo_callback, loc_timeout;
 function runCallback() {
@@ -1111,7 +1088,7 @@ function getLocation(geoAccuracy, geoTimeout, geoMaxAge, callback) {
 }
 
 //Geolocation tracking
-var GeoTracker = exports.GeoTracker = function () {
+var GeoTracker = function () {
   "use strict";
 
   var _errorTimeout = 2e3; //2 seconds error timeout
@@ -1276,12 +1253,7 @@ if (typeof globalThis.setCookie === 'undefined' && globalThis.document) {
     document.cookie = cookie_name + "=" + c_value + " path=/;";
   };
 }
-"use strict";
 
-Object.defineProperty(exports, "__esModule", {
-  value: true
-});
-exports.RMBTControlServerCommunication = void 0;
 /**
  * Handles the communication with the ControlServer
  * @param rmbtTestConfig RMBT Test Configuratio
@@ -1290,7 +1262,7 @@ exports.RMBTControlServerCommunication = void 0;
  *  'submit':  Function to be called after result submission: function(event)
  * @returns Object
  */
-var RMBTControlServerCommunication = exports.RMBTControlServerCommunication = function RMBTControlServerCommunication(rmbtTestConfig, options) {
+var RMBTControlServerCommunication = function RMBTControlServerCommunication(rmbtTestConfig, options) {
   var _rmbtTestConfig = rmbtTestConfig;
   var _logger = log.getLogger("rmbtws");
   options = options || {};
@@ -1402,12 +1374,7 @@ var RMBTControlServerCommunication = exports.RMBTControlServerCommunication = fu
   };
 };
 "use strict";
-
-Object.defineProperty(exports, "__esModule", {
-  value: true
-});
-exports.TestEnvironment = void 0;
-var TestEnvironment = exports.TestEnvironment = function () {
+var TestEnvironment = function () {
   var testVisualization = null;
   var geoTracker = null;
   return {
@@ -1545,12 +1512,7 @@ var TestVisualization = function () {
   return TestVisualization;
 }();
 "use strict";
-
-Object.defineProperty(exports, "__esModule", {
-  value: true
-});
-exports.RMBTTestConfig = void 0;
-var RMBTTestConfig = exports.RMBTTestConfig = function () {
+var RMBTTestConfig = function () {
   RMBTTestConfig.prototype.version = "0.3"; //minimal version compatible with the test
   RMBTTestConfig.prototype.language;
   RMBTTestConfig.prototype.uuid = "";
@@ -1722,8 +1684,8 @@ RMBTTestResult.calculateOverallSpeedFromMultipleThreads = function (threads, pha
     }
   }
   var totalBytes = 0;
-  for (var _i = 0; _i < numThreads; _i++) {
-    var thread = threads[_i];
+  for (var _i2 = 0; _i2 < numThreads; _i2++) {
+    var thread = threads[_i2];
     var phasedThread = phaseResults(thread);
     var phasedLength = phasedThread.length;
     if (thread !== null && phasedLength > 0) {
@@ -1789,13 +1751,13 @@ RMBTTestResult.prototype.calculateAll = function () {
   this.nsec_download = results.nsec;
 
   //speed items up
-  for (var _i2 = 0; _i2 < this.threads.length; _i2++) {
-    var up = this.threads[_i2].up;
+  for (var _i3 = 0; _i3 < this.threads.length; _i3++) {
+    var up = this.threads[_i3].up;
     if (up.length > 0) {
       for (var _j = 0; _j < up.length; _j++) {
         this.speedItems.push({
           direction: "upload",
-          thread: _i2,
+          thread: _i3,
           time: up[_j].duration,
           bytes: up[_j].bytes
         });
@@ -1814,18 +1776,18 @@ RMBTTestResult.prototype.calculateAll = function () {
   //ping
   var pings = this.threads[0].pings;
   var pingsResult = [];
-  for (var _i3 = 0; _i3 < pings.length; _i3++) {
+  for (var _i4 = 0; _i4 < pings.length; _i4++) {
     pingsResult.push({
-      value: pings[_i3].client,
-      value_server: pings[_i3].server,
-      time_ns: pings[_i3].timeNs
+      value: pings[_i4].client,
+      value_server: pings[_i4].server,
+      time_ns: pings[_i4].timeNs
     });
   }
   this.pings = pingsResult;
 
   //add time_ns to geoLocations
-  for (var _i4 = 0; _i4 < this.geoLocations.length; _i4++) {
-    var geoLocation = this.geoLocations[_i4];
+  for (var _i5 = 0; _i5 < this.geoLocations.length; _i5++) {
+    var geoLocation = this.geoLocations[_i5];
     geoLocation['time_ns'] = (geoLocation.tstamp - this.beginTime) * 1e6;
   }
 };
@@ -1861,16 +1823,6 @@ var RMBTError = {
 
 //polyfill for microsecond-time
 //https://gist.github.com/paulirish/5438650
-Object.defineProperty(exports, "__esModule", {
-  value: true
-});
-exports.log = void 0;
-function _typeof(o) { "@babel/helpers - typeof"; return _typeof = "function" == typeof Symbol && "symbol" == typeof Symbol.iterator ? function (o) { return typeof o; } : function (o) { return o && "function" == typeof Symbol && o.constructor === Symbol && o !== Symbol.prototype ? "symbol" : typeof o; }, _typeof(o); }
-function _classCallCheck(a, n) { if (!(a instanceof n)) throw new TypeError("Cannot call a class as a function"); }
-function _defineProperties(e, r) { for (var t = 0; t < r.length; t++) { var o = r[t]; o.enumerable = o.enumerable || !1, o.configurable = !0, "value" in o && (o.writable = !0), Object.defineProperty(e, _toPropertyKey(o.key), o); } }
-function _createClass(e, r, t) { return r && _defineProperties(e.prototype, r), t && _defineProperties(e, t), Object.defineProperty(e, "prototype", { writable: !1 }), e; }
-function _toPropertyKey(t) { var i = _toPrimitive(t, "string"); return "symbol" == _typeof(i) ? i : i + ""; }
-function _toPrimitive(t, r) { if ("object" != _typeof(t) || !t) return t; var e = t[Symbol.toPrimitive]; if (void 0 !== e) { var i = e.call(t, r || "default"); if ("object" != _typeof(i)) return i; throw new TypeError("@@toPrimitive must return a primitive value."); } return ("string" === r ? String : Number)(t); }
 (function () {
   if (!Date.now) {
     Date.now = function () {
@@ -2016,7 +1968,7 @@ var Log = /*#__PURE__*/function () {
   }]);
 }();
 self.log = self.log || new Log();
-var log = exports.log = self.log;
+var log = self.log;
 
 //Polyfill
 if (typeof Object.assign != 'function') {
@@ -2049,3 +2001,5 @@ if (typeof Object.assign != 'function') {
 if (globalThis.document && typeof document.hidden === "undefined") {
   document.hidden = false;
 }
+
+export { GeoTracker, RMBTControlServerCommunication, RMBTTest, RMBTTestConfig, TestEnvironment, log };
