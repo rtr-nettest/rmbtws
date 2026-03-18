@@ -39,10 +39,12 @@ export default {
         {
             file: "dist/rmbtws.min.js",
             plugins: outPlugins,
+            sourcemap: true,
         },
         {
             file: "dist/esm/rmbtws.min.js", // remove after the website is updated to use the dist path
             plugins: outPlugins,
+            sourcemap: true,
         },
     ],
     plugins: [
