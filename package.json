@@ -32,12 +32,12 @@
         "watch": "chokidar 'src/**/*.js' -c 'npm run build'"
     },
     "devDependencies": {
-        "@babel/core": "^7.23.7",
+        "@babel/core": "^7.29.0",
         "@babel/preset-env": "^7.29.2",
-        "@babel/runtime": "^7.23.7",
+        "@babel/runtime": "^7.29.0",
         "@rollup/plugin-babel": "^7.0.0",
         "@rollup/plugin-terser": "^1.0.0",
         "chokidar-cli": "^3.0.0",
-        "rollup": "^2.80.0"
+        "rollup": "^4.59.0"
     }
 }
