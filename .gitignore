@@ -9,3 +9,4 @@ node_modules
 npm-debug.log
 *.map
 package-lock.json
+index.js

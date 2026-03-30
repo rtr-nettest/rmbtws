@@ -27,22 +27,17 @@
         ],
         "plugins": []
     },
-    "dependencies": {
-        "gulp": "^5.0.0",
-        "gulp-babel": "^8.0.0",
-        "gulp-rename": "^2.0.0",
-        "gulp-concat": "^2.6.1",
-        "gulp-order": "^1.2.0",
-        "gulp-sourcemaps": "^2.6.5",
-        "gulp-tap": "^2.0.0",
-        "gulp-uglify": "^3.0.2",
-        "gulplog": "^2.2.0",
-        "@babel/core": "^7.23.7",
-        "@babel/preset-env": "^7.23.7",
-        "@babel/runtime": "^7.23.7"
-    },
     "scripts": {
-        "build": "gulp build",
-        "watch": "gulp watch"
+        "build": "node concat.mjs && rollup -c",
+        "watch": "chokidar \"src/**/*.js\" -c \"npm run build\""
+    },
+    "devDependencies": {
+        "@babel/core": "^7.29.0",
+        "@babel/preset-env": "^7.29.2",
+        "@babel/runtime": "^7.29.0",
+        "@rollup/plugin-babel": "^7.0.0",
+        "@rollup/plugin-terser": "^1.0.0",
+        "chokidar-cli": "^3.0.0",
+        "rollup": "^4.59.0"
     }
 }
