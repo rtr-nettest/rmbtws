@@ -9,16 +9,14 @@ const outPlugins = [
     }),
 ];
 
-const trimBeforeLicense = () => {
+const removeExports = () => {
     return {
-        name: "trim-before-license",
+        name: "remove-exports",
         renderChunk(code) {
-            const licenseStart =
-                code.indexOf(`/*!******************************************************************************
- * @license`);
-            if (licenseStart > 0) {
+            const exportStart = code.indexOf(`export {`);
+            if (exportStart > 0) {
                 return {
-                    code: code.slice(licenseStart),
+                    code: code.slice(0, exportStart),
                     map: null,
                 };
             }
@@ -30,19 +28,22 @@ const trimBeforeLicense = () => {
 export default {
     input: "index.js",
     output: [
+        // Legacy
         {
             file: "dist/rmbtws.js",
-        },
-        {
-            file: "dist/esm/rmbtws.js", // remove after the website is updated to use the dist path
+            plugins: [removeExports()],
         },
         {
             file: "dist/rmbtws.min.js",
-            plugins: outPlugins,
+            plugins: [removeExports(), ...outPlugins],
             sourcemap: true,
         },
+        // ESM
         {
-            file: "dist/esm/rmbtws.min.js", // remove after the website is updated to use the dist path
+            file: "dist/esm/rmbtws.js",
+        },
+        {
+            file: "dist/esm/rmbtws.min.js",
             plugins: outPlugins,
             sourcemap: true,
         },
@@ -51,7 +52,6 @@ export default {
         babel({
             presets: ["@babel/preset-env"],
         }),
-        trimBeforeLicense(),
     ],
     treeshake: false,
 };
