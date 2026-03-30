@@ -29,7 +29,7 @@
     },
     "scripts": {
         "build": "node concat.mjs && rollup -c",
-        "watch": "chokidar 'src/**/*.js' -c 'npm run build'"
+        "watch": "chokidar \"src/**/*.js\" -c \"npm run build\""
     },
     "devDependencies": {
         "@babel/core": "^7.29.0",
