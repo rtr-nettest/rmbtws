@@ -12,7 +12,7 @@ function runCallback() {
 	}
 }
 
-function getCurLocation() {
+export function getCurLocation() {
 	return curGeoPos;
 }
 
@@ -24,7 +24,7 @@ function getCurLocation() {
  * @param {Numeric} geoMaxAge maximal allowed age in milliseconds
  * @param {Function} callback
  */
-function getLocation(geoAccuracy, geoTimeout, geoMaxAge, callback) {
+export function getLocation(geoAccuracy, geoTimeout, geoMaxAge, callback) {
     const ausgabe = globalThis.document && globalThis.document.getElementById("infogeo");
     geo_callback = callback;
 

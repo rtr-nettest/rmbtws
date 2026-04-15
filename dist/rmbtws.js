@@ -1059,6 +1059,72 @@ function RMBTTest(rmbtTestConfig, rmbtControlServer) {
   };
   construct(rmbtTestConfig, rmbtControlServer);
 }
+var curGeoPos;
+var geo_callback;
+function runCallback() {
+  if (geo_callback != undefined && typeof geo_callback === 'function') {
+    setTimeout(function () {
+      geo_callback();
+    }, 1);
+  }
+}
+function getCurLocation() {
+  return curGeoPos;
+}
+
+/**
+ * GetLocation, JSDoc from old Test
+ * @param {Boolean} geoAccuracy enable high accuracy (i.e. GPS instead of AP)
+ * @param {Numeric} geoTimeout maximal timeout before error function is called
+ * @param {Numeric} geoMaxAge maximal allowed age in milliseconds
+ * @param {Function} callback
+ */
+function getLocation(geoAccuracy, geoTimeout, geoMaxAge, callback) {
+  var ausgabe = globalThis.document && globalThis.document.getElementById("infogeo");
+  geo_callback = callback;
+  if (!navigator.geolocation) {
+    //maybe there is a position in a cookie
+    //because the user had been asked for his address
+    var coords = getCookie('coords');
+    if (coords) {
+      var tmpcoords = JSON.parse(coords);
+      if (tmpcoords && tmpcoords['lat'] > 0 && tmpcoords['long'] > 0) {
+        testVisualization.setLocation(tmpcoords['lat'], tmpcoords['long']);
+      }
+    } else if (ausgabe) {
+      ausgabe.innerHTML = Lang.getString('NotSupported');
+    }
+    runCallback();
+    return;
+  }
+  runCallback();
+  //var TestEnvironment.getGeoTracker() = new GeoTracker();
+  TestEnvironment.getGeoTracker().start(function (successful, error) {
+    if (successful !== true && ausgabe) {
+      //user did not allow geolocation or other reason
+      if (error) {
+        switch (error.code) {
+          case error.PERMISSION_DENIED:
+            ausgabe.innerHTML = Lang.getString('NoPermission');
+            break;
+          case error.TIMEOUT:
+            //@TODO: Position is determined...
+            //alert(1);
+            break;
+          case error.POSITION_UNAVAILABLE:
+            ausgabe.innerHTML = Lang.getString('NotAvailable');
+            break;
+          case error.UNKNOWN_ERROR:
+            ausgabe.innerHTML = Lang.getString('NotAvailable') + "(" + error.code + ")";
+            break;
+        }
+      } else {
+        //Internet Explorer 11 in some cases does not return an error code
+        ausgabe.innerHTML = Lang.getString('NotAvailable');
+      }
+    }
+  }, TestEnvironment.getTestVisualization());
+}
 
 //Geolocation tracking
 var GeoTracker = function () {
