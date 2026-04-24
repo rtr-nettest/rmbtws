@@ -1,13 +1,6 @@
 import terser from "@rollup/plugin-terser";
 import babel from "@rollup/plugin-babel";
-
-const outPlugins = [
-    terser({
-        output: {
-            comments: "some",
-        },
-    }),
-];
+import { readFileSync } from "fs";
 
 const removeExports = () => {
     return {
@@ -25,6 +18,21 @@ const removeExports = () => {
     };
 };
 
+const addBackLicense = () => {
+    return {
+        name: "add-back-license",
+        renderChunk(code) {
+            const license = readFileSync("index.js", "utf-8").split(
+                '"use strict";',
+            )[0];
+            return {
+                code: license + code,
+                map: null,
+            };
+        },
+    };
+};
+
 export default {
     input: "index.js",
     output: [
@@ -35,7 +43,15 @@ export default {
         },
         {
             file: "dist/rmbtws.min.js",
-            plugins: [removeExports(), ...outPlugins],
+            plugins: [
+                removeExports(),
+                terser({
+                    output: {
+                        comments: "some",
+                    },
+                }),
+                addBackLicense(),
+            ],
             sourcemap: true,
         },
         // ESM
@@ -44,7 +60,13 @@ export default {
         },
         {
             file: "dist/esm/rmbtws.min.js",
-            plugins: outPlugins,
+            plugins: [
+                terser({
+                    output: {
+                        comments: "some",
+                    },
+                }),
+            ],
             sourcemap: true,
         },
     ],
@@ -53,5 +75,5 @@ export default {
             presets: ["@babel/preset-env"],
         }),
     ],
-    treeshake: false,
+    treeshake: true,
 };
