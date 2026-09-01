@@ -1086,7 +1086,7 @@ export function RMBTTest(rmbtTestConfig, rmbtControlServer) {
      */
     function prepareResult(registrationResponse) {
         return {
-            client_language: "de",
+            client_language: _rmbtTestConfig.language,
             client_name: _rmbtTestConfig.client,
             client_uuid: _rmbtTestConfig.uuid,
             client_version: _rmbtTestConfig.client_version,

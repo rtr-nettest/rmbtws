@@ -41,7 +41,7 @@ export let RMBTTestConfig = (function () {
     RMBTTestConfig.prototype.additionalSubmissionParameters = {}; //will be transmitted in ControlServer result submission, if any
 
     function RMBTTestConfig(language, controlProxy, wsPath) {
-        this.language = language;
+        this.language = language || (globalThis.navigator && globalThis.navigator.language ? globalThis.navigator.language.substring(0, 2) : "en");
         this.controlServerURL = controlProxy + "/" + wsPath;
 
         if (typeof Intl !== 'undefined' && Intl.DateTimeFormat().resolvedOptions().timeZone) {
