@@ -1092,6 +1092,7 @@ export function RMBTTest(rmbtTestConfig, rmbtControlServer) {
             client_version: _rmbtTestConfig.client_version,
             client_software_version: _rmbtTestConfig.client_software_version,
             geoLocations: _rmbtTestResult.geoLocations,
+            device: _rmbtTestConfig.device,
             model: _rmbtTestConfig.model,
             network_type: 98,
             platform: _rmbtTestConfig.platform,

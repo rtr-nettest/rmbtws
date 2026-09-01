@@ -11,6 +11,7 @@ export let RMBTTestConfig = (function () {
     RMBTTestConfig.prototype.os_version = 1;
     RMBTTestConfig.prototype.platform = "RMBTws";
     RMBTTestConfig.prototype.model = "Websocket";
+    RMBTTestConfig.prototype.device = "rmbtws"; //client identifier; the consuming web app overrides it, e.g. "Webpage <git-tag version>"
     RMBTTestConfig.prototype.product = "Chrome";
     RMBTTestConfig.prototype.client = "RMBTws";
     RMBTTestConfig.prototype.timezone = "Europe/Vienna";
