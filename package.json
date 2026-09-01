@@ -1,7 +1,7 @@
 {
     "private": false,
     "name": "rmbtws",
-    "version": "0.9.6",
+    "version": "0.0.0-dev",
     "description": "A JavaScript implementation of a WebSocket-client for the RMBT protocol",
     "homepage": "https://www.netztest.at/",
     "repository": "rtr-nettest/rmbtws",
@@ -28,7 +28,7 @@
         "plugins": []
     },
     "scripts": {
-        "build": "node concat.mjs && rollup -c",
+        "build": "node concat.mjs && node set-version.mjs && rollup -c",
         "watch": "chokidar \"src/**/*.js\" -c \"npm run build\""
     },
     "devDependencies": {

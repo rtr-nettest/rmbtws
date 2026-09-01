@@ -1111,7 +1111,7 @@ export function RMBTTest(rmbtTestConfig, rmbtControlServer) {
             time: _rmbtTestResult.beginTime,
             timezone: _rmbtTestConfig.timezone,
             type: "DESKTOP",
-            version_code: "1",
+            version_code: "0", //real software version lives in the git tag (injected into client_software_version at build time)
             speed_detail: _rmbtTestResult.speedItems,
             user_server_selection: _rmbtTestConfig.userServerSelection
         };

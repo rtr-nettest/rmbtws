@@ -1,0 +1,41 @@
+name: Build
+
+permissions:
+  contents: write
+
+on:
+  push:
+    branches: ["**"]
+    tags: ["v*"]
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      # Full history + tags so set-version.mjs can derive the version via
+      # `git describe --tags` (see the "build" script).
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      # No package-lock is committed (see .gitignore), so use `npm install`.
+      - run: npm install
+      - run: npm run build
+      - name: Package dist
+        run: cd dist && zip -r ../rmbtws-dist.zip . && cd ..
+      # Downloadable from every workflow run (build check for pushes/PRs).
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: rmbtws-dist
+          path: dist/
+      # On a version tag, attach the built dist to the GitHub Release.
+      - name: Attach dist to release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: rmbtws-dist.zip

@@ -3,7 +3,7 @@
 
 .idea
 coverage
-# dist
+/dist
 docs/dist
 node_modules
 npm-debug.log

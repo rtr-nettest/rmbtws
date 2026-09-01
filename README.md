@@ -12,9 +12,24 @@ measurements, based on the WebSocket protocol
 * [RTR-Netztest/open-rmbt](https://github.com/rtr-nettest/open-rmbt)
   
   
-### Usage
+### Getting the compiled `dist` files
 
-For building the compiled `dist`-files, just run `npm install` and generate the files with `gulp`.
+The compiled `dist/` files are **not committed** to this repository. Obtain them in one of two ways:
+
+* **Download from a release:** every version tag (`v*`) publishes the built `dist/` as an asset under
+  [Releases](https://github.com/rtr-nettest/rmbtws/releases) (produced by the `Build` GitHub Actions workflow).
+* **Build locally:**
+
+  ```
+  npm install
+  npm run build
+  ```
+
+  This concatenates the sources (`concat.mjs`), stamps the version derived from the git tag into the bundle
+  (`set-version.mjs`), and produces `dist/` with rollup. The version reported to the server
+  (`client_software_version`) comes from `git describe --tags`, so build from a checkout that has the tags.
+
+### Usage
 
 A demo file on how to use this client is provided in the "test"-Folder. It can be used when
 serving from a web server, e.g. the command-line `http-server` provided on the npm registry.
@@ -32,8 +47,8 @@ you agree to the [Privacy Policy](https://www.rtr.at/en/tk/netztestprivacypolicy
 
 ### License
 
-Copyright 2015-2019 Rundfunk und Telekom Regulierungs-GmbH (RTR-GmbH). This source code is licensed under the Apache license found in
-the [LICENSE.txt](https://github.com/rtr-nettest/rmbtws/blob/master/LICENSE.txt) file.
+Copyright 2015-2026 Rundfunk und Telekom Regulierungs-GmbH (RTR-GmbH). This source code is licensed under 
+the Apache license found in the [LICENSE.txt](https://github.com/rtr-nettest/rmbtws/blob/master/LICENSE.txt) file.
 The documentation to the project is licensed under the [CC BY-AT 3.0](https://creativecommons.org/licenses/by/3.0/at/deed.de_AT)
 license.
 
