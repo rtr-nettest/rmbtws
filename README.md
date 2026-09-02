@@ -1,17 +1,14 @@
 # RMBT Websocket Client
 
-
 > This project contains a JavaScript client for conducting [RMBT](https://www.netztest.at/doc/)-based speed 
 measurements, based on the WebSocket protocol
-
 
 ### Related materials
 
 * [RMBT specification](https://www.netztest.at/doc/)
 * [Demo implementation of this client](https://www.netztest.at/en/Test)
 * [RTR-Netztest/open-rmbt](https://github.com/rtr-nettest/open-rmbt)
-  
-  
+   
 ### Getting the compiled `dist` files
 
 The compiled `dist/` files are **not committed** to this repository. Obtain them in one of two ways:
