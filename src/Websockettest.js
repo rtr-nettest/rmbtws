@@ -503,7 +503,7 @@ export function RMBTTest(rmbtTestConfig, rmbtControlServer) {
             } else if (event.data === "OK\n" && thread.state === TestState.INIT) {
                 _logger.debug(thread.id + ": Token accepted");
             } else if (event.data === "ERR\n") {
-                errorHandler();
+                callErrorCallback(RMBTError.SERVER_ERROR);
                 _logger.error("got error msg");
             } else if (event.data.indexOf("ACCEPT GETCHUNKS") === 0) {
                 thread.triggerNextState();

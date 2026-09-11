@@ -333,5 +333,7 @@ const RMBTError = {
     SOCKET_INIT_FAILED : "WebSocket initialization failed",
     CONNECT_FAILED : "connection to test server failed",
     SUBMIT_FAILED : "Error during submission of test results",
-    REGISTRATION_FAILED : "Error during test registration"
+    REGISTRATION_FAILED : "Error during test registration",
+    //the test server accepted the connection but answered with "ERR"
+    SERVER_ERROR : "The measurement server responded with ERR"
 };
