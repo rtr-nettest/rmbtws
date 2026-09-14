@@ -488,9 +488,9 @@ export function RMBTTest(rmbtTestConfig, rmbtControlServer) {
                     ", max: " + MAX_CHUNK_SIZE +
                     ", default: " + DEFAULT_CHUNK_SIZE);
             } else if (event.data.indexOf("RMBTv") === 0) {
-                //get server version
+                //get server version -> client_software_version
                 let version = event.data.substring(5).trim();
-                _rmbtTestConfig.client_version = version;
+                _rmbtTestConfig.client_software_version = version;
                 if (version.indexOf("1.") === 0) {
                     _changeChunkSizes = true;
                 } else if (version.indexOf("0.3") === 0) {
