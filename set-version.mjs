@@ -36,10 +36,10 @@ function main() {
         throw new Error("index.js not found - run concat.mjs before set-version.mjs");
     }
     const version = getVersion();
-    const pattern = /(client_software_version\s*=\s*)"[^"]*"/;
+    const pattern = /(client_version\s*=\s*)"[^"]*"/;
     const content = fs.readFileSync(indexPath, "utf-8");
     if (!pattern.test(content)) {
-        throw new Error("Could not find client_software_version assignment in index.js");
+        throw new Error("Could not find client_version assignment in index.js");
     }
     fs.writeFileSync(
         indexPath,

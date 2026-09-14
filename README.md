@@ -24,7 +24,7 @@ The compiled `dist/` files are **not committed** to this repository. Obtain them
 
   This concatenates the sources (`concat.mjs`), stamps the version derived from the git tag into the bundle
   (`set-version.mjs`), and produces `dist/` with rollup. The version reported to the server
-  (`client_software_version`) comes from `git describe --tags`, so build from a checkout that has the tags.
+  (`client_version`) comes from `git describe --tags`, so build from a checkout that has the tags.
 
 ### Usage
 
