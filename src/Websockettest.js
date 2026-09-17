@@ -488,9 +488,9 @@ export function RMBTTest(rmbtTestConfig, rmbtControlServer) {
                     ", max: " + MAX_CHUNK_SIZE +
                     ", default: " + DEFAULT_CHUNK_SIZE);
             } else if (event.data.indexOf("RMBTv") === 0) {
-                //get server version -> client_software_version
+                //get RMBT server version -> client_version
                 let version = event.data.substring(5).trim();
-                _rmbtTestConfig.client_software_version = version;
+                _rmbtTestConfig.client_version = version;
                 if (version.indexOf("1.") === 0) {
                     _changeChunkSizes = true;
                 } else if (version.indexOf("0.3") === 0) {
@@ -1112,7 +1112,7 @@ export function RMBTTest(rmbtTestConfig, rmbtControlServer) {
             time: _rmbtTestResult.beginTime,
             timezone: _rmbtTestConfig.timezone,
             type: "DESKTOP",
-            version_code: "0", //real software version lives in the git tag (injected into client_version at build time)
+            version_code: "0", //real software version lives in the git tag (injected into client_software_version at build time)
             speed_detail: _rmbtTestResult.speedItems,
             user_server_selection: _rmbtTestConfig.userServerSelection
         };

@@ -4,9 +4,11 @@ import { execSync } from "child_process";
 
 /**
  * Injects the version derived from the git tag into the bundle input `index.js`
- * (produced by concat.mjs, git-ignored), so the version reported to the
- * measurement server follows the git tag - including the commit hash so a build
- * can always be traced back to an exact commit.
+ * (produced by concat.mjs, git-ignored), so the rmbtws library version reported
+ * to the measurement server as `client_software_version` follows the git tag -
+ * including the commit hash so a build can always be traced back to an exact
+ * commit. (The RMBT server version is reported separately as `client_version`,
+ * filled at runtime from the server greeting.)
  *
  * This runs AFTER concat.mjs and only rewrites the git-ignored `index.js`; the
  * tracked source (`src/`) and `package.json` keep their `0.0.0-dev` placeholder,
@@ -36,10 +38,10 @@ function main() {
         throw new Error("index.js not found - run concat.mjs before set-version.mjs");
     }
     const version = getVersion();
-    const pattern = /(client_version\s*=\s*)"[^"]*"/;
+    const pattern = /(client_software_version\s*=\s*)"[^"]*"/;
     const content = fs.readFileSync(indexPath, "utf-8");
     if (!pattern.test(content)) {
-        throw new Error("Could not find client_version assignment in index.js");
+        throw new Error("Could not find client_software_version assignment in index.js");
     }
     fs.writeFileSync(
         indexPath,
