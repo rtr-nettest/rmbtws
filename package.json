@@ -39,5 +39,8 @@
         "@rollup/plugin-terser": "^1.0.0",
         "chokidar-cli": "^3.0.0",
         "rollup": "^4.59.0"
+    },
+    "overrides": {
+        "serialize-javascript": "7.1.2"
     }
 }
